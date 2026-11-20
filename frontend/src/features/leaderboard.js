@@ -1,0 +1,7 @@
+import { $, escape } from '../core/utils.js';
+import { db, user, save } from '../core/state.js';
+import { avatar } from '../ui/components.js';
+import { modal } from '../ui/modal.js';
+import { profile } from './profile.js';
+
+export function leaderboard(){let region=false;function show(){let users=db.users.filter(u=>!u.guest && (!region||u.city&&u.city===user.city)).sort((a,b)=>b.xp-a.xp);$('view').innerHTML='<p class="eyebrow">SIRALAMA</p><h1>Liderlik tablosu</h1><p class="muted">Bu geliştirme sürümünde yalnızca bu tarayıcıdaki profiller sıralanır.</p><div class="actions"><button id="global" class="'+(!region?'active':'')+'">Global</button><button id="regional" class="'+(region?'active':'')+'">Şehir</button></div><div class="card section">'+(users.map((u,i)=>'<div class="row"><div class="actions"><b>#'+(i+1)+'</b>'+avatar(u,true)+'<button data-user="'+u.id+'">'+escape(u.name)+'</button><span class="badge">'+u.level+'</span></div><strong>'+u.xp+' XP</strong></div>').join('')||'<p>Şehrindeki yerel profil bulunamadı.</p>')+'</div>';$('global').onclick=()=>{region=false;show()};$('regional').onclick=()=>{if(!user.city){modal('<h2>Şehrini seç</h2><p>Şehir sıralaması için konumunu paylaşmak zorunda değilsin. Şimdilik şehir adını yaz.</p><input name="city" required placeholder="İzmir">',d=>{user.city=d.get('city').trim();save();region=true;show()})}else{region=true;show()}};$('view').querySelectorAll('[data-user]').forEach(b=>b.onclick=()=>profile(db.users.find(u=>u.id===b.dataset.user)))}show()}

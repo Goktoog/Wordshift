@@ -1,0 +1,1 @@
+{"name":"wordshift","version":"0.2.0","private":true,"type":"module","scripts":{"start":"node backend/dev-server.js","check":"node scripts/check.mjs && node scripts/smoke.mjs"},"engines":{"node":">=18"}}

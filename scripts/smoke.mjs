@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
+if (!globalThis.crypto) globalThis.crypto=webcrypto;
+// Minimal DOM stand-in for module loading, state transitions, and local storage.
+// This is not a substitute for real browser UI tests.
+const els = new Map();
+const elem = id => {
+  if (!els.has(id)) els.set(id, {id,hidden:false,style:{},dataset:{},value:'',innerHTML:'',classList:{add(){},remove(){},toggle(){}},querySelectorAll(){return []},insertAdjacentHTML(){}});
+  return els.get(id);
+};
+globalThis.confirm=()=>true;globalThis.history={replaceState(){},pushState(){}};globalThis.window={addEventListener(){}};
+globalThis.document={getElementById:elem,querySelectorAll(){return []},body:{dataset:{}}};
+const storage=new Map();
+globalThis.localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
+await import('../frontend/src/main.js');
+elem('guest').onclick();
+const state=await import('../frontend/src/core/state.js');
+const {go}=await import('../frontend/src/core/router.js');
+const {begin}=await import('../frontend/src/features/session.js');
+assert.equal(state.user.name,'Misafir');
+const set=state.user.sets[0];
+go('sets'); go('detail',set.id);
+begin('cards',set); elem('flip').onclick(); elem('know').onclick();
+assert.equal(state.user.stats.correct,1);
+assert.equal(JSON.parse(storage.get('wordshift-v1')).users[0].stats.correct,1);
+go('games'); begin('battle',set); go('leaderboard'); go('profile');
+console.log('Module and local state smoke tests passed.');
