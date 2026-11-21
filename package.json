@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node backend/dev-server.js",
     "check": "node scripts/check.mjs",
-    "test:games": "node scripts/game-logic-check.mjs"
+    "test:games": "node scripts/game-logic-check.mjs",
+    "test:mistakes": "node scripts/mistakes-check.mjs && node scripts/pvp-credit-check.mjs"
   },
   "engines": {
     "node": ">=18"

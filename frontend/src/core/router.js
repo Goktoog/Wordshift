@@ -15,6 +15,7 @@ import { profile } from '../features/profile.js';
 import { leaderboard } from '../features/leaderboard.js';
 import { discoverySearch, bindDiscovery, explore, openShared } from '../features/explore.js';
 import { openUser } from '../features/people.js';
+import { mistakesPage } from '../features/mistakes-page.js';
 export let folderFilter=null, routeArg=null;
 export function initNavigation(){
  history.replaceState({page:'home'},'');
@@ -63,6 +64,7 @@ export function render(){
   $('onlineLobby').onclick=()=>openOnline();mountPools($('gamePools'),mode=>openOnline(null,mode,true));bindActions(chooseSet);return;
  }
  if(page==='leaderboard'){leaderboard();return}
+ if(page==='mistakes'){mistakesPage();return}
  if(page==='profile'){profile(user);return}
  if(page==='study'){study();return}
  if(page==='play'){play();return}

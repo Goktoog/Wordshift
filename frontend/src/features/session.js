@@ -9,6 +9,7 @@ import { go, render } from '../core/router.js';
 import { newSet } from './sets.js';
 import { updateProgress, reviewItems, itemProgress } from './progress.js';
 import { computeLevel, logAnswer } from './level.js';
+import { noteMistake } from './mistakes.js';
 export const gameModes=['runner','battle','blocks','meteor','sentences'];
 export function chooseSet(m){
  if(m==='sentences'){begin(m,sentenceSet(user.level||'A1'));return}
@@ -18,6 +19,7 @@ export function record(x,ok,withSound=true){
  const set=current();if(!set)return;
  updateProgress(user,set,x,ok);
  user.stats.total++;user.stats.correct+=ok?1:0;if(ok)user.xp+=10;
+ noteMistake(user,x,ok,session?.m!=='cards');
  // Kartlarda cevabı çevirip bakıldığı için kart cevapları seviye kanıtı sayılmaz.
  const up=session?.m==='cards'?null:logAnswer(user,x,ok);
  user.level=computeLevel(user);
@@ -27,10 +29,10 @@ export function record(x,ok,withSound=true){
 // Kelime blokları gibi oyunlarda yanlış deneme: ilerleme kaydını bozmadan sadece seviye kanıtına yazılır.
 export function levelMiss(x){
  if(session?.m==='cards')return;
- logAnswer(user,x,false);save();
+ logAnswer(user,x,false);noteMistake(user,x,false);save();
 }
 export function skipItem(x){updateProgress(user,current(),x,null);session.skipped++;save()}
-export function returnToSet(){const s=current();go(s?.starterSource?'starter':s?.publicSource?'shared':'detail',s?.starterSource?s.id:s?.publicSource?{owner:s.ownerId,id:s.id}:s?.id)}
+export function returnToSet(){const s=current();if(s?.mistakes){go('mistakes');return}go(s?.starterSource?'starter':s?.publicSource?'shared':'detail',s?.starterSource?s.id:s?.publicSource?{owner:s.ownerId,id:s.id}:s?.id)}
 export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  if(!set)return;
  let source=onlyReview?reviewItems(user,set):set.items;
@@ -44,7 +46,7 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  if(!pool.length){toast(onlyReview?'Tekrar edilecek uygun içerik yok.':'Bu içerik seçimiyle bu modda çalışılacak öğe yok. Kelimeler veya Tüm içerikler seçimini dene.');return}
  clearInterval(timer);setSharedSet(set.publicSource?set:null);setSetId(set.id);
  // Keep browser Back pointing to the actual source set.
- history.pushState(gameModes.includes(m)?{page:'games'}:{page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id},'');
+ history.pushState(set.mistakes?{page:'mistakes'}:gameModes.includes(m)?{page:'games'}:{page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id},'');
  setSession({m,pool,i:0,score:0,skipped:0,flip:false,difficulty,deadline:Date.now()+(filter==='source-exam'?10800000:1800000),reviewOnly:onlyReview,settings});
  setPage(gameModes.includes(m)?'play':'study');
  if(m==='blocks'){

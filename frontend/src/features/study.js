@@ -1,6 +1,7 @@
 import { questionMedia } from './starters.js';
 import { $, escape } from '../core/utils.js';
-import { session, timer, setTimer, page } from '../core/state.js';
+import { session, timer, setTimer, page, user } from '../core/state.js';
+import { noteMistake } from './mistakes.js';
 import { record, skipItem, finish, topStudy, exitBind, answerMarkup, bindAnswer, matchesAnswer } from './session.js';
 import { typeNames } from './sets.js';
 
@@ -31,7 +32,7 @@ export function study(){
   flip.onpointercancel=()=>{startX=null};return;
  }
  q.innerHTML=`<span class="badge">${escape(x.level)}</span><p class="muted">${typeNames[x.type]||'Soru'}</p><h2 style="white-space:pre-wrap">${escape(x.front)}</h2>${questionMedia(x)}<div id="answers">${answerMarkup(x,mode==='learn'&&s.i%2===0)}</div><button id="skip" class="section">Boş bırak / Geç →</button>`;
- $('skip').onclick=()=>{if(locked||!alive())return;locked=true;skipItem(x);next()};
+ $('skip').onclick=()=>{if(locked||!alive())return;locked=true;skipItem(x);noteMistake(user,x,null);next()};
  bindAnswer(x,(value,button)=>{
   if(locked||!alive())return;
   if(mode==='exam'&&Date.now()>=s.deadline){for(const item of s.pool.slice(s.i))skipItem(item);finish();return}
