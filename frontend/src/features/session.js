@@ -1,4 +1,4 @@
-import { starterSets, sourceLabel } from './starters.js';
+import { starterSets } from './starters.js';
 import { $, escape, shuffle, levels } from '../core/utils.js';
 import { user, timer, session, save, allWords, current, setSetId, setSession, setPage, setSharedSet } from '../core/state.js';
 import { modal } from '../ui/modal.js';

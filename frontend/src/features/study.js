@@ -1,4 +1,4 @@
-import { sourceLabel, questionMedia } from './starters.js';
+import { questionMedia } from './starters.js';
 import { $, escape } from '../core/utils.js';
 import { session, timer, setTimer, page } from '../core/state.js';
 import { record, skipItem, finish, topStudy, exitBind, answerMarkup, bindAnswer, matchesAnswer } from './session.js';
@@ -30,7 +30,7 @@ export function study(){
   flip.onpointerup=e=>{if(startX===null)return;const dx=e.clientX-startX,dy=e.clientY-startY;startX=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)){dragged=true;grade(dx>0)}};
   flip.onpointercancel=()=>{startX=null};return;
  }
- q.innerHTML=`<span class="badge">${escape(x.level)}</span><p class="muted">${typeNames[x.type]||'Soru'}</p><p class="notice">${escape(sourceLabel(x))}</p><h2 style="white-space:pre-wrap">${escape(x.front)}</h2>${questionMedia(x)}<div id="answers">${answerMarkup(x,mode==='learn'&&s.i%2===0)}</div><button id="skip" class="section">Boş bırak / Geç →</button>`;
+ q.innerHTML=`<span class="badge">${escape(x.level)}</span><p class="muted">${typeNames[x.type]||'Soru'}</p><h2 style="white-space:pre-wrap">${escape(x.front)}</h2>${questionMedia(x)}<div id="answers">${answerMarkup(x,mode==='learn'&&s.i%2===0)}</div><button id="skip" class="section">Boş bırak / Geç →</button>`;
  $('skip').onclick=()=>{if(locked||!alive())return;locked=true;skipItem(x);next()};
  bindAnswer(x,(value,button)=>{
   if(locked||!alive())return;
