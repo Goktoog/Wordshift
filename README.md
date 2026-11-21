@@ -14,9 +14,19 @@ Wordshift; kişisel çalışma setlerini, dil alıştırmalarını ve kelime oyu
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
 - **Oyunlar:** Word Runner, Amiral Battı (bot), Eşleştirme, Bloklar ve Meteor Avı.
 - **Hesaplar:** Google veya e-posta/şifre ile giriş ve kayıt; şifre sıfırlama, şifre görünürlüğü ve kayıt şifresi eşleştirme.
-- **Profil:** Görünen ad, profil görseli ve kapak görseli.
+- **Profil:** Görünen ad; doğrudan fotoğraf/kapak üzerinden kalem düğmesiyle düzenleme; sürükleme ve yakınlaştırmalı kırpma; arama yapılabilen 81 il listesi.
 - **Keşfet:** Kullanıcıların özellikle paylaştığı setlerde arama ve bağımsız kopya oluşturma.
+- **Site simgesi:** Markanın elmas sembolü ve yeşil noktası; SVG favicon, ICO yedeği ve Apple dokunmatik simgesi.
 - **Temalar:** Koyu ve açık tema; doğru/yanlış cevap efektleri.
+
+## Profil görselleri ve şehir seçimi
+
+- Profil fotoğrafının veya kapak görselinin üzerine gelince kalem düğmesi görünür. Dokunmatik cihazlarda düğmeler sürekli görünür.
+- Görseli seçince kırpma ekranı açılır. Sürükleyerek konumlandır, kaydırıcıyla yakınlaştır ve **Kırp ve kaydet** düğmesine bas. Vazgeç mevcut görseli korur; kayıt hatasında kırpma ekranı açık kalır.
+- Profil fotoğrafı dairesel önizlemeyle, kapak 4:1 oranıyla gösterilir. Önizleme ve kaydedilen görsel aynı kırpma alanını kullanır. PNG/JPG/WebP, en fazla 10 MB ve 40 milyon piksel kabul edilir. Çıktı WebP'dir: fotoğraf 512×512, kapak 1600×400.
+- **Profili düzenle** düğmesi kullanılmaya devam eder. Bu formdan da fotoğraf ve kapak seçilebilir; görseller kırpma ekranında ayrı kaydedilir.
+- Şehir seçimini açınca 81 il alfabetik ve kaydırılabilir listelenir. Arama adın başlangıcına göre filtreler: `a` → Adana, Amasya, Ankara… Türkçe karakter olmadan `sanli` veya `istanbul` da yazılabilir. Ok tuşları ve Enter ile seçim, Escape ile listeyi kapatma desteklenir. Şehir belirtmek isteğe bağlıdır.
+- Bu profil güncellemesi yeni SQL veya Supabase ayarı gerektirmez. Hesap görselleri mevcut Storage üzerinden, misafir görselleri tarayıcıda saklanır.
 
 ## Başlangıç kütüphanesi
 
@@ -165,7 +175,7 @@ npm install --prefix tests
 npm test --prefix tests
 ```
 
-Testler kişisel veri izolasyonunu, topluluk paylaşımını, öğrenme/oyun akışlarını, hesap arayüzünü, başlangıç setlerini ve 80 kaynak sorunun cevap eşleşmesini kontrol eder. Kimlik doğrulama testlerinde taklit servis kullanılır; canlı Google girişini veya SMTP teslimatını kanıtlamaz.
+Testler kişisel veri izolasyonunu, topluluk paylaşımını, öğrenme/oyun akışlarını, hesap arayüzünü, başlangıç setlerini, 80 kaynak sorunun cevap eşleşmesini, il seçimini ve kırpma geometrisini kontrol eder. Kırpma arayüzü testlerinde tarayıcı görsel API’leri taklit edilir; gerçek tarayıcı görüntüleme kontrolünün yerini tutmaz. Kimlik doğrulama testlerinde taklit servis kullanılır; canlı Google girişini veya SMTP teslimatını kanıtlamaz.
 
 Yayın sonrası kontrol:
 

@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node community-sql.mjs && node study-ui.mjs && node discovery-ui.mjs && node auth-ui.mjs && node auth-callback.mjs && node starter-ui.mjs"
+    "test": "node community-sql.mjs && node study-ui.mjs && node discovery-ui.mjs && node auth-ui.mjs && node auth-callback.mjs && node starter-ui.mjs && node profile-ui.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.17",

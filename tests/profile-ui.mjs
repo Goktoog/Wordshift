@@ -1,0 +1,42 @@
+import {registerHooks} from 'node:module';
+import {Window} from 'happy-dom';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {cities,searchCities,canonicalCity} from '../frontend/src/data/cities.js';
+import {cropGeometry,validateImageFile,cropImage} from '../frontend/src/ui/image-cropper.js';
+registerHooks({load(url,context,next){if(url.endsWith('/services/cloud.js'))return {format:'module',shortCircuit:true,source:`export const client=async()=>({});export const queueCloud=()=>{};export const flushCloud=async()=>{};export const resetCloud=()=>{};export const loadCloud=async()=>{};export const SITE_URL='https://goktoog.github.io/Wordshift/';export const uploadImage=async(blob,kind)=>{globalThis.uploads.push({blob,kind});if(globalThis.failUpload)throw Error('Upload failed');return 'https://example.test/'+kind+'.webp'};`};return next(url,context)}});
+assert.equal(cities.length,81);assert.equal(new Set(cities).size,81);assert.deepEqual(cities,[...cities].sort((a,b)=>a.localeCompare(b,'tr')));
+assert.ok(searchCities('a').includes('Ankara')&&searchCities('A').includes('Amasya'));assert.ok(!searchCities('a').includes('Bursa'));
+assert.deepEqual(searchCities('sanli'),['Şanlıurfa']);assert.equal(canonicalCity('istanbul'),'İstanbul');assert.equal(canonicalCity(' izmir '),'İzmir');assert.equal(canonicalCity('not a city'),'');
+for(const [w,h] of [[2000,1000],[400,2400],[800,800],[1,5000],[5000,1]])for(const ratio of [1,4])for(const zoom of [1,2,3])for(const [cx,cy] of [[.5,.5],[-2,4],[10,-5]]){
+ const g=cropGeometry(w,h,ratio,zoom,cx,cy);assert.ok(g.sx>=0&&g.sy>=0);assert.ok(g.sx+g.sw<=w+.00001&&g.sy+g.sh<=h+.00001);assert.ok(Math.abs(g.sw/g.sh-ratio)<.000001);
+}
+assert.deepEqual(cropGeometry(2000,1000,1),{sx:500,sy:0,sw:1000,sh:1000,cx:.5,cy:.5});
+assert.throws(()=>validateImageFile({size:100,type:'image/svg+xml'}));assert.throws(()=>validateImageFile({size:10000001,type:'image/png'}));
+const win=new Window({url:'http://localhost:3000',settings:{disableJavaScriptEvaluation:true,disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
+Object.assign(globalThis,{window:win,document:win.document,history:win.history,localStorage:win.localStorage,FormData:win.FormData,confirm:()=>true,alert:()=>{},uploads:[],failUpload:false});
+document.write(readFileSync(new URL('../frontend/index.html',import.meta.url),'utf8').replace(/<script[^>]*>[\s\S]*?<\/script>/g,''));
+const state=await import('../frontend/src/core/state.js');const {initNavigation,go}=await import('../frontend/src/core/router.js');const {initModal}=await import('../frontend/src/ui/modal.js');const {profile,saveProfileMedia}=await import('../frontend/src/features/profile.js');
+const account={id:'me',name:'Ayşe',guest:false,avatar:'',banner:'',city:'Ankara',sets:[],folders:[],xp:0,level:'A1',stats:{correct:0,total:0}};state.setUser(account);state.db.users.push(account);initNavigation();initModal();go('profile');
+const $=id=>document.getElementById(id);
+assert.ok($('editAvatar')&&$('editBanner')&&$('editProfile'));assert.equal($('editAvatar').getAttribute('aria-label'),'Profil fotoğrafını değiştir');
+$('editProfile').click();$('cityToggle').click();assert.equal(document.querySelectorAll('#cityOptions [role="option"]').length,81);
+$('citySearch').value='a';$('citySearch').dispatchEvent(new win.Event('input'));assert.ok($('cityOptions').textContent.includes('Ankara'));
+$('citySearch').value='izmir';$('citySearch').dispatchEvent(new win.Event('input'));$('citySearch').dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));$('citySearch').dispatchEvent(new win.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal($('cityValue').value,'İzmir');
+$('profileName').value='  ';await $('modalForm').onsubmit({preventDefault(){},target:$('modalForm')});assert.ok($('dialog').open);assert.equal(account.name,'Ayşe');
+$('profileName').value='Ayşe Yeni';await $('modalForm').onsubmit({preventDefault(){},target:$('modalForm')});assert.equal(account.name,'Ayşe Yeni');assert.equal(account.city,'İzmir');assert.equal($('dialog').open,false);
+const blob=new Blob(['image'],{type:'image/webp'});await saveProfileMedia(account,'avatar',blob);assert.equal(account.avatar,'https://example.test/avatar.webp');assert.equal(uploads[0].blob,blob);
+globalThis.failUpload=true;await assert.rejects(saveProfileMedia(account,'banner',blob));assert.equal(account.banner,'');globalThis.failUpload=false;
+profile({...account,id:'other'});assert.equal($('editAvatar'),null);assert.equal($('editBanner'),null);assert.equal($('editProfile'),null);go('profile');
+// Simulated browser raster APIs: verify preview/export geometry, cancellation, and failed-save retry.
+let revoked=0,preview=[],exports=[];
+const oldURL={create:URL.createObjectURL,revoke:URL.revokeObjectURL};URL.createObjectURL=()=> 'blob:fixture';URL.revokeObjectURL=()=>revoked++;
+globalThis.Image=class {naturalWidth=1800;naturalHeight=1200;set src(v){queueMicrotask(()=>this.onload())}};
+win.HTMLCanvasElement.prototype.getContext=function(){const target=this;return {clearRect(){},drawImage(...args){(target.id==='cropCanvas'?preview:exports).push(args.slice(1))}}};
+win.HTMLCanvasElement.prototype.toBlob=function(cb,type){cb(new Blob(['webp'],{type}))};
+const file={size:1024,type:'image/png'},tick=()=>new Promise(r=>setTimeout(r,0));let saves=0;
+let pending=cropImage(file,'avatar',async()=>{saves++});await tick();assert.ok($('cropCanvas'));$('cropZoom').value='2';$('cropZoom').dispatchEvent(new win.Event('input'));$('cropCanvas').dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowRight'}));const framed=preview.at(-1).slice(0,4);await $('cropSave').onclick();assert.equal(await pending,true);assert.equal(saves,1);assert.deepEqual(exports.at(-1).slice(0,4),framed);assert.deepEqual(exports.at(-1).slice(-2),[512,512]);assert.equal(document.querySelector('.crop-dialog'),null);
+pending=cropImage(file,'banner',async()=>{saves++});await tick();$('cropCancel').click();assert.equal(await pending,false);assert.equal(saves,1);
+let fail=true;pending=cropImage(file,'banner',async()=>{if(fail)throw Error('Connection lost');saves++});await tick();await $('cropSave').onclick();assert.ok(document.querySelector('.crop-dialog'));assert.equal($('cropError').textContent,'Connection lost');assert.equal($('cropSave').disabled,false);fail=false;await $('cropSave').onclick();assert.equal(await pending,true);assert.equal(saves,2);assert.deepEqual(exports.at(-1).slice(-2),[1600,400]);assert.equal(revoked,3);
+URL.createObjectURL=oldURL.create;URL.revokeObjectURL=oldURL.revoke;
+await win.happyDOM.abort();console.log('PASS profile: 81 provinces, Turkish search/keyboard selection, name validation, owner-only media controls, save failure preserves old image, crop geometry bounds/aspects, matching preview/export, cancel and failed-save retry. Raster APIs mocked.');
