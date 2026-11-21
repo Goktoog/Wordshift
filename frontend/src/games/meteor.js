@@ -12,15 +12,15 @@ const MISSILE = '<svg viewBox="0 0 14 30" width="14" height="30" aria-hidden="tr
 export function meteor() {
   const s = session;
   if (s.i >= s.pool.length) { finish(); return; }
-  const x = s.pool[s.i], o = opts(x);
+  const x = s.pool[s.i], o = opts(x), deadline=Date.now()+10000;
   $('view').innerHTML = topStudy('Meteor avı') + '<div class="card"><h2>' + escape(x.front) + '</h2>' + timerMarkup() +
-    '<div class="space"><div class="rocket-wrap" id="rocket">' + ROCKET + '</div>' +
+    '<div class="space solo-meteor"><strong class="solo-target">' + escape(x.front) + '</strong><div class="rocket-wrap" id="rocket">' + ROCKET + '</div>' +
     o.map((v, i) => '<button class="meteor" data-meteor="' + i + '" style="left:' + (i % 2 ? 53 : 4) + '%;top:' + (25 + Math.floor(i / 2) * 105) + 'px">☄ ' + escape(v) + '</button>').join('') +
     '</div></div>';
   exitBind();
   s.firing = false;
   const arena = $('view').querySelector('.space'), rocket = $('rocket');
-  const base = () => ({ x: arena.clientWidth / 2, y: arena.clientHeight - 24 });
+  const base = () => ({ x: arena.clientWidth / 2, y: arena.clientHeight - 66 });
   const angleTo = (tx, ty) => { const b = base(); return Math.max(-85, Math.min(85, Math.atan2(tx - b.x, b.y - ty) * 180 / Math.PI)); };
   const aim = deg => { rocket.style.transform = 'rotate(' + deg + 'deg)'; };
   const alive = () => session === s && arena.isConnected;
@@ -35,13 +35,14 @@ export function meteor() {
     record(x, ok);
     if (ok) s.score++; else toast('Doğru: ' + x.back);
     if (chosen) { chosen.textContent = ok ? '✓' : '✕'; chosen.classList.add('exploded'); }
-    if (target) burst(target.x, target.y);
+    if (target) {burst(target.x, target.y);const view=$('view');view.classList.add('impact-shake');setTimeout(()=>view.classList.remove('impact-shake'),400);}
     if (ok) { const t = document.createElement('div'); t.className = 'big-tick'; t.textContent = '✓'; arena.append(t); }
     next(ok ? 900 : 1100);
   }
 
   $('view').querySelectorAll('[data-meteor]').forEach(b => b.onclick = () => {
     if (s.firing) return;
+    if(Date.now()>=deadline){s.firing=true;clearInterval(timer);resolve(false,null,null);return}
     s.firing = true; clearInterval(timer);
     arena.classList.add('firing');
     const a = arena.getBoundingClientRect(), r = b.getBoundingClientRect(), from = base();

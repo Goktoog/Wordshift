@@ -19,7 +19,9 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Word Runner, Amiral Battı (botla), Kelime blokları ve Meteor Avı.
+- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Tek oyunculu / botlu ve iki oyunculu çevrimiçi modlar.
+- **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
+- **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
 - **Gizli veya herkese açık setler:** Set oluştururken seçersin, istediğin zaman değiştirebilirsin. Setler varsayılan olarak yalnızca senindir; herkese açık seçersen Keşfet'te görünür.
 - **Liderlik tablosu:** XP'ye göre global ve şehir sıralaması.
@@ -32,15 +34,15 @@ Hazır setler herkes için görünür. Kişisel setlerine otomatik eklenmez; ile
 
 | Set | Kelime / kalıp | Soru |
 | --- | ---: | ---: |
-| A1 | 853 | 35 |
-| A2 | 827 | 35 |
-| B1 | 768 | 35 |
-| B2 | 703 | 35 |
-| C1 | 90 | 35 |
-| YDS | 278 | 115 |
-| YÖKDİL | 441 | 35 |
+| A1 | 853 | 55 |
+| A2 | 827 | 55 |
+| B1 | 768 | 55 |
+| B2 | 703 | 55 |
+| C1 | 90 | 55 |
+| YDS | 634 | 145 |
+| YÖKDİL | 441 | 45 |
 
-Toplam **3.960 kelime/kalıp kaydı ve 325 soru** vardır. Setler arasında ortak kelimeler bulunabilir. Soruların 245'i üretilmiş alıştırma, 80'i projeye sağlanan 2026 Nisan YDS PDF'indendir.
+Toplam **4.316 kelime/kalıp kaydı ve 465 soru** vardır. Setler arasında ortak kelimeler bulunabilir. Soruların 385'i üretilmiş alıştırma, 80'i projeye sağlanan 2026 Nisan YDS PDF'indendir.
 
 Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki YDS soruları (80) → Test / Deneme** yolunu kullan. Sorular ve gerekli okuma parçaları kaynak görselleriyle gösterilir. Kaynak soru seçiminde deneme süresi 180 dakika, diğer seçimlerde 30 dakikadır.
 
@@ -70,9 +72,44 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 
 ## Sınırlar
 
-- Çevrimiçi PvP henüz yoktur; Amiral Battı botla oynanır.
+- Çevrimiçi PvP kayıtlı iki hesapla oynanır. Misafirler tek oyunculu oyunları kullanabilir.
+- PvP maçları alıştırmadır; global XP sıralamasını veya CEFR rozetini değiştirmez. Sonuçlar sunucuda ayrı tutulur.
+- Kuyruklar yaklaşık 3 saniyede, maç durumu yaklaşık 1 saniyede güncellenir. Hareket animasyonları cihazda çalışır; cevap, süre, can ve sonuçlar Supabase tarafından belirlenir.
 - XP ve seviye rozetleri çalışma göstergesidir; resmî bir dil yeterlilik sonucu değildir.
 - Misafir verileri aynı tarayıcıda saklanır; hesaba otomatik taşınmaz.
+
+## 0.9 çevrimiçi oyun kurulumu
+
+Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js / Socket.io sunucusu açman gerekmez. Bu ZIP, gönderdiğin güncel proje üzerine hazırlanmıştır; sosyal özellikler, seviye sınavı ve mevcut içerikler korunmuştur.
+
+1. ZIP içindeki `Wordshift-GitHub/supabase/pvp.sql` dosyasını VS Code'da aç. **Ctrl+A → Ctrl+C** ile tamamını kopyala.
+2. [Supabase projenin SQL Editor sayfasını](https://supabase.com/dashboard/project/ageaooejmhwxpaajelbw/sql/new) aç. **New query** seç, yapıştır ve **Run** düğmesine bas. `Success. No rows returned` normaldir. Dosya tekrar çalıştırılabilir. Önceden kullanılan `setup.sql` kurulmuş olmalı; mevcut tabloları veya hesapları silmez.
+3. ZIP'in içindeki proje dosyalarını mevcut Git bağlantılı **Wordshift-GitHub** klasörünün içine kopyala, aynı dosyaları değiştir. `.git` klasörünü silme. Yeni clone veya Initialize Repository yapma.
+4. VS Code → **Source Control → Stage All → Commit → Push / Sync Changes**. GitHub Actions başarılı olunca siteyi **Ctrl+F5** ile yenile.
+5. İki ayrı hesap kullan: birinci tarayıcıda **Oyunlar → Oda oluştur / Koda katıl → oyun ve set seç → Arkadaş için oda oluştur**. İkinci hesapta aynı ekrandan 10 karakterli kodu gir. Aynı hesabın iki sekmesi iki rakip sayılmaz.
+6. Hızlı eşleşme için oyun havuzundaki **Online rakip ara** düğmesini kullan. Aynı oyun ve aynı profil seviyesindeki oyuncular eşleşir. Kimse yoksa beklenir; bot gerçek oyuncu gibi gösterilmez. Başka oyunun havuzuna geçilebilir. Oda koduyla farklı seviyedeki arkadaşlar da oynayabilir.
+7. Maç bittiğinde **Profilim → Çevrimiçi maç geçmişim** bölümüne bak. Satıra dokunarak ayrıntıları aç.
+
+### Oyun kuralları
+
+| Oyun | Çevrimiçi kural |
+| --- | --- |
+| Word Runner | Ortak başlangıç, 3 can. Engel sorusuna 10 saniye. Yanlış / boş cevap bir can götürür. Canı tükenen kaybeder. |
+| Meteor Avı | 3 can. Her hedef için 10 saniye. Yanlış hedef / sürede ateş etmemek bir can götürür. Roket sabittir; hedefe döner ve füze atar. |
+| Amiral Battı | 3, 2 ve 1 hücrelik gemiyi yerleştir/döndür. Filo hazırlığı 120 saniye. Cevap için 10 saniye, doğru cevaptan sonra atış için ayrıca 10 saniye. Sıralı oynanır; rakibin tüm gemilerini batıran kazanır. |
+| Kelime Blokları | Solda İngilizce, sağda Türkçe. En fazla 8 çift, 60 saniye. Doğru +100, yanlış −15 (puan sıfırın altına inmez). Yüksek puan; eşitse daha erken bitiren kazanır. |
+| Cümle Düellosu | Seviyeye göre 6 hazır cümle, cümle başına 20 saniye. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur. Doğru +100; toplam puanı yüksek olan kazanır. |
+
+- Runner ve Meteor'da iki oyuncu aynı turu tamamladıktan sonra canlar karşılaştırılır; ikisi de aynı turda son canını kaybederse berabere olur. Kelime havuzu bittiğinde yaşam mücadelesi devam eder. Maçın üst sınırı 15 dakikadır; bu sınıra ulaşılırsa önce kalan can, sonra puan karşılaştırılır.
+- Bağlantı kesilince **30 saniye** yeniden bağlanma süresi vardır. **Oyunlar → Oda oluştur / Koda katıl** devam eden odayı açar. Süre geçerse bağlı oyuncu kazanır; ikisi de kopmuşsa beraberlik kaydedilir. **Odadan ayrıl** düğmesi maç başladıktan sonra yenilgi sayılır.
+- Kuyrukta en fazla 10 dakika beklenir. Bekleme sayıları seni ve özel kodlu odaları içermez. “Uygun rakip” sayısı profil seviyene göre filtrelenir. Bekleme tahmini son 24 saatte en az 3 eşleşme varsa gösterilen ortalamadır; yeni oyuncunun ne zaman geleceğini garanti etmez.
+- Kelime oyunlarında en az 4 farklı kelime ve farklı karşılık gerekir. Seçilen setin en fazla 20 kelimesi (bloklarda 8) rakiple paylaşılır; setin bütünü veya hesap verileri paylaşılmaz. Hızlı eşleşme oyun salonundan açıldığında varsayılan olarak seviyene uygun başlangıç setini kullanır. Cümle oyunu hazır cümle havuzunu kullanır.
+- Sonuçlar yalnızca maçın iki katılımcısının kendi geçmişinde görünür. Sunucuda bir kez kaydedilir; skor/can doğrudan tarayıcıdan yazılamaz. Aktif oda kayıtları 24 saat sonra temizlenir, maç geçmişi korunur.
+- Bu sürüm küçük ölçekli oyunlar için Supabase RPC üzerinden düzenli durum sorgular. WebSocket tabanlı hareket senkronizasyonu kullanmaz. Canlı projedeki kullanıcı ve ağ koşullarını iki ayrı hesapla test et.
+
+### Geliştirme ve test
+
+`npm run check` sözdizimi kontrolünü, `npm run test:games` temel oyun mantığı kontrollerini çalıştırır. Ayrıntılı testler için Node.js 24 ile `npm install --prefix tests` ve `npm test --prefix tests` kullan. PvP testleri gömülü PostgreSQL'de iki hesap, yetkiler, süreler, canlar, eşleşme, maç sonuçları ve kayıtları kontrol eder. Arayüz testleri DOM / animasyon zamanlamasını taklit eder; gerçek tarayıcı çizimini veya canlı Supabase bağlantısını doğrulamaz.
 
 ## Kaynaklar
 

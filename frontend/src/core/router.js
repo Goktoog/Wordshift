@@ -1,3 +1,5 @@
+import { online, openOnline } from '../games/online.js';
+import { mountPools } from '../games/pvp-panels.js';
 import { starterById } from '../data/starter-sets.js';
 import { starterSection, bindStarters } from '../features/starters.js';
 import { $, escape, uid } from './utils.js';
@@ -55,9 +57,10 @@ export function render(){
  if(page==='shared'){void openShared(routeArg);return}
  if(page==='user'){void openUser(routeArg);return}
  if(page==='detail'||page==='starter'){detail();return}
+ if(page==='online'){online(routeArg?.autoQuick);return}
  if(page==='games'){
-  v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><p class="muted">Kendi setini seç veya Keşfet’te bir set açıp oyun başlat.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('▦','Kelime blokları','İngilizce ve Türkçe blokları eşleştir','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+'</div><p class="notice section">Oyunlar tek oyunculu veya botlara karşıdır. Çevrimiçi PvP henüz yok.</p>';
-  bindActions(chooseSet);return;
+  v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><h2>Tek oyunculu / botlara karşı</h2><p class="muted">Kendi setini seç veya Keşfet’te bir set açıp oyun başlat.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('▦','Kelime blokları','İngilizce ve Türkçe blokları eşleştir','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+tile('▤','Cümle Düellosu','Kelimeleri sıraya koy, doğru cümleyi kur','sentences')+'</div><section class="section card"><h2>Çevrimiçi PvP</h2><p>İki oyuncu, ortak başlangıç ve sunucuda tutulan maç sonuçları.</p><button class="primary" id="onlineLobby">Oda oluştur / Koda katıl</button><div class="section" id="gamePools"></div></section>';
+  $('onlineLobby').onclick=()=>openOnline();mountPools($('gamePools'),mode=>openOnline(null,mode,true));bindActions(chooseSet);return;
  }
  if(page==='leaderboard'){leaderboard();return}
  if(page==='profile'){profile(user);return}

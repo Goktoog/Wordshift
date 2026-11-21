@@ -1,3 +1,4 @@
+import { mountMatchHistory } from '../games/pvp-panels.js';
 import { uploadImage } from '../services/cloud.js';
 import { $, escape } from '../core/utils.js';
 import { user, save, page } from '../core/state.js';
@@ -67,5 +68,5 @@ export function profile(u){
  $('placementBtn').onclick=()=>openPlacement(()=>profile(u));
  $('out').onclick=$('logout').onclick;
  $('editProfile').onclick=()=>editProfile(u);$('editAvatar').onclick=()=>chooseMedia(u,'avatar');$('editBanner').onclick=()=>chooseMedia(u,'banner');
- if(!u.guest)void mountSocial(u.id);
+ if(!u.guest){$('view').insertAdjacentHTML('beforeend','<section class="section" id="matchHistory"></section>');mountMatchHistory($('matchHistory'));void mountSocial(u.id);}
 }
