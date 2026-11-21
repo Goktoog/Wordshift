@@ -119,11 +119,17 @@ export function initAuth() {
   if(busy||!confirm('Misafir çalışmaları yalnızca bu tarayıcıda saklanır. Online yedekleme ve sosyal özellikler için üye olmanı öneririz. Devam edilsin mi?'))return;
   authEpoch++;resetCloud();show(db.users.find(x=>x.guest)||makeUser('Misafir','',true));
  };
+ const sessionGone=e=>e?.name==='AuthSessionMissingError'||/auth session missing/i.test(e?.message||'');
  $('logout').onclick=async()=>{
   authEpoch++;
   try {
    const guest=db.users.find(u=>u.id===db.active)?.guest;
-   if(!guest){await flushCloud();const c=await client();const {error}=await c.auth.signOut();if(error)throw error}
+   if(!guest){
+     // Oturum zaten düşmüşse (süresi dolmuş, başka cihazdan çıkılmış) çıkış yine de tamamlanmalı.
+     try{await flushCloud()}catch(e){if(!sessionGone(e))throw e}
+     const c=await client();const {error}=await c.auth.signOut({scope:'local'});
+     if(error&&!sessionGone(error))throw error;
+    }
    showAuth();setMode('login');if(guest)message('Misafir çalışmaların bu tarayıcıda saklanıyor. Hesap kütüphanen ayrıdır.');
   }catch(e){alert(e.message)}
  };
