@@ -82,6 +82,7 @@ Supabase projesinde **SQL Editor → New query** aç:
 
 1. `supabase/setup.sql` içeriğini çalıştır: kişisel çalışma alanı, erişim kuralları ve görsel deposu.
 2. `supabase/community.sql` içeriğini çalıştır: topluluk setleri ve arama.
+3. `supabase/social.sql` içeriğini çalıştır: herkese açık profiller, takip sistemi, global/şehir liderlik tablosu ve kişi arama. `community.sql` çalıştırılmadan Keşfet “henüz kurulmamış” uyarısı verir.
 
 Hazır başlangıç setleri site dosyalarıyla dağıtılır; bunlar için ayrıca SQL çalıştırılmaz.
 
@@ -188,7 +189,7 @@ Yayın sonrası kontrol:
 
 ## Mevcut sınırlar ve kaynaklar
 
-- Çevrimiçi PvP ve rekabetçi global leaderboard henüz uygulanmamıştır. Amiral Battı botla oynanır.
+- Çevrimiçi PvP henüz uygulanmamıştır. Amiral Battı botla oynanır. Liderlik tablosu yalnızca hesapla giriş yapan kullanıcıları listeler; misafirler sıralamada yer almaz.
 - XP ve CEFR rozetleri çalışma göstergesidir; resmî dil yeterliliği ölçümü değildir.
 - Misafir verileri aynı tarayıcıda saklanır; hesaba otomatik taşınmaz.
 - Profil görsel deposu herkese açıktır; görsel URL'sini bilen görüntüleyebilir. Eski görseller otomatik temizlenmez.

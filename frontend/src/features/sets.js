@@ -7,12 +7,14 @@ import { tile, bindActions } from '../ui/components.js';
 import { begin, gameModes } from './session.js';
 import { reviewItems } from './progress.js';
 import { publication, publishSet, unpublishSet } from '../services/community.js';
+import { markPublished, markPrivate } from '../services/auto-publish.js';
 import { toast } from '../ui/feedback.js';
 export function setList(sets){return '<div class="grid">'+(sets.length?sets.map(s=>`<button class="tile" data-set="${escape(s.id)}"><span class="ico">▱</span><strong>${escape(s.name)}</strong><span class="muted">${s.items.length} içerik · ${escape(user.folders.find(f=>f.id===s.folder)?.name||'Klasörsüz')}</span></button>`).join(''):'<div class="card muted">Henüz çalışma seti yok. Yeni bir set oluşturabilir veya Keşfet’te çalışabilirsin.</div>')+'</div>'}
 export function bindSets(){$('view').querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>go('detail',b.dataset.set))}
 function folderOptions(selected){return '<option value="">Klasörsüz</option>'+user.folders.map(f=>`<option value="${escape(f.id)}" ${f.id===selected?'selected':''}>${escape(f.name)}</option>`).join('')}
-export function newSet(){modal('<h2>Çalışma seti oluştur</h2><label>Set adı</label><input name="name" maxlength="120" required placeholder="Örn. B1 günlük konuşma"><label>Klasör</label><select name="folder">'+folderOptions(folderFilter)+'</select>',d=>{
- const s={id:uid(),name:d.get('name').trim(),folder:d.get('folder')||null,items:[]};if(!s.name)return;user.sets.push(s);save();go('detail',s.id);
+function visibilityField(selected,guest){return '<label>Görünürlük</label><select name="visibility" '+(guest?'disabled':'')+'><option value="public" '+(selected==='public'?'selected':'')+'>Herkese açık · Keşfet’te görünür</option><option value="private" '+(selected!=='public'?'selected':'')+'>Gizli · Yalnızca ben görürüm</option></select><p class="notice">'+(guest?'Misafir setleri gizlidir. Herkese açık set için hesapla giriş yap.':'İstediğin zaman değiştirebilirsin. Herkese açık setin en az bir içerik eklendiğinde Keşfet’te görünür.')+'</p>'}
+export function newSet(){modal('<h2>Çalışma seti oluştur</h2><label>Set adı</label><input name="name" maxlength="120" required placeholder="Örn. B1 günlük konuşma"><label>Klasör</label><select name="folder">'+folderOptions(folderFilter)+'</select>'+visibilityField(user.guest?'private':'public',user.guest),d=>{
+ const s={id:uid(),name:d.get('name').trim(),folder:d.get('folder')||null,items:[],visibility:user.guest?'private':(d.get('visibility')==='private'?'private':'public')};if(!s.name)return;user.sets.push(s);save();go('detail',s.id);
 })}
 export function detail(){
  const s=current();if(!s){go('sets');return}
@@ -36,7 +38,7 @@ export function detail(){
  }
  $('itemAdd').onclick=()=>editor();
  $('bulk').onclick=()=>modal('<h2>Toplu kelime ekle</h2><p>Her satır: İngilizce | Türkçe | seviye (isteğe bağlı)</p><textarea name="bulk" required placeholder="although | -mesine rağmen | B1"></textarea>',d=>{for(const line of d.get('bulk').split('\n')){const [a,b,l]=line.split('|').map(x=>x.trim());if(a&&b)s.items.push({id:uid(),type:'word',front:a,back:b,level:levels.includes(l)?l:'B1',extra:'',options:[],attempts:0,correct:0})}save();detail()});
- $('rename').onclick=()=>modal('<h2>Seti düzenle</h2><input name="name" required maxlength="120" value="'+escape(s.name)+'"><label>Klasör</label><select name="folder">'+folderOptions(s.folder)+'</select>',d=>{s.name=d.get('name').trim()||s.name;s.folder=d.get('folder')||null;save();detail()});
+ $('rename').onclick=()=>modal('<h2>Seti düzenle</h2><input name="name" required maxlength="120" value="'+escape(s.name)+'"><label>Klasör</label><select name="folder">'+folderOptions(s.folder)+'</select>'+visibilityField(s.visibility==='public'?'public':'private',user.guest),d=>{s.name=d.get('name').trim()||s.name;s.folder=d.get('folder')||null;const next=user.guest?'private':(d.get('visibility')==='public'?'public':'private'),was=s.visibility;s.visibility=next;save();if(was==='public'&&next==='private'){markPrivate(s);unpublishSet(s).catch(e=>toast(e.message))}detail()});
  const status=$('publishStatus'),pub=$('publishSet'),unpub=$('unpublishSet');
  if(!user.guest){
   const owner=user.id;
@@ -44,8 +46,8 @@ export function detail(){
   async function change(remove){
    if(!confirm(remove?'Bu set Keşfet’ten kaldırılsın mı? Daha önce alınmış kopyalar silinmez.':'Set adı, kullanıcı adın ve tüm içerikleri herkese açık yayımlansın mı?'))return;
    pub.disabled=unpub.disabled=true;
-   try{save();if(remove)await unpublishSet(s);else await publishSet(s);if($('publishStatus')===status)status.textContent=remove?'Özel · Paylaşım kaldırıldı.':'✓ Paylaşıldı. Artık Keşfet’te aranabilir.'}
-   catch(e){if($('publishStatus')===status)status.textContent=e.message}
+   try{s.visibility=remove?'private':'public';save();if(remove){markPrivate(s);await unpublishSet(s)}else{await publishSet(s);markPublished(s)}if($('publishStatus')===status)status.textContent=remove?'Özel · Paylaşım kaldırıldı.':'✓ Paylaşıldı. Artık Keşfet’te aranabilir.'}
+   catch(e){if(remove)s.visibility='public';if($('publishStatus')===status)status.textContent=e.message}
    finally{pub.disabled=unpub.disabled=false}
   }
   pub.onclick=()=>change(false);unpub.onclick=()=>change(true);

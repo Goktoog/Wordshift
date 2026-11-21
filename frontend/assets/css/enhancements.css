@@ -61,3 +61,13 @@
 @media(hover:none),(pointer:coarse){.cover-edit{opacity:1}.avatar-edit-overlay{opacity:1;inset:auto 0 0 auto;width:32px;height:32px;background:#151515e8}.avatar-edit-overlay svg{width:18px;height:18px}}
 @media(max-width:600px){.cover-edit{right:8px;bottom:8px;padding:9px}.cover-edit span{display:none}.crop-dialog{padding:18px}.profile-info h1{overflow-wrap:anywhere}.profile-info>div{min-width:0}}
 @media(prefers-reduced-motion:reduce){.cover-edit,.avatar-edit-overlay{transition:none}}
+
+/* Social: leaderboard, people, follow lists */
+.social-tabs .active{background:var(--soft);border-color:var(--accent)}
+.board-row,.person{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-bottom:8px}
+.board-row.me{border-color:var(--accent)}
+.board-rank{min-width:44px;font-weight:800}
+.board-name,.person-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.board-name small{display:block}
+.people-list{margin:10px 0}
+#peopleForm input{flex:1;min-width:180px;margin:0}

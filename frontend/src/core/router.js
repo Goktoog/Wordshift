@@ -12,6 +12,7 @@ import { play } from '../games/index.js';
 import { profile } from '../features/profile.js';
 import { leaderboard } from '../features/leaderboard.js';
 import { discoverySearch, bindDiscovery, explore, openShared } from '../features/explore.js';
+import { openUser } from '../features/people.js';
 export let folderFilter=null, routeArg=null;
 export function initNavigation(){
  history.replaceState({page:'home'},'');
@@ -52,6 +53,7 @@ export function render(){
  }
  if(page==='explore'){explore(routeArg);return}
  if(page==='shared'){void openShared(routeArg);return}
+ if(page==='user'){void openUser(routeArg);return}
  if(page==='detail'||page==='starter'){detail();return}
  if(page==='games'){
   v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><p class="muted">Kendi setini seç veya Keşfet’te bir set açıp oyun başlat.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('◇','Eşleştirme','Kelimeleri karşılıklarıyla eşleştir','match')+tile('▦','Bloklar','Renkli kelime bloklarını temizle','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+'</div><p class="notice section">Oyunlar tek oyunculu veya botlara karşıdır. Çevrimiçi PvP henüz yok.</p>';

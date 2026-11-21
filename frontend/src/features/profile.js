@@ -9,6 +9,7 @@ import { go } from '../core/router.js';
 import { cropImage, blobDataURL } from '../ui/image-cropper.js';
 import { cityPickerMarkup, bindCityPicker } from '../ui/city-picker.js';
 import { canonicalCity } from '../data/cities.js';
+import { mountSocial } from './people.js';
 const pencil='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z"/></svg>';
 let picking=false;
 export async function saveProfileMedia(account,kind,blob){
@@ -51,4 +52,5 @@ export function profile(u){
  $('out').onclick=$('logout').onclick;
  $('export').onclick=()=>{const a=document.createElement('a'),{hash,salt,...data}=u;a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='wordshift-yedek.json';a.click();URL.revokeObjectURL(a.href)};
  $('editProfile').onclick=()=>editProfile(u);$('editAvatar').onclick=()=>chooseMedia(u,'avatar');$('editBanner').onclick=()=>chooseMedia(u,'banner');
+ if(!u.guest)void mountSocial(u.id);
 }

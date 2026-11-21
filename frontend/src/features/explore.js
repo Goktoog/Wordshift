@@ -4,6 +4,7 @@ import { page, setSharedSet, setSetId } from '../core/state.js';
 import { go } from '../core/router.js';
 import { searchPublic, getPublic } from '../services/community.js';
 import { detail } from './sets.js';
+import { peopleSearchMarkup, bindPeopleSearch } from './people.js';
 let requestId=0;
 export const discoverySearch = () => `<form id="discoverySearch" class="discovery-search"><label for="discoverQuery">Toplulukta set ara</label><div class="actions"><input id="discoverQuery" name="q" maxlength="100" placeholder="Çalışacak setler mi arıyorsun?"><button class="primary">Ara</button><button type="button" id="browseSets">Keşfet</button></div><div id="discoverySuggestions" aria-live="polite"></div></form>`;
 export function bindDiscovery() {
@@ -34,8 +35,8 @@ function bindSuggestions(owner=null){
 export function explore(arg={}) {
  const request=++requestId;
  const author=arg?.owner || null, q=arg?.q || '';
- $('view').innerHTML=`<div class="top"><div><p class="eyebrow">KEŞFET</p><h1>${author ? escape(arg.name || 'Kullanıcı')+' · Paylaşılan setler' : 'Birlikte öğrenelim'}</h1></div>${author?'<button id="allPublic">Tüm topluluk</button>':''}</div>
- <p class="muted">Yalnızca herkesle paylaşılan setler. Başkasının setini çalışmak onu kütüphanene eklemez.</p>${discoverySearch()}${author?'':starterSection(q)}<p id="searchStatus" role="status">Yükleniyor…</p><div id="publicResults" class="grid"></div><button id="morePublic" hidden>Daha fazla göster</button>`;
+ $('view').innerHTML=`<div class="top"><div><p class="eyebrow">KEŞFET</p><h1>${author ? escape(arg.name || 'Kullanıcı')+' · Paylaşılan setler' : 'Birlikte öğrenelim'}</h1></div>${author?'<div class="actions"><button id="authorProfile" class="primary">Profilini gör</button><button id="allPublic">Tüm topluluk</button></div>':''}</div>
+ <p class="muted">Yalnızca herkesle paylaşılan setler. Başkasının setini çalışmak onu kütüphanene eklemez.</p>${discoverySearch()}${author?'':peopleSearchMarkup()}${author?'':starterSection(q)}<p id="searchStatus" role="status">Yükleniyor…</p><div id="publicResults" class="grid"></div><button id="morePublic" hidden>Daha fazla göster</button>`;
  $('discoverQuery').value=q;
  const results=$('publicResults'), status=$('searchStatus'), more=$('morePublic');
  let offset=0, busy=false;
@@ -43,6 +44,8 @@ export function explore(arg={}) {
  $('discoverySearch').onsubmit=e=>{e.preventDefault();go('explore',{...arg,q:$('discoverQuery').value})};
  $('browseSets').onclick=()=>go('explore');
  if($('allPublic')) $('allPublic').onclick=()=>go('explore');
+ if($('authorProfile')) $('authorProfile').onclick=()=>go('user',{id:author});
+ if(!author) bindPeopleSearch();
  bindSuggestions(author);bindStarters();
  async function load(){
   if(busy)return;busy=true;more.disabled=true;
