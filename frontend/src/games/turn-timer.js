@@ -1,5 +1,6 @@
 import { $ } from '../core/utils.js';
 import { session, timer, setTimer } from '../core/state.js';
+import { countdownBeep } from '../ui/feedback.js';
 
 export const timerMarkup = () => '<div class="turn-timer"><span id="turnTime">10 sn</span><div class="progress"><i id="turnBar" style="width:100%"></i></div></div>';
 
@@ -12,6 +13,7 @@ export function turnTimer(s, seconds, onTimeout) {
     if (session !== s || !label) { clearInterval(id); return; }
     const left = Math.max(0, end - Date.now());
     label.textContent = Math.ceil(left / 1000) + ' sn';
+    if (left > 0) countdownBeep('turn' + end, Math.ceil(left / 1000));
     bar.style.width = (left / (seconds * 1000) * 100) + '%';
     if (left <= 0) { clearInterval(id); onTimeout(); }
   }, 150);

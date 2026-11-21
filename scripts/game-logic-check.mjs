@@ -12,7 +12,7 @@ function game(){
  let now=0,callback,answer,records=[];
  const nodes=new Map();
  const node=id=>{if(!nodes.has(id)){const classes=new Set();nodes.set(id,{clientWidth:700,style:{},hidden:true,textContent:'',innerHTML:'',classList:{add:(...xs)=>xs.forEach(x=>classes.add(x)),remove:(...xs)=>xs.forEach(x=>classes.delete(x)),contains:x=>classes.has(x)}})}return nodes.get(id)};
- const ctx={session:{lives:3,i:0,pool:[{front:'a',back:'b'},{front:'c',back:'d'}],action:'jump',distance:0,score:0,difficulty:'normal'},page:'play',timer:null,$:node,escape:s=>s,performance:{now:()=>now},record:(x,ok)=>records.push(ok),finish:()=>{},topStudy:()=>'',exitBind:()=>{},answerMarkup:()=>'',bindAnswer:(x,fn)=>answer=fn,equal:(a,b)=>a===b,setInterval:fn=>{callback=fn;return 1},clearInterval:()=>{},setTimer:id=>ctx.timer=id};
+ const ctx={session:{lives:3,i:0,pool:[{front:'a',back:'b'},{front:'c',back:'d'}],action:'jump',distance:0,score:0,difficulty:'normal'},page:'play',timer:null,$:node,escape:s=>s,performance:{now:()=>now},countdownBeep:()=>{},record:(x,ok)=>records.push(ok),finish:()=>{},topStudy:()=>'',exitBind:()=>{},answerMarkup:()=>'',bindAnswer:(x,fn)=>answer=fn,equal:(a,b)=>a===b,setInterval:fn=>{callback=fn;return 1},clearInterval:()=>{},setTimer:id=>ctx.timer=id};
  vm.createContext(ctx);vm.runInContext(code+';runner()',ctx);
  return {ctx,node,records,step:ms=>{now+=ms;callback()},answer:v=>answer(v)};
 }

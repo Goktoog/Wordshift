@@ -1,6 +1,7 @@
 import {$,escape,shuffle} from '../core/utils.js';
 import {session,timer,setTimer,page} from '../core/state.js';
 import {record,finish,topStudy,exitBind} from '../features/session.js';
+import {countdownBeep} from '../ui/feedback.js';
 export function mountSentence(host,options,onSubmit){
  let order=[],locked=false;
  host.innerHTML='<p>Türkçe cümlenin İngilizcesini kur. Kelimelere sırayla dokun; seçilen kelimeye tekrar dokunarak geri al.</p><div class="sentence-line" aria-label="Kurduğun cümle"></div><div class="sentence-tokens"></div><button class="primary sentence-submit">Cümleyi gönder</button><button class="sentence-reset">Temizle</button>';
@@ -10,9 +11,13 @@ export function mountSentence(host,options,onSubmit){
  return {lock(value){if(locked!==value){locked=value;draw()}},stop(){locked=true}};
 }
 export function sentences(){
- const s=session;clearInterval(timer);if(s.i>=s.pool.length){finish();return}const x=s.pool[s.i],options=shuffle(x.back.split(' ')),deadline=Date.now()+20000;let done=false;
- $('view').innerHTML=topStudy('Cümle Düellosu')+`<div class="card"><div class="top"><h2>${escape(x.front)}</h2><span class="timer" id="sentenceClock">20 sn</span></div><div id="sentenceSolo"></div><p id="sentenceFeedback" role="status"></p></div>`;exitBind();
- const controls=mountSentence($('sentenceSolo'),options,order=>resolve(order.map(i=>options[i]).join(' ')===x.back));
- function resolve(ok){if(done||session!==s||page!=='play')return;done=true;clearInterval(timer);controls.lock(true);ok=ok&&Date.now()<deadline;record(x,ok);if(ok)s.score++;$('sentenceFeedback').textContent=ok?'✓ Doğru cümle!':'✕ Doğrusu: '+x.back;setTimeout(()=>{if(session===s&&page==='play'){s.i++;sentences()}},1800)}
- setTimer(setInterval(()=>{if(session!==s||page!=='play'){clearInterval(tick);return}const remain=Math.max(0,Math.ceil((deadline-Date.now())/1000));$('sentenceClock').textContent=remain+' sn';$('sentenceClock').classList.toggle('urgent-text',remain<=3);if(!remain)resolve(false)},100));const tick=timer;
+ const s=session;clearInterval(timer);if(s.i>=s.pool.length){finish();return}const x=s.pool[s.i],options=shuffle(x.back.split(' ')),deadline=Date.now()+90000;let done=false;
+ $('view').innerHTML=topStudy('Cümle Düellosu')+`<div class="card"><div class="top"><h2>${escape(x.front)}</h2><span class="timer" id="sentenceClock">90 sn</span></div><div id="sentenceSolo"></div><p id="sentenceFeedback" role="status"></p></div>`;exitBind();
+ const controls=mountSentence($('sentenceSolo'),options,order=>{
+  if(order.map(i=>options[i]).join(' ')===x.back){resolve(true);return}
+  // A wrong try does not end the sentence: fix it until the time is up.
+  if(done)return;$('sentenceFeedback').textContent='✕ Yanlış sıra. Düzeltip tekrar gönder.';controls.lock(false);
+ });
+ function resolve(ok){if(done||session!==s||page!=='play')return;done=true;clearInterval(timer);controls.lock(true);ok=ok&&Date.now()<deadline;record(x,ok);if(ok)s.score++;$('sentenceFeedback').textContent=ok?'✓ Doğru cümle!':'✕ Doğrusu: '+x.back;setTimeout(()=>{if(session===s&&page==='play'){s.i++;sentences()}},ok?1800:4500)}
+ setTimer(setInterval(()=>{if(session!==s||page!=='play'){clearInterval(tick);return}const remain=Math.max(0,Math.ceil((deadline-Date.now())/1000));$('sentenceClock').textContent=remain+' sn';$('sentenceClock').classList.toggle('urgent-text',remain<=3);if(!done&&remain>0)countdownBeep('sen'+deadline,remain);if(!remain)resolve(false)},100));const tick=timer;
 }

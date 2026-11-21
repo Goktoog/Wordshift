@@ -32,7 +32,13 @@ export function study(){
   flip.onpointercancel=()=>{startX=null};return;
  }
  q.innerHTML=`<span class="badge">${escape(x.level)}</span><p class="muted">${typeNames[x.type]||'Soru'}</p><h2 style="white-space:pre-wrap">${escape(x.front)}</h2>${questionMedia(x)}<div id="answers">${answerMarkup(x,mode==='learn'&&s.i%2===0)}</div><button id="skip" class="section">Boş bırak / Geç →</button>`;
- $('skip').onclick=()=>{if(locked||!alive())return;locked=true;skipItem(x);noteMistake(user,x,null);next()};
+ $('skip').onclick=()=>{
+  if(locked||!alive())return;locked=true;skipItem(x);noteMistake(user,x,null);
+  // Show the right answer first; the learner moves on with "Sonraki".
+  $('skip').disabled=true;$('answers').querySelectorAll('button,input').forEach(el=>el.disabled=true);
+  $('answers').insertAdjacentHTML('beforeend',`<div class="feedback bad">↷ Boş bıraktın · Doğru cevap: ${escape(x.back)}<p>${escape(x.extra)}</p></div><button class="primary" id="next">Sonraki</button>`);
+  $('next').onclick=next;
+ };
  bindAnswer(x,(value,button)=>{
   if(locked||!alive())return;
   if(mode==='exam'&&Date.now()>=s.deadline){for(const item of s.pool.slice(s.i))skipItem(item);finish();return}

@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+let tones=0;
+globalThis.window={AudioContext:class{constructor(){this.currentTime=0;this.state='running'}createOscillator(){return{frequency:{},connect(){},start(){tones++},stop(){}}}createGain(){return{gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}}}get destination(){return{}}resume(){}}};
+globalThis.document={getElementById:()=>({classList:{add(){},remove(){}}})};
+const {countdownBeep,matchFoundSound,beep}=await import('../frontend/src/ui/feedback.js');
+for(const left of [5,4,3,3,3,2,2,1,1,0]) countdownBeep('q1',left);
+assert.equal(tones,3,'one beep each for 3,2,1');
+countdownBeep('q2',3);assert.equal(tones,4,'new question beeps again');
+matchFoundSound();assert.equal(tones,7,'three tones for match found');
+console.log('PASS beeps: only last 3 s, once per second, per timer id; match-found = 3 tones');

@@ -33,11 +33,17 @@ export function meteor() {
 
   function resolve(ok, chosen, target) {
     record(x, ok);
-    if (ok) s.score++; else toast('Doğru: ' + x.back);
+    if (ok) s.score++;
+    else {
+      toast('Doğru: ' + x.back);
+      // Show which meteor was right and leave it up long enough to read.
+      $('view').querySelectorAll('[data-meteor]').forEach(m => { if (equal(o[+m.dataset.meteor], x.back)) m.classList.add('reveal'); });
+      arena.insertAdjacentHTML('afterend', '<p class="feedback bad answer-reveal" role="status">✕ Doğru cevap: ' + escape(x.back) + '</p>');
+    }
     if (chosen) { chosen.textContent = ok ? '✓' : '✕'; chosen.classList.add('exploded'); }
     if (target) {burst(target.x, target.y);const view=$('view');view.classList.add('impact-shake');setTimeout(()=>view.classList.remove('impact-shake'),400);}
     if (ok) { const t = document.createElement('div'); t.className = 'big-tick'; t.textContent = '✓'; arena.append(t); }
-    next(ok ? 900 : 1100);
+    next(ok ? 900 : 3800);
   }
 
   $('view').querySelectorAll('[data-meteor]').forEach(b => b.onclick = () => {

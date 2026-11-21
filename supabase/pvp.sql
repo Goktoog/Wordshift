@@ -133,7 +133,7 @@ begin
  if r.id is not null and r.status='waiting' then
   update wordshift_private.rooms set players=array_append(players,who),names=array_append(names,nick),seen=array_append(seen,now()),
    status=case when mode='battle' then 'placing' else 'active' end, started_at=now(),starts_at=now()+interval '3 seconds',
-   deadline=now()+case when mode='battle' then interval '120 seconds' when mode='blocks' then interval '63 seconds' when mode='sentences' then interval '23 seconds' else interval '13 seconds' end
+   deadline=now()+case when mode='battle' then interval '120 seconds' when mode='blocks' then interval '63 seconds' when mode='sentences' then interval '93 seconds' else interval '13 seconds' end
    where id=r.id;
   return r.id;
  end if;
@@ -162,7 +162,7 @@ end $$;
 
 create or replace function public.wordshift_pvp_room(room_id uuid, action text default 'poll', token integer default 0, value integer default -1, extra jsonb default 'null')
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare r wordshift_private.rooms; who uuid:=auth.uid(); me integer; other integer; t timestamptz:=clock_timestamp(); q jsonb; ok boolean; allcells integer[]:='{}'; groupcells integer[]; ship jsonb; cell integer; n integer; j integer; ending boolean:=false; next_turn boolean:=false; mine jsonb; theirs jsonb; result jsonb; prev_start timestamptz;
+declare r wordshift_private.rooms; who uuid:=auth.uid(); me integer; other integer; t timestamptz:=clock_timestamp(); q jsonb; ok boolean; allcells integer[]:='{}'; groupcells integer[]; ship jsonb; cell integer; n integer; j integer; ending boolean:=false; next_turn boolean:=false; slow_turn boolean:=false; mine jsonb; theirs jsonb; result jsonb; prev_start timestamptz;
 begin
  if who is null then raise exception 'Giriş yapmalısın.'; end if;
  select * into r from wordshift_private.rooms where id=room_id for update;
@@ -182,19 +182,19 @@ begin
  if r.status='active' and r.mode in ('runner','meteor','sentences') then
   if r.phase='question' and t>=r.deadline then
    for j in 0..1 loop if r.answers->j='null'::jsonb then r.answers:=jsonb_set(r.answers,array[j::text],jsonb_build_object('ok',false,'timeout',true));r.wrong_counts[j+1]:=r.wrong_counts[j+1]+1;if r.mode in ('runner','meteor') then r.lives[j+1]:=greatest(0,r.lives[j+1]-1);end if;end if;end loop;
-   r.phase:='feedback';r.deadline:=t+interval '1600 milliseconds';
+   r.phase:='feedback';r.deadline:=t+interval '3500 milliseconds';
   elsif r.phase='feedback' and t>=r.deadline then
    r.round_no:=r.round_no+1;
    if r.mode='sentences' and r.round_no>=jsonb_array_length(r.deck) then r.status:='finished';r.reason:='Tüm kelimeler tamamlandı.';ending:=true;
-   else r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when r.mode='runner' then interval '2400 milliseconds' else interval '600 milliseconds' end;r.deadline:=r.starts_at+case when r.mode='sentences' then interval '20 seconds' else interval '10 seconds' end;end if;
+   else r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when r.mode='runner' then interval '2400 milliseconds' else interval '600 milliseconds' end;r.deadline:=r.starts_at+case when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
   end if;
  elsif r.status='active' and r.mode='blocks' and t>=r.deadline then r.status:='finished';r.reason:='Süre doldu.';ending:=true;
  elsif r.status='active' and r.mode='battle' and t>=r.deadline then
-  if r.phase='question' then r.wrong_counts[r.turn_no]:=r.wrong_counts[r.turn_no]+1;end if;r.event:=jsonb_build_object('serial',r.round_no,'text','Süre doldu; sıra değişti.');next_turn:=true;
+  if r.phase='question' then r.wrong_counts[r.turn_no]:=r.wrong_counts[r.turn_no]+1;slow_turn:=true;end if;r.event:=jsonb_build_object('serial',r.round_no,'text',case when r.phase='question' then 'Süre doldu. Doğrusu: '||(r.deck->(r.round_no%jsonb_array_length(r.deck))->>'back')||' · sıra değişti.' else 'Süre doldu; sıra değişti.' end);next_turn:=true;
  end if;
  -- An expired turn is advanced BEFORE accepting any action, so stale packets cannot fire.
  if next_turn then
-  r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+interval '1 second';r.deadline:=r.starts_at+interval '10 seconds';next_turn:=false;
+  r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1 second' end;r.deadline:=r.starts_at+interval '10 seconds';next_turn:=false;slow_turn:=false;
  end if;
  if r.status='placing' and action='fleet' and not r.ready[me] then
   if jsonb_typeof(extra) is distinct from 'array' or jsonb_array_length(extra)<>3 then raise exception 'Üç gemi yerleştirmelisin.';end if;
@@ -206,7 +206,7 @@ begin
    if n>1 and not ((groupcells[n]-groupcells[1]=n-1 and groupcells[1]/5=groupcells[n]/5) or (groupcells[n]-groupcells[1]=(n-1)*5 and (n<>3 or groupcells[2]-groupcells[1]=5))) then raise exception 'Gemi düz ve bitişik olmalı.';end if;
   end loop;
   r.fleets:=jsonb_set(r.fleets,array[(me-1)::text],to_jsonb(allcells));r.ready[me]:=true;
-  if r.ready[1] and r.ready[2] then r.status:='active';r.starts_at:=t+interval '3 seconds';r.deadline:=r.starts_at+case when r.mode='sentences' then interval '20 seconds' else interval '10 seconds' end;end if;
+  if r.ready[1] and r.ready[2] then r.status:='active';r.starts_at:=t+interval '3 seconds';r.deadline:=r.starts_at+case when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
  end if;
  q:=r.deck->(r.round_no%jsonb_array_length(r.deck));
  if r.status='active' and t>=r.starts_at and t<r.deadline and token=r.round_no then
@@ -219,12 +219,23 @@ begin
      if ok then select string_agg(q->'options'->>(x::text)::integer,' ' order by ord)=q->>'back' into ok from jsonb_array_elements(extra) with ordinality v(x,ord);end if;
     end if;
    else ok:=coalesce(value>=0 and q->'options'->>value=q->>'back',false);end if;
-   r.answers:=jsonb_set(r.answers,array[(me-1)::text],jsonb_build_object('ok',ok,'choice',value));
-   if ok then r.scores[me]:=r.scores[me]+100;r.correct_counts[me]:=r.correct_counts[me]+1;else r.wrong_counts[me]:=r.wrong_counts[me]+1;if r.mode in ('runner','meteor') then r.lives[me]:=greatest(0,r.lives[me]-1);end if;end if;
-   if r.mode='battle' then
-    if ok then r.phase:='shoot';r.deadline:=t+interval '10 seconds';else next_turn:=true;end if;
-    r.event:=jsonb_build_object('serial',r.round_no,'text',case when ok then 'Doğru cevap! Atış hakkı kazanıldı.' else 'Yanlış cevap. Doğrusu: '||(q->>'back') end);
-   elsif r.answers->0<>'null'::jsonb and r.answers->1<>'null'::jsonb then r.phase:='feedback';r.deadline:=t+interval '1600 milliseconds';end if;
+   if r.mode='sentences' and not ok then
+    -- A wrong try does not close the sentence: the player may fix it until the time is up.
+    r.wrong_counts[me]:=r.wrong_counts[me]+1;
+   else
+    r.answers:=jsonb_set(r.answers,array[(me-1)::text],jsonb_build_object('ok',ok,'choice',value));
+    if ok then r.scores[me]:=r.scores[me]+100;r.correct_counts[me]:=r.correct_counts[me]+1;else r.wrong_counts[me]:=r.wrong_counts[me]+1;if r.mode in ('runner','meteor') then r.lives[me]:=greatest(0,r.lives[me]-1);end if;end if;
+    if r.mode='battle' then
+     if ok then r.phase:='shoot';r.deadline:=t+interval '10 seconds';else next_turn:=true;slow_turn:=true;end if;
+     r.event:=jsonb_build_object('serial',r.round_no,'text',case when ok then 'Doğru cevap! Atış hakkı kazanıldı.' else 'Yanlış cevap. Doğrusu: '||(q->>'back') end);
+    elsif r.mode='sentences' then
+     -- The first player to finish the sentence takes it; the other one gets no points and we move on.
+     if r.answers->(other-1)='null'::jsonb then r.answers:=jsonb_set(r.answers,array[(other-1)::text],jsonb_build_object('ok',false,'lost',true));end if;
+     r.phase:='feedback';r.deadline:=t+interval '2500 milliseconds';
+    elsif r.answers->0<>'null'::jsonb and r.answers->1<>'null'::jsonb then
+     r.phase:='feedback';r.deadline:=t+case when coalesce((r.answers->0->>'ok')::boolean,false) and coalesce((r.answers->1->>'ok')::boolean,false) then interval '1600 milliseconds' else interval '3500 milliseconds' end;
+    end if;
+   end if;
   elsif action='shot' and r.mode='battle' and r.phase='shoot' and r.turn_no=me and value between 0 and 24 and not r.shots->(me-1) @> jsonb_build_array(value) then
    r.shots:=jsonb_set(r.shots,array[(me-1)::text],(r.shots->(me-1))||jsonb_build_array(value));
    ok:=r.fleets->(other-1) @> jsonb_build_array(value);
@@ -246,7 +257,7 @@ begin
   end if;
  end if;
  if r.status='active' and r.mode in ('runner','meteor') and r.phase='feedback' and (r.lives[1]=0 or r.lives[2]=0) then r.status:='finished';r.reason:='Üç can tükendi.';r.winner:=case when r.lives[1]=0 and r.lives[2]=0 then null when r.lives[1]=0 then 2 else 1 end;end if;
- if next_turn then r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+interval '1600 milliseconds';r.deadline:=r.starts_at+case when r.mode='sentences' then interval '20 seconds' else interval '10 seconds' end;end if;
+ if next_turn then r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1600 milliseconds' end;slow_turn:=false;r.deadline:=r.starts_at+case when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
  if ending then
   r.winner:=case when r.mode in ('runner','meteor') and r.lives[1]>r.lives[2] then 1 when r.mode in ('runner','meteor') and r.lives[2]>r.lives[1] then 2 when r.scores[1]>r.scores[2] then 1 when r.scores[2]>r.scores[1] then 2 when r.mode='blocks' and coalesce(r.finish_times[1],9999999)<coalesce(r.finish_times[2],9999999) then 1 when r.mode='blocks' and coalesce(r.finish_times[2],9999999)<coalesce(r.finish_times[1],9999999) then 2 else null end;
  end if;

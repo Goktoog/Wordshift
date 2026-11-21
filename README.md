@@ -98,7 +98,7 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 | Meteor Avı | 3 can. Her hedef için 10 saniye. Yanlış hedef / sürede ateş etmemek bir can götürür. Roket sabittir; hedefe döner ve füze atar. |
 | Amiral Battı | 3, 2 ve 1 hücrelik gemiyi yerleştir/döndür. Filo hazırlığı 120 saniye. Cevap için 10 saniye, doğru cevaptan sonra atış için ayrıca 10 saniye. Sıralı oynanır; rakibin tüm gemilerini batıran kazanır. |
 | Kelime Blokları | Solda İngilizce, sağda Türkçe. En fazla 8 çift, 60 saniye. Doğru +100, yanlış −15 (puan sıfırın altına inmez). Yüksek puan; eşitse daha erken bitiren kazanır. |
-| Cümle Düellosu | Seviyeye göre 6 hazır cümle, cümle başına 20 saniye. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur. Doğru +100; toplam puanı yüksek olan kazanır. |
+| Cümle Düellosu | Seviyeye göre 6 hazır cümle, cümle başına 90 saniye. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur; yanlış gönderim cümleyi bitirmez, süre dolana kadar düzeltebilirsin. Çevrimiçi maçta cümleyi ilk doğru tamamlayan +100 alır ve hemen sonraki cümleye geçilir; 90 saniyede kimse tamamlayamazsa kimse puan almaz. |
 
 - Runner ve Meteor'da iki oyuncu aynı turu tamamladıktan sonra canlar karşılaştırılır; ikisi de aynı turda son canını kaybederse berabere olur. Kelime havuzu bittiğinde yaşam mücadelesi devam eder. Maçın üst sınırı 15 dakikadır; bu sınıra ulaşılırsa önce kalan can, sonra puan karşılaştırılır.
 - Bağlantı kesilince **30 saniye** yeniden bağlanma süresi vardır. **Oyunlar → Oda oluştur / Koda katıl** devam eden odayı açar. Süre geçerse bağlı oyuncu kazanır; ikisi de kopmuşsa beraberlik kaydedilir. **Odadan ayrıl** düğmesi maç başladıktan sonra yenilgi sayılır.
@@ -116,3 +116,8 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 - A1–B2 listeleri projeye sağlanan Ozan Dur hazırlamalı kelime PDF'lerinden; akademik ek kelimeler Ahmet Akın / Akın Dil YDS & YÖKDİL listesinden aktarılmıştır. Kaynaklar içeriklerde belirtilir.
 - C1 seçkisi ve ek alıştırmalar proje için hazırlanmıştır; düzeyler yaklaşık çalışma etiketidir.
 - Kaynak YDS soruları sağlanan PDF'nin görsellerini ve cevap anahtarını kullanır. PDF'nin resmî özgünlüğü bağımsız olarak doğrulanmamıştır. Üretilen sorular kaynak sınav sorularından ayrı işaretlenir.
+
+## Sesler ve cevap gösterimi
+
+- Süreli sorularda son 3 saniyede saniyede bir kısa bip çalar. Çevrimiçi eşleşme bulunduğunda üç kısa "dın" sesi çalar; sekme arka plandayken de rakip aranmaya ve ses çalmaya devam eder (tarayıcı sesi engellemiyorsa).
+- Yanlış, boş veya süresi dolan sorularda doğru cevap ekranda kalır: tek oyunculu oyunlarda yaklaşık 4 saniye, çevrimiçi maçlarda 3,5 saniye. Çalışma modunda "Boş bırak" doğru cevabı gösterir ve "Sonraki" ile devam edilir.

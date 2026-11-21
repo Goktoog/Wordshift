@@ -5,11 +5,19 @@ import { user,page,setTimer,timer } from '../core/state.js';
 import { go } from '../core/router.js';
 import { starterSets } from '../features/starters.js';
 import { lobby, room } from '../services/pvp.js';
-import { sound } from '../ui/feedback.js';
+import { sound, matchFoundSound, countdownBeep } from '../ui/feedback.js';
 import { mountMeteor } from './online-meteor.js';
 import { shipCells, canPlace } from './fleet-layout.js';
 import { creditOnline, wrongWordsMarkup } from '../features/pvp-credit.js';
 const titles=gameTitles;
+// Browsers slow timers in background tabs; a worker keeps polling once a second so the match-found sound and countdown beeps still arrive.
+function backgroundTick(callback){
+ try{
+  const url=URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),1000)'],{type:'text/javascript'})),worker=new Worker(url);
+  worker.onmessage=()=>{if(document.hidden)callback()};
+  return()=>{worker.terminate();URL.revokeObjectURL(url)};
+ }catch{return()=>{}}
+}
 let preferredSet=null,preferredMode='runner',preferredPool='';
 const examSets={YDS:'starter-yds',YOKDIL:'starter-yokdil'};
 export function openOnline(set=null,mode='runner',autoQuick=false,pool){preferredSet=set;preferredMode=mode;if(pool!==undefined)preferredPool=pool;go('online',{autoQuick})}
@@ -22,7 +30,7 @@ export function online(autoQuick=false){
  if(user.guest){root.innerHTML='<div class="card"><h2>PvP için giriş yap</h2><p>Çevrimiçi odalar Google veya e-posta hesabı gerektirir. Misafir olarak tek oyunculu oyunları oynayabilirsin.</p></div>';return}
  if(preferredSet)preferredPool=poolForSet(preferredSet);
  const sets=[...user.sets,...starterSets],defaultSet=preferredSet||starterSets.find(s=>s.id==='starter-'+(user.level||'A1').toLowerCase())||starterSets[0];if(preferredSet&&!sets.some(s=>s.id===preferredSet.id))sets.unshift(preferredSet);
- root.innerHTML=`<div class="card"><div class="pvp-setup"><label>Oyun<select id="onlineMode">${Object.entries(titles).map(([id,title])=>`<option value="${id}" ${id===preferredMode?'selected':''}>${title}</option>`).join('')}</select></label><label>Çalışma seti<select id="onlineSet">${sets.map((s,i)=>`<option value="${i}" ${s.id===defaultSet?.id?'selected':''}>${escape(s.name)}</option>`).join('')}</select></label><label>Eşleşme havuzu<select id="onlinePool"><option value="">Seviyem · ${escape(user.level||'A1')}</option><option value="YDS">YDS</option><option value="YOKDIL">YÖKDİL</option></select></label></div><p>Hızlı eşleşme, seçtiğin havuzdaki oyuncuları aynı oyunda buluşturur: kendi seviyen (<strong>${escape(user.level||'A1')}</strong>), <strong>YDS</strong> veya <strong>YÖKDİL</strong>. YDS ve YÖKDİL havuzlarında kelimeler ilgili hazır setten gelir ve seviyeden bağımsız eşleşirsin. Oda koduyla farklı seviyelerdeki arkadaşlarınla da oynayabilirsin.</p><p class="muted">İki oyuncu da oda sahibinin setinden aynı kelimeleri görür. Seçilen en fazla 20 kelime rakiple paylaşılır; Kelime Blokları 8 çift kullanır. Cümle Düellosu seviyene uygun hazır cümleler kullanır.</p><div class="actions"><button class="primary" id="quickMatch">Hızlı eşleş</button><button id="createRoom">Arkadaş için oda oluştur</button></div><form id="joinRoom" class="pvp-join"><label>Oda kodu<input id="roomCode" maxlength="10" minlength="10" autocomplete="off" required placeholder="10 karakterlik kod"></label><button>Odaya katıl</button></form><p class="muted">Runner ve Meteor Avı: 3 can, her cevap için 10 saniye. Amiral Battı: cevap ve atış için ayrı ayrı 10 saniye. Kelime Blokları: 60 saniye. Cümle Düellosu: cümle başına 20 saniye. Bağlantı 30 saniye kesilirse rakibin kazanır; iki taraf da koparsa maç berabere kapanır. Doğru cevapların XP kazandırır ve seviye ilerlemene sayılır; yanlış bildiklerin “Yanlış bildiklerim” listene eklenir.</p><p id="lobbyStatus" role="status">Devam eden maçın kontrol ediliyor…</p></div>`;
+ root.innerHTML=`<div class="card"><div class="pvp-setup"><label>Oyun<select id="onlineMode">${Object.entries(titles).map(([id,title])=>`<option value="${id}" ${id===preferredMode?'selected':''}>${title}</option>`).join('')}</select></label><label>Çalışma seti<select id="onlineSet">${sets.map((s,i)=>`<option value="${i}" ${s.id===defaultSet?.id?'selected':''}>${escape(s.name)}</option>`).join('')}</select></label><label>Eşleşme havuzu<select id="onlinePool"><option value="">Seviyem · ${escape(user.level||'A1')}</option><option value="YDS">YDS</option><option value="YOKDIL">YÖKDİL</option></select></label></div><p>Hızlı eşleşme, seçtiğin havuzdaki oyuncuları aynı oyunda buluşturur: kendi seviyen (<strong>${escape(user.level||'A1')}</strong>), <strong>YDS</strong> veya <strong>YÖKDİL</strong>. YDS ve YÖKDİL havuzlarında kelimeler ilgili hazır setten gelir ve seviyeden bağımsız eşleşirsin. Oda koduyla farklı seviyelerdeki arkadaşlarınla da oynayabilirsin.</p><p class="muted">İki oyuncu da oda sahibinin setinden aynı kelimeleri görür. Seçilen en fazla 20 kelime rakiple paylaşılır; Kelime Blokları 8 çift kullanır. Cümle Düellosu seviyene uygun hazır cümleler kullanır.</p><div class="actions"><button class="primary" id="quickMatch">Hızlı eşleş</button><button id="createRoom">Arkadaş için oda oluştur</button></div><form id="joinRoom" class="pvp-join"><label>Oda kodu<input id="roomCode" maxlength="10" minlength="10" autocomplete="off" required placeholder="10 karakterlik kod"></label><button>Odaya katıl</button></form><p class="muted">Runner ve Meteor Avı: 3 can, her cevap için 10 saniye. Amiral Battı: cevap ve atış için ayrı ayrı 10 saniye. Kelime Blokları: 60 saniye. Cümle Düellosu: cümle başına 90 saniye; ilk doğru tamamlayan cümleyi alır, kimse tamamlayamazsa kimse puan almaz. Bağlantı 30 saniye kesilirse rakibin kazanır; iki taraf da koparsa maç berabere kapanır. Doğru cevapların XP kazandırır ve seviye ilerlemene sayılır; yanlış bildiklerin “Yanlış bildiklerim” listene eklenir.</p><p id="lobbyStatus" role="status">Devam eden maçın kontrol ediliyor…</p></div>`;
  $('onlineMode').value=preferredMode;$('onlineSet').value=String(Math.max(0,sets.indexOf(defaultSet)));
  let pending=false,changeMode=null;
  mountPools($('onlinePools'),mode=>{if(changeMode){void changeMode(mode);return}$('onlineMode').value=mode;$('onlineMode').onchange();void enter('quick')},()=>$('onlinePool')?.value||'');
@@ -41,7 +49,7 @@ export function online(autoQuick=false){
  }
  $('quickMatch').onclick=()=>void enter('quick');$('createRoom').onclick=()=>void enter('create');$('joinRoom').onsubmit=e=>{e.preventDefault();void enter('join')};void enter(autoQuick?'quick':'resume');
  async function connect(id){
-  let state=null,busy=false,mutating=false,inFlight=null,ownTick=null,offset=0,lastPoll=0,key='',scene=null,pick=null,feedbackKey='',opponentFeedbackKey='',fleet=[3,2,1].map(length=>({length,vertical:false,cells:[]})),selected=0;
+  let state=null,announced=false,stopBackground=null,busy=false,mutating=false,inFlight=null,ownTick=null,offset=0,lastPoll=0,key='',scene=null,pick=null,feedbackKey='',opponentFeedbackKey='',fleet=[3,2,1].map(length=>({length,vertical:false,cells:[]})),selected=0;
   clearInterval(timer);root.innerHTML='<p>Maç yükleniyor…</p>';
   $('onlineBack').textContent='Odadan ayrıl';$('onlineBack').onclick=async()=>{if(state?.status!=='finished'&&!confirm('Odadan ayrılmak istiyor musun? Başlamış maçta rakibin kazanır.'))return;const left=await send('leave');if(left&&active())go('games')};
   const now=()=>Date.now()+offset;
@@ -50,17 +58,17 @@ export function online(autoQuick=false){
    if(!active())return null;
    if(busy){if(action==='poll')return null;await inFlight;return send(action,value,extra,token)}
    busy=true;mutating=action!=='poll';let release;inFlight=new Promise(resolve=>{release=resolve});const start=Date.now();
-   try{const next=await room(id,action,token,value,extra);if(!active())return null;offset=Date.parse(next.serverNow)+(Date.now()-start)/2-Date.now();state=next;creditState(next);draw();const status=root.querySelector('#connectionStatus');if(status)status.textContent='Bağlı · '+(Math.round((Date.now()-start)))+' ms';return next}
+   try{const next=await room(id,action,token,value,extra);if(!active())return null;offset=Date.parse(next.serverNow)+(Date.now()-start)/2-Date.now();state=next;if(!announced&&['placing','active'].includes(next.status)){announced=true;matchFoundSound()}creditState(next);draw();const status=root.querySelector('#connectionStatus');if(status)status.textContent='Bağlı · '+(Math.round((Date.now()-start)))+' ms';return next}
    catch(e){if(active()){let status=root.querySelector('#connectionStatus');if(!status){root.innerHTML='<p id="connectionStatus" role="status"></p><button id="retryRoom">Yeniden bağlan</button>';$('retryRoom').onclick=()=>void send()}status=root.querySelector('#connectionStatus');status.textContent='Bağlantı kurulamadı: '+e.message+' · Yeniden deneniyor.'}return null}
    finally{busy=false;mutating=false;release()}
   }
   function creditState(s){
-   if(!s||!s.id||!s.question||!s.answer||s.status==='waiting')return;
+   if(!s||!s.id||!s.question||!s.answer||s.answer.lost||s.status==='waiting')return;
    const mine=['runner','meteor','sentences'].includes(s.mode)||(s.mode==='battle'&&s.turn===s.me);
    if(mine)creditOnline({room:s.id,round:s.round,kind:'a',front:s.question.front,back:s.correct||'',ok:!!s.answer.ok});
   }
-  function frame(){if(state?.status==='finished'){clearInterval(ownTick);scene?.stop();return}if(!active()){clearInterval(ownTick);scene?.stop();return}if(Date.now()-lastPoll>=1000){lastPoll=Date.now();void send()}update()}
-  await send();if(!active())return;ownTick=setInterval(frame,100);setTimer(ownTick);
+  function frame(){if(state?.status==='finished'){clearInterval(ownTick);stopBackground?.();scene?.stop();return}if(!active()){clearInterval(ownTick);stopBackground?.();scene?.stop();return}if(Date.now()-lastPoll>=1000){lastPoll=Date.now();void send()}update()}
+  await send();if(!active())return;ownTick=setInterval(frame,100);setTimer(ownTick);stopBackground=backgroundTick(frame);
   function draw(){
    const s=state;const newKey=s.status+':'+s.round+':'+(s.mode==='battle'?s.phase+':'+s.turn:'');
    if(newKey!==key||!$('pvpStage')){key=newKey;scene?.stop();scene=null;pick=null;
@@ -78,8 +86,8 @@ export function online(autoQuick=false){
     }else if(s.mode==='meteor'){
      stage.innerHTML='<div class="card" id="onlineMeteor"></div>';scene=mountMeteor($('onlineMeteor'),{prompt:s.question.front,options:s.question.options,startsAt:Date.parse(s.startsAt),deadline:Date.parse(s.deadline),now,onAnswer:async i=>{const result=await send('answer',i);if(!result)throw Error('Cevap gönderilemedi. Bağlantı yeniden kurulunca maç devam eder.');return {ok:!!result.answer?.ok,correct:result.correct}}});
     }else if(s.mode==='sentences'){
-     stage.innerHTML=`<div class="card"><div class="top"><h2>Cümle Düellosu · ${s.round+1}/${s.total}</h2><span id="pvpClock" class="timer"></span></div><h3>${escape(s.question.front)}</h3><div id="onlineSentence"></div><p id="answerStatus" role="status"></p></div>`;
-     scene=mountSentence($('onlineSentence'),s.question.options,async order=>{const result=await send('sentence',-1,order);if(result)sound(!!result.answer?.ok)});
+     stage.innerHTML=`<div class="card"><div class="top"><h2>Cümle Düellosu · ${s.round+1}/${s.total}</h2><span id="pvpClock" class="timer"></span></div><h3>${escape(s.question.front)}</h3><p class="muted">İlk doğru tamamlayan cümleyi alır ve sıradaki cümleye geçilir. 90 saniyede kimse tamamlayamazsa kimse puan almaz.</p><div id="onlineSentence"></div><p id="sentenceTry" role="status"></p><p id="answerStatus" role="status"></p></div>`;
+     scene=mountSentence($('onlineSentence'),s.question.options,async order=>{const result=await send('sentence',-1,order);if(result){sound(!!result.answer?.ok);const el=$('sentenceTry');if(el)el.textContent=result.answer?'':'✕ Yanlış sıra. Düzeltip tekrar gönder.'}});
     }else if(s.mode==='runner'){
      stage.innerHTML=`<h2>Word Runner · Tur ${s.round+1}</h2><div class="game-screen runner-scene" id="onlineRunner"><div class="hud">Sen <span id="raceStatus"></span></div><div class="rival-label">Rakip</div><div class="runner human rival-runner"><i class="head"></i><i class="body"></i><i class="leg left"></i><i class="leg right"></i><i class="arm"></i></div><div class="ground"></div><div id="onlineHuman" class="runner human"><i class="head"></i><i class="body"></i><i class="leg left"></i><i class="leg right"></i><i class="arm"></i></div><div id="onlineObstacle" class="obstacle ${s.round%2?'high':''}"><span>${s.round%2?'↓':'↑'}</span></div><div id="runnerResult" class="run-feedback"></div></div><div class="card section" id="onlineQuestion"><div class="top"><h2>${s.round%2?'Eğilmek':'Zıplamak'} için cevapla</h2><span id="pvpClock" class="timer"></span></div>${questionMarkup(s)}</div>`;bindQuestion();
     }else if(s.mode==='battle'){
@@ -95,8 +103,10 @@ export function online(autoQuick=false){
    if($('myLives'))$('myLives').textContent=['runner','meteor'].includes(s.mode)?'♥ '+s.lives[s.me-1]+' / 3 can':'';if($('theirLives'))$('theirLives').textContent=['runner','meteor'].includes(s.mode)?'♥ '+s.lives[2-s.me]+' / 3 can':'';
    if($('myScore'))$('myScore').textContent=s.scores[s.me-1];if($('theirScore'))$('theirScore').textContent=s.scores[2-s.me];
    const clock=$('pvpClock');if(clock){clock.textContent=t<start?'Hazır ol…':left+' sn';clock.classList.toggle('urgent-text',left<=3)}
+   // Last three seconds of the timer: beep once per second (only while it is this player's clock).
+   if(clock&&s.status!=='finished'&&t>=start&&left>=1&&left<=3&&(s.mode==='blocks'||!s.answer)&&s.phase!=='feedback'&&!(s.mode==='battle'&&s.status==='active'&&s.turn!==s.me)&&!(s.status==='placing'&&s.ready[s.me-1]))countdownBeep(s.id+':'+s.round+':'+s.status+':'+s.phase,left);
    root.querySelectorAll('[data-online-answer]').forEach(b=>b.disabled=mutating||t<start||t>=end||s.phase!=='question'||!!s.answer);
-   if($('answerStatus'))$('answerStatus').textContent=s.answer?(s.answer.ok?'✓ Doğru! Rakip bekleniyor…':'✕ '+(s.correct?'Doğru: '+s.correct:'Süre doldu')):'';
+   if($('answerStatus'))$('answerStatus').textContent=s.answer?(s.answer.ok?(s.phase==='feedback'?'✓ Doğru!':'✓ Doğru! Rakip bekleniyor…'):'✕ '+(s.answer.lost?'Rakip önce tamamladı. ':'')+(s.correct?'Doğru: '+s.correct:'Süre doldu')):'';
    if(s.mode==='sentences'&&s.status==='active')scene?.lock(mutating||t<start||t>=end||!!s.answer);
    if(s.mode==='meteor'&&s.status==='active'&&s.answer)scene?.setAnswer?.({ok:s.answer.ok,correct:s.correct});
    if(s.mode==='blocks'&&s.status==='active'){

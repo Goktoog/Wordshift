@@ -1,6 +1,7 @@
 import { $, escape } from '../core/utils.js';
 import { session, timer, setTimer, page } from '../core/state.js';
 import { record, finish, topStudy, exitBind, answerMarkup, bindAnswer, equal } from '../features/session.js';
+import { countdownBeep } from '../ui/feedback.js';
 
 export function runner() {
  const s = session;
@@ -56,6 +57,7 @@ export function runner() {
    } else if (phase === 'question') {
      placeObstacle(1);
      $('gateTime').textContent = Math.max(0, Math.ceil((deadline-now)/1000))+' sn';
+     if (now < deadline) countdownBeep('run'+deadline, Math.ceil((deadline-now)/1000));
      if (now >= deadline) resolve(false);
    } else {
      elapsed += delta;
@@ -68,7 +70,7 @@ export function runner() {
        if (elapsed >= 220) character.classList.add('crash');
        if (elapsed >= 700) {character.classList.remove('crash'); character.classList.add('respawning'); obstacle.style.opacity = '0'}
      }
-     if (elapsed >= 1500) {clearInterval(tick); s.i++; s.action = s.action === 'jump' ? 'duck' : 'jump'; runner()}
+     if (elapsed >= (phase === 'crash' ? 4000 : 1500)) {clearInterval(tick); s.i++; s.action = s.action === 'jump' ? 'duck' : 'jump'; runner()}
    }
  }, 30));
  const tick = timer;

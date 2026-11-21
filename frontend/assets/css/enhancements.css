@@ -101,3 +101,7 @@
 @media(max-width:600px){.history-match summary{align-items:flex-start;flex-direction:column}.pool-grid{grid-template-columns:1fr 1fr}.pool-card{padding:12px}.pool-card button{padding:10px;font-size:.875rem}}
 .meteor-missile span svg{display:block;width:18px;height:32px}.meteor-missile i{width:10px;height:25px;top:90%;right:22%;transform:none;background:linear-gradient(#fff0a0,#f29f38,transparent)}
 .match-wrong{margin-top:14px;text-align:left}.match-wrong ul{margin:6px 0;padding-left:20px}.mistake-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}.mistake-row .muted{overflow-wrap:anywhere}
+
+/* Doğru cevabın yanlış/boş sonrası okunabilmesi */
+.answer-reveal{margin:12px 0 0;font-weight:700;overflow-wrap:anywhere}
+.meteor.reveal{outline:3px solid var(--good);outline-offset:2px}

@@ -1,5 +1,5 @@
 import { escape } from '../core/utils.js';
-import { sound } from '../ui/feedback.js';
+import { sound, countdownBeep } from '../ui/feedback.js';
 
 const ROCKET='<svg viewBox="0 0 40 70" width="40" height="70" aria-hidden="true"><path d="M20 2C28 14 30 30 28 48H12C10 30 12 14 20 2Z" fill="#e8ecf5"/><circle cx="20" cy="24" r="5" fill="#4aa3ff"/><path d="M12 40 2 58l10-6Zm16 0 10 18-10-6Z" fill="#ed986f"/><rect x="14" y="48" width="12" height="6" fill="#8a93a8"/></svg>';
 // Shared by solo and online. The launcher never changes position; only its angle changes.
@@ -30,6 +30,7 @@ export function mountMeteor(host,{prompt,options,deadline,startsAt=0,now=()=>Dat
  function tick(time){
   if(!active()){stop();return}
   latestTime=now();const remaining=Math.max(0,Math.ceil((deadline-latestTime)/1000));
+  if(!locked&&latestTime>=startsAt&&latestTime<deadline)countdownBeep('om'+deadline,remaining);
   clock.textContent=latestTime<startsAt?'Hazır ol…':remaining+' sn';arena.classList.toggle('urgent',remaining<=3&&!locked);clock.classList.toggle('urgent-text',remaining<=3&&!locked);
   rocks.forEach((b,i)=>{
    const width=Math.min(160,Math.max(95,arena.clientWidth*.32));b.style.width=width+'px';
