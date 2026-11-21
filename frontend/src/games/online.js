@@ -1,4 +1,4 @@
-import { gameTitles, mountPools, poolLabel } from './pvp-panels.js';
+import { gameTitles, mountPools, poolLabel, poolForSet } from './pvp-panels.js';
 import { mountSentence } from './sentences.js';
 import { $, escape } from '../core/utils.js';
 import { user,page,setTimer,timer } from '../core/state.js';
@@ -12,23 +12,26 @@ import { creditOnline, wrongWordsMarkup } from '../features/pvp-credit.js';
 const titles=gameTitles;
 let preferredSet=null,preferredMode='runner',preferredPool='';
 const examSets={YDS:'starter-yds',YOKDIL:'starter-yokdil'};
-export function openOnline(set=null,mode='runner',autoQuick=false){preferredSet=set;preferredMode=mode;go('online',{autoQuick})}
+export function openOnline(set=null,mode='runner',autoQuick=false,pool){preferredSet=set;preferredMode=mode;if(pool!==undefined)preferredPool=pool;go('online',{autoQuick})}
+export const getPool=()=>preferredPool;
+export const setPool=value=>{preferredPool=value};
 export function online(autoQuick=false){
  const v=$('view');v.innerHTML=`<div class="top"><div><p class="eyebrow">İKİ KİŞİLİK ÇEVRİMİÇİ</p><h1>Birlikte oyna.</h1></div><button id="onlineBack">Oyunlara dön</button></div><div id="onlineRoot"></div><section class="section" id="onlinePools"></section>`;
  $('onlineBack').onclick=()=>go('games');const root=$('onlineRoot'),account=user;
  const active=()=>page==='online'&&user===account&&$('onlineRoot')===root;
  if(user.guest){root.innerHTML='<div class="card"><h2>PvP için giriş yap</h2><p>Çevrimiçi odalar Google veya e-posta hesabı gerektirir. Misafir olarak tek oyunculu oyunları oynayabilirsin.</p></div>';return}
- if(preferredSet&&examSets.YDS===preferredSet.id)preferredPool='YDS';else if(preferredSet&&examSets.YOKDIL===preferredSet.id)preferredPool='YOKDIL';
+ if(preferredSet)preferredPool=poolForSet(preferredSet);
  const sets=[...user.sets,...starterSets],defaultSet=preferredSet||starterSets.find(s=>s.id==='starter-'+(user.level||'A1').toLowerCase())||starterSets[0];if(preferredSet&&!sets.some(s=>s.id===preferredSet.id))sets.unshift(preferredSet);
  root.innerHTML=`<div class="card"><div class="pvp-setup"><label>Oyun<select id="onlineMode">${Object.entries(titles).map(([id,title])=>`<option value="${id}" ${id===preferredMode?'selected':''}>${title}</option>`).join('')}</select></label><label>Çalışma seti<select id="onlineSet">${sets.map((s,i)=>`<option value="${i}" ${s.id===defaultSet?.id?'selected':''}>${escape(s.name)}</option>`).join('')}</select></label><label>Eşleşme havuzu<select id="onlinePool"><option value="">Seviyem · ${escape(user.level||'A1')}</option><option value="YDS">YDS</option><option value="YOKDIL">YÖKDİL</option></select></label></div><p>Hızlı eşleşme, seçtiğin havuzdaki oyuncuları aynı oyunda buluşturur: kendi seviyen (<strong>${escape(user.level||'A1')}</strong>), <strong>YDS</strong> veya <strong>YÖKDİL</strong>. YDS ve YÖKDİL havuzlarında kelimeler ilgili hazır setten gelir ve seviyeden bağımsız eşleşirsin. Oda koduyla farklı seviyelerdeki arkadaşlarınla da oynayabilirsin.</p><p class="muted">İki oyuncu da oda sahibinin setinden aynı kelimeleri görür. Seçilen en fazla 20 kelime rakiple paylaşılır; Kelime Blokları 8 çift kullanır. Cümle Düellosu seviyene uygun hazır cümleler kullanır.</p><div class="actions"><button class="primary" id="quickMatch">Hızlı eşleş</button><button id="createRoom">Arkadaş için oda oluştur</button></div><form id="joinRoom" class="pvp-join"><label>Oda kodu<input id="roomCode" maxlength="10" minlength="10" autocomplete="off" required placeholder="10 karakterlik kod"></label><button>Odaya katıl</button></form><p class="muted">Runner ve Meteor Avı: 3 can, her cevap için 10 saniye. Amiral Battı: cevap ve atış için ayrı ayrı 10 saniye. Kelime Blokları: 60 saniye. Cümle Düellosu: cümle başına 20 saniye. Bağlantı 30 saniye kesilirse rakibin kazanır; iki taraf da koparsa maç berabere kapanır. Doğru cevapların XP kazandırır ve seviye ilerlemene sayılır; yanlış bildiklerin “Yanlış bildiklerim” listene eklenir.</p><p id="lobbyStatus" role="status">Devam eden maçın kontrol ediliyor…</p></div>`;
  $('onlineMode').value=preferredMode;$('onlineSet').value=String(Math.max(0,sets.indexOf(defaultSet)));
  let pending=false,changeMode=null;
  mountPools($('onlinePools'),mode=>{if(changeMode){void changeMode(mode);return}$('onlineMode').value=mode;$('onlineMode').onchange();void enter('quick')},()=>$('onlinePool')?.value||'');
- let lastSet=$('onlineSet').value;
+ const levelSet=()=>Math.max(0,sets.findIndex(s=>s.id==='starter-'+(user.level||'A1').toLowerCase()));
+ let lastSet=poolForSet(sets[+$('onlineSet').value])?String(levelSet()):$('onlineSet').value;
  $('onlinePool').value=preferredPool;
  const syncPool=()=>{const sentence=$('onlineMode').value==='sentences',exam=examSets[$('onlinePool').value];$('onlinePool').disabled=sentence;if(exam&&!sentence){const at=sets.findIndex(s=>s.id===exam);if(at>=0)$('onlineSet').value=String(at)}$('onlineSet').disabled=sentence||!!exam&&!sentence};
- $('onlinePool').onchange=()=>{preferredPool=$('onlinePool').value;if(!examSets[preferredPool])$('onlineSet').value=lastSet;syncPool();if(!examSets[preferredPool])lastSet=$('onlineSet').value};
- $('onlineSet').onchange=()=>{lastSet=$('onlineSet').value};
+ $('onlinePool').onchange=()=>{preferredPool=$('onlinePool').value;if(!examSets[preferredPool])$('onlineSet').value=lastSet;syncPool()};
+ $('onlineSet').onchange=()=>{const guess=poolForSet(sets[+$('onlineSet').value]);if(guess){preferredPool=guess;$('onlinePool').value=guess;syncPool()}else lastSet=$('onlineSet').value};
  $('onlineMode').onchange=syncPool;syncPool();
  const buttons=()=>[...root.querySelectorAll('button,select,input')];
  async function enter(action){if(pending||!active())return;pending=true;buttons().forEach(b=>b.disabled=true);const status=$('lobbyStatus');status.textContent=action==='resume'?'Devam eden maçın kontrol ediliyor…':'Odaya bağlanılıyor…';

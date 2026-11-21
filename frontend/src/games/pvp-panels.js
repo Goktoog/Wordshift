@@ -3,6 +3,7 @@ import {user} from '../core/state.js';
 import {go} from '../core/router.js';
 import {pools,matchHistory} from '../services/pvp.js';
 import {wrongWordsMarkup} from '../features/pvp-credit.js';
+export const poolForSet=set=>({'starter-yds':'YDS','starter-yokdil':'YOKDIL'})[set?.id]||'';
 export const poolLabel=l=>({YOKDIL:'YÖKDİL'}[l]||l);
 export const gameTitles={runner:'Word Runner',battle:'Amiral Battı',blocks:'Kelime Blokları',meteor:'Meteor Avı',sentences:'Cümle Düellosu'};
 export function mountPools(host,onSelect,getPool=()=>''){
