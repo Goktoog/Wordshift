@@ -7,17 +7,18 @@ import { toast, sound } from '../ui/feedback.js';
 import { go, render } from '../core/router.js';
 import { newSet } from './sets.js';
 import { updateProgress, reviewItems, itemProgress } from './progress.js';
+import { computeLevel, isMastered, logMastery } from './level.js';
 export const gameModes=['runner','battle','match','blocks','meteor'];
 export function chooseSet(m){
  modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
 }
 export function record(x,ok,withSound=true){
  const set=current();if(!set)return;
+ const wasMastered=isMastered(itemProgress(user,set,x));
  updateProgress(user,set,x,ok);
+ if(!wasMastered&&isMastered(itemProgress(user,set,x)))logMastery(user);
  user.stats.total++;user.stats.correct+=ok?1:0;if(ok)user.xp+=10;
- const learnedStarterWords=starterSets.flatMap(s=>s.items.filter(w=>w.type==='word'&&itemProgress(user,s,w).attempts>=2&&itemProgress(user,s,w).correct/itemProgress(user,s,w).attempts>=.75));
- const done=[...allWords().filter(w=>w.attempts>=2&&w.correct/w.attempts>=.75),...learnedStarterWords];
- let best='A1';for(const l of levels)if(done.filter(w=>w.level===l).length>=5)best=l;user.level=best;
+ user.level=computeLevel(user);
  save();header();if(withSound)sound(ok);
 }
 export function skipItem(x){updateProgress(user,current(),x,null);session.skipped++;save()}

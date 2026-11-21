@@ -10,6 +10,8 @@ import { cropImage, blobDataURL } from '../ui/image-cropper.js';
 import { cityPickerMarkup, bindCityPicker } from '../ui/city-picker.js';
 import { canonicalCity } from '../data/cities.js';
 import { mountSocial } from './people.js';
+import { levelProgress, NEED } from './level.js';
+import { openPlacement } from './placement.js';
 const pencil='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z"/></svg>';
 let picking=false;
 export async function saveProfileMedia(account,kind,blob){
@@ -41,14 +43,22 @@ function editProfile(account){
  bindCityPicker($('cityPicker'));
  $('editAvatarFromForm').onclick=()=>chooseMedia(account,'avatar');$('editBannerFromForm').onclick=()=>chooseMedia(account,'banner');
 }
+function levelCard(u,own){
+ if(!own)return '';
+ const p=levelProgress(u);
+ const eta=p.next?(p.eta?`Bu hızla yaklaşık ${p.eta} gün`:'Tahmin için birkaç gün çalış'):'';
+ const pl=u.placement?`Son sınav: ${escape(u.placement.level)} · ${escape(u.placement.date)}`:'Henüz seviye sınavına girmedin';
+ return `<div class="card section" id="levelCard"><p class="eyebrow">SEVİYE İLERLEMESİ</p><h2 style="margin:6px 0">${escape(p.level)}${p.next?` → ${escape(p.next)}`:' · en üst seviye'}</h2>${p.next?`<div class="progress" role="progressbar" aria-valuenow="${p.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p.pct}%"></i></div><p class="muted">${p.have}/${p.need} ${escape(p.next)} içeriği öğrenildi (%${p.pct}) · ${escape(eta)}</p>`:''}<p class="notice">Bir içerik, en az 2 denemede %75+ doğru yapınca "öğrenildi" sayılır. ${p.next?`${escape(p.next)} seviyesine geçmek için ${p.need} ${escape(p.next)} içeriği öğrenmen gerekir.`:''} ${pl}.</p><button id="placementBtn" class="primary">Seviye sınavına gir</button></div>`;
+}
 export function profile(u){
  const own=u.id===user.id;
  const banner=`<div class="banner profile-cover">${u.banner?`<img src="${escape(u.banner)}" alt="Profil kapak görseli">`:''}${own?`<button type="button" id="editBanner" class="media-edit cover-edit" aria-label="Kapak görselini değiştir" title="Kapak görselini değiştir">${pencil}<span>Kapak görselini değiştir</span></button>`:''}</div>`;
  const picture=own?`<button type="button" id="editAvatar" class="profile-avatar-button" aria-label="Profil fotoğrafını değiştir" title="Profil fotoğrafını değiştir">${avatar(u)}<span class="avatar-edit-overlay">${pencil}</span></button>`:avatar(u);
- $('view').innerHTML=banner+`<div class="profile-info">${picture}<div><h1 style="margin:0">${escape(u.name)}</h1><span class="badge">${escape(u.level)}</span> <span class="muted">${escape(u.city||'Şehir belirtilmedi')}</span></div></div><div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${u.xp}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${u.stats.total}</strong></div><div class="card stat"><span class="muted">Set</span><strong>${u.sets.length}</strong></div></div><p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>`+(own?'<button id="editProfile" class="primary">Profili düzenle</button> <button id="out">Çıkış yap</button>':'<button id="return">Sıralamaya dön</button>');
+ $('view').innerHTML=banner+`<div class="profile-info">${picture}<div><h1 style="margin:0">${escape(u.name)}</h1><span class="badge">${escape(u.level)}</span> <span class="muted">${escape(u.city||'Şehir belirtilmedi')}</span></div></div>${levelCard(u,own)}<div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${u.xp}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${u.stats.total}</strong></div><div class="card stat"><span class="muted">Set</span><strong>${u.sets.length}</strong></div></div><p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>`+(own?'<button id="editProfile" class="primary">Profili düzenle</button> <button id="out">Çıkış yap</button>':'<button id="return">Sıralamaya dön</button>');
  $('view').insertAdjacentHTML('beforeend','<div class="section"><h2>Oluşturduğu çalışma setleri</h2>'+u.sets.map(s=>'<div class="card"><button data-profile-set="'+escape(s.id)+'"><strong>'+escape(s.name)+'</strong></button><p class="muted">'+s.items.length+' içerik</p></div>').join('')+'</div>');
  $('view').querySelectorAll('[data-profile-set]').forEach(b=>b.onclick=()=>go('detail',b.dataset.profileSet));
  if(!own){$('return').onclick=()=>go('leaderboard');return}
+ $('placementBtn').onclick=()=>openPlacement(()=>profile(u));
  $('out').onclick=$('logout').onclick;
  $('editProfile').onclick=()=>editProfile(u);$('editAvatar').onclick=()=>chooseMedia(u,'avatar');$('editBanner').onclick=()=>chooseMedia(u,'banner');
  if(!u.guest)void mountSocial(u.id);
