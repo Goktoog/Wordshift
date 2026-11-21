@@ -1,0 +1,24 @@
+import {fileURLToPath} from 'node:url';
+import {registerHooks} from 'node:module';
+import {Window} from 'happy-dom';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const root=fileURLToPath(new URL('..',import.meta.url)).replace(/[\\/]$/,'');
+registerHooks({load(url,context,next){if(url.endsWith('/services/cloud.js'))return {format:'module',shortCircuit:true,source:`export const client=async()=>globalThis.mockClient;export const queueCloud=()=>{};export const flushCloud=async()=>{};export const uploadImage=async()=>'';export const resetCloud=()=>{};export const loadCloud=async()=>{};export const SITE_URL='https://goktoog.github.io/Wordshift/';`};return next(url,context)}});
+const row={owner_id:'ahmet',set_id:'a',title:'YDS B1',author_name:'Ahmet',item_count:2,levels:['B1'],items:[{id:'word',type:'word',front:'although',back:'rağmen',level:'B1',extra:'',options:[]}]};
+let available=true,delay=0,fail=false,calls=[];
+globalThis.mockClient={rpc:async(name,args)=>{calls.push([name,args]);if(delay)await new Promise(r=>setTimeout(r,delay));return {data:available?[row]:[],error:fail?{code:'PGRST202',message:'missing'}:null}},from:()=>({select:()=>({eq:()=>({eq:()=>({maybeSingle:async()=>({data:available?row:null,error:null})})})})})};
+const w=new Window({url:'http://localhost:3000/',settings:{disableJavaScriptEvaluation:true,disableCSSFileLoading:true}});
+Object.assign(globalThis,{window:w,document:w.document,history:w.history,localStorage:w.localStorage,confirm:()=>true});
+document.write(readFileSync(root+'/frontend/index.html','utf8').replace(/<script[^>]*>[\s\S]*?<\/script>/g,''));
+const state=await import(new URL('../frontend/src/core/state.js',import.meta.url));const {go}=await import(new URL('../frontend/src/core/router.js',import.meta.url));
+state.setUser({id:'me',name:'Ben',guest:true,sets:[],folders:[],stats:{total:0,correct:0},xp:0,level:'A1'});
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+go('home');const input=document.querySelector('#discoverQuery');input.value='YDS';input.dispatchEvent(new w.Event('input'));await wait(400);assert.match(document.querySelector('#discoverySuggestions').textContent,/Ahmet/);document.querySelector('.search-suggestion').click();await wait(20);assert.equal(state.current().ownerId,'ahmet');assert.equal(document.querySelector('#itemAdd'),null);assert.equal(state.user.sets.length,0);
+document.querySelector('#authorSets').click();await wait(20);assert.equal(calls.at(-1)[1].author_filter,'ahmet');assert.ok(document.querySelector('.public-set'));
+// Old network responses cannot replace a page navigated away from.
+delay=100;go('explore');go('sets');await wait(150);assert.equal(state.page,'sets');assert.equal(document.querySelector('#publicResults'),null);
+delay=0;available=false;go('shared',{owner:'ahmet',id:'a'});await wait(20);assert.match(document.querySelector('#view').textContent,/artık paylaşılmıyor/);
+fail=true;go('explore');await wait(20);assert.match(document.querySelector('#searchStatus').textContent,/henüz kurulmamış/);assert.equal(document.querySelector('#morePublic').hidden,false);
+fail=false;available=true;document.querySelector('#morePublic').click();await wait(20);assert.ok(document.querySelector('.public-set'));
+await w.happyDOM.abort();console.log('PASS discovery: debounced global suggestions, open shared without adding to library, author filter, stale-request guard, removed-set fallback, migration error and retry.');

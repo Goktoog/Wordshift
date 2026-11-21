@@ -1,34 +1,190 @@
-# Wordshift v0.3
+# Wordshift
 
-Bağımsız kelime öğrenme, çalışma setleri ve oyun platformu. HTML/CSS ve Vanilla JavaScript (ES Modules). Node.js yalnızca lokal geliştirme sunucusu olarak kullanılıyor.
+**Kelimelerini ekle, kartlarla öğren, sorularla pekiştir, oyunlarla tekrar et.**
 
-## Yerel kullanım
+Wordshift; kişisel çalışma setlerini, dil alıştırmalarını ve kelime oyunlarını bir araya getiren bir web uygulamasıdır. HTML, CSS ve JavaScript ile geliştirilmiştir. Arayüz GitHub Pages üzerinde, hesap ve veri hizmetleri Supabase üzerinde çalışır.
 
-Node.js 18+ ile proje kökünde `npm start`, ardından http://localhost:3000. Paket yüklemek gerekmez. `npm run check` ile JavaScript sözdizimini denetle.
+[Uygulamayı aç](https://goktoog.github.io/Wordshift/)
 
-## GitHub Pages
+## Özellikler
 
-Projeyi GitHub'da bir depoya yükle. Settings → Pages → Build and deployment → Source: GitHub Actions. `main` dalına push edildiğinde `.github/workflows/pages.yml` yalnızca `frontend/` klasörünü yayınlar. Node.js orada çalışmaz. Tüm URL'ler depo alt yoluyla uyumlu göreli yollardır.
+- **Kişisel kütüphane:** Klasörler, çalışma setleri, kelimeler ve kalıplar oluşturma.
+- **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, bilmediklerim ve boş bıraktıklarım listesi.
+- **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
+- **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
+- **Oyunlar:** Word Runner, Amiral Battı (bot), Eşleştirme, Bloklar ve Meteor Avı.
+- **Hesaplar:** Google veya e-posta/şifre ile giriş ve kayıt; şifre sıfırlama, şifre görünürlüğü ve kayıt şifresi eşleştirme.
+- **Profil:** Görünen ad, profil görseli ve kapak görseli.
+- **Keşfet:** Kullanıcıların özellikle paylaştığı setlerde arama ve bağımsız kopya oluşturma.
+- **Temalar:** Koyu ve açık tema; doğru/yanlış cevap efektleri.
 
-## Dizinler
+## Başlangıç kütüphanesi
 
-- `frontend/index.html` — arayüz iskeleti; `assets/css` tema ve stil.
-- `frontend/src/core` — durum modeli, navigasyon, yardımcı fonksiyonlar, örnek kelimeler.
-- `frontend/src/services` — yerel veri saklama adaptörü; gerçek API bağlantısı bu katmana gelecek.
-- `frontend/src/features` — demo kimlik doğrulama, setler, çalışma oturumları, profil, ayarlar, liderlik.
-- `frontend/src/games` — runner, amiral battı, eşleştirme/bloklar, meteor ve oyun yönlendirme.
-- `frontend/src/ui` — modal, başlık, ortak bileşen, ses ve geri bildirim.
-- `backend/dev-server.js` — statik yerel sunucu; üretim API'si DEĞİLDİR.
-- `docs/architecture.md` — gerçek backend ve veritabanına geçiş planı.
-- `.github/workflows/pages.yml` — otomatik statik dağıtım.
-- `scripts/` — JavaScript ve temel modül/durum testleri (`npm run check`).
+Hazır setler herkes için görünür. Kişisel setlere otomatik eklenmez; ilerleme ve tekrar listeleri her kullanıcı için ayrı saklanır.
 
-## Önemli
+| Set | Kelime / kalıp | Soru |
+| --- | ---: | ---: |
+| A1 | 853 | 35 |
+| A2 | 827 | 35 |
+| B1 | 768 | 35 |
+| B2 | 703 | 35 |
+| C1 | 90 | 35 |
+| YDS | 278 | 115 |
+| YÖKDİL | 441 | 35 |
 
-Bu sürüm mevcut demo davranışını korur: yerel kayıt, profil, çalışma verileri ve bot oyunları. Veriler `localStorage` içindedir. Gerçek kullanıcı doğrulaması, fotoğraf yükleme, farklı cihazlardan erişim, global sıralama ve PvP henüz sunucuya bağlı değildir. Demo için gerçek e-posta veya önemli şifreni kullanma. Parola özeti gerçek sunucu kimlik doğrulaması değildir. Şehir manuel seçilir, CEFR rozeti tahmini bir ilerleme göstergesidir. Gerçek backend kurulmadan halka açık hizmet kullanıma alınmamalıdır.
+Toplam **3.960 kelime/kalıp kaydı ve 325 soru** vardır. Setler arasında ortak kelimeler bulunabilir. Soruların 245'i üretilmiş alıştırma, 80'i projeye sağlanan 2026 Nisan YDS PDF'indendir. YDS kelimelerinin 198'i bu PDF'nin seçeneklerinden seçilmiştir.
 
-Yeni bir uygulama geliştirirken mevcut verileri geri yüklemek için önce kullanıcıların veri dışa aktarımını kullan; aynı origin'de önceki `wordshift-v1` kayıtları korunur.
+Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki YDS soruları (80) → Test / Deneme** yolunu kullan. Sorular ve gerekli okuma parçaları kaynak görselleriyle gösterilir; cevap A–E düğmelerinden seçilir. Kaynak soru seçiminde deneme süresi 180 dakika, diğer seçimlerde 30 dakikadır.
 
+## Kullanılan teknolojiler
 
-## v0.3 doğrulama
-Modül testleri ve sözdizimi denetimi çalıştırılır. Görsel animasyonların tam tarayıcı testi henüz yapılmadı. Gerçek üyelik, online sıralama ve topluluk setleri henüz bağlı değildir.
+| Katman | Teknoloji |
+| --- | --- |
+| Arayüz | HTML, CSS, vanilla JavaScript / ES Modules |
+| Yayınlama | GitHub Pages ve GitHub Actions |
+| Kimlik doğrulama | Supabase Auth; Google OAuth, e-posta/şifre |
+| Veri | Supabase PostgreSQL; kullanıcıya özel JSONB çalışma alanı |
+| Görseller | Supabase Storage |
+| Yerel geliştirme | Node.js statik sunucusu |
+| Kontroller | Node.js, Happy DOM ve PGlite |
+
+Node.js sunucusu yerel geliştirme içindir; GitHub Pages üzerinde çalıştırılmaz.
+
+## Yerelde çalıştırma
+
+Node.js 18 veya üzeri kurulu olmalıdır. Proje kökünde:
+
+```bash
+npm start
+```
+
+Tarayıcıda `http://localhost:3000` adresini aç. Uygulamayı çalıştırmak için ek paket kurulumu gerekmez. Test araçlarının kurulumu ayrıdır.
+
+Google ve e-posta bağlantıları varsayılan olarak canlı siteye döner. Yerelde kimlik doğrulama testi yapılacaksa `frontend/src/services/cloud.js` içindeki `SITE_URL` ile Supabase'in izin verilen yönlendirme adresleri birlikte ayarlanmalıdır.
+
+## Supabase kurulumu
+
+Mevcut projede tamamlanmış adımları yeniden yapmaya gerek yoktur.
+
+### 1. Veritabanı
+
+Supabase projesinde **SQL Editor → New query** aç:
+
+1. `supabase/setup.sql` içeriğini çalıştır: kişisel çalışma alanı, erişim kuralları ve görsel deposu.
+2. `supabase/community.sql` içeriğini çalıştır: topluluk setleri ve arama.
+
+Hazır başlangıç setleri site dosyalarıyla dağıtılır; bunlar için ayrıca SQL çalıştırılmaz.
+
+### 2. Site ve yönlendirme adresleri
+
+**Authentication → URL Configuration** ekranında **Site URL**:
+
+```text
+https://goktoog.github.io/Wordshift/
+```
+
+**Redirect URLs** listesine iki adresi ayrı ayrı ekle:
+
+```text
+https://goktoog.github.io/Wordshift/
+https://goktoog.github.io/Wordshift/?auth=recovery
+```
+
+İkinci adres şifre sıfırlama ekranını açar. İlk adresi silme; değişiklikleri kaydet.
+
+### 3. Google ile giriş
+
+Google Auth Platform'da oluşturulan OAuth istemcisinin türü **Web application** olmalıdır.
+
+| Google alanı | Değer |
+| --- | --- |
+| Authorized JavaScript origins | `https://goktoog.github.io` |
+| Authorized redirect URIs | `https://ageaooejmhwxpaajelbw.supabase.co/auth/v1/callback` |
+
+Google'dan alınan **Client ID** ve **Client Secret**, Supabase → **Authentication → Sign In / Providers → Google** alanlarına girilir. Google sağlayıcısı etkinleştirilip kaydedilir. Client Secret frontend'e veya GitHub'a eklenmez.
+
+İlk Google girişinde hesap oluşturulur; sonraki girişlerde aynı hesap kullanılır. Canlıya geçtikten sonra farklı bir Google hesabıyla da giriş denenmelidir. Google test kullanıcısı/yayın durumu uyarısı gösterirse Google Auth Platform → Audience ayarları kontrol edilir.
+
+### 4. E-posta doğrulama ve şifre sıfırlama
+
+Email sağlayıcısı ve **Confirm email** açık tutulmalıdır. Supabase'in varsayılan e-posta servisi herkese açık teslimat için uygun değildir; proje ekibi dışındaki adreslere gönderim için özel SMTP kurulmalıdır.
+
+1. SMTP destekleyen bir e-posta hizmetinde gönderici adresini doğrula.
+2. Hizmetin verdiği SMTP host, port, kullanıcı adı ve SMTP şifresini al.
+3. Supabase → **Authentication → Emails → SMTP Settings** üzerinden özel SMTP'yi aç.
+4. Doğrulanmış gönderici adresini, `Wordshift` gönderici adını ve SMTP bilgilerini gir; kaydet.
+5. E-posta şablonlarını düzenlersen doğrulama bağlantısındaki `{{ .ConfirmationURL }}` değişkenini koru.
+6. Kayıt ve şifre sıfırlama e-postasının gerçek alıcıya ulaştığını dene.
+
+SMTP kurulumu Google sağlayıcısı ayarından ayrıdır. Google girişini yapılandırmak, e-posta gönderimini otomatik olarak yapılandırmaz.
+
+## GitHub Pages ile yayınlama ve güncelleme
+
+GitHub deposunda **Settings → Pages → Source: GitHub Actions** seçilir. `.github/workflows/pages.yml`, `main` dalına gönderilen değişikliklerden sonra yalnızca `frontend/` klasörünü yayınlar.
+
+Mevcut Git bağlantılı klasörü güncellemek için:
+
+1. Yeni ZIP'i çıkart ve içindeki `Wordshift` klasörünü aç.
+2. Dosya ve klasörlerin tamamını mevcut `Wordshift-GitHub` klasörünün **içine** kopyala; aynı adlı dosyaları değiştir. İkinci bir iç proje klasörü oluşturma.
+3. Mevcut `.git` klasörünü silme. Tekrar clone veya Initialize Repository yapma.
+4. Bu README'yi `package.json` ile aynı seviyeye koy.
+5. VS Code'da **File → Open Folder → Wordshift-GitHub** seç.
+6. **Source Control → Stage All (+)** ile değişiklikleri hazırla.
+7. Bir commit mesajı yazıp **Commit**, ardından **Sync Changes / Push** seç.
+8. GitHub → **Actions** bölümünde son dağıtımın başarılı olduğunu kontrol et.
+9. Canlı siteyi **Ctrl+F5** ile yenile.
+
+README ve diğer kök Markdown belgeleri uygulama çalışması için gerekli değildir. Bu README tüm temel kurulum bilgisini içerir; diğer açıklama Markdown dosyaları kaldırılabilir. `.github/workflows/pages.yml` ve `.git` farklı görevler taşır ve korunmalıdır.
+
+## Dosya düzeni
+
+| Yol | İçerik |
+| --- | --- |
+| `frontend/index.html` | Ana sayfa ve hesap arayüzü |
+| `frontend/assets/` | Stiller ve kaynak soru görselleri |
+| `frontend/src/core/` | Durum yönetimi, gezinme ve yardımcılar |
+| `frontend/src/features/` | Hesap, setler, öğrenme, profil ve keşif |
+| `frontend/src/games/` | Kelime oyunları |
+| `frontend/src/services/` | Yerel kayıt ve Supabase bağlantıları |
+| `frontend/src/data/starter-sets.js` | Ortak başlangıç kataloğu |
+| `frontend/src/ui/` | Ortak arayüz bileşenleri ve efektler |
+| `backend/dev-server.js` | Yerel statik sunucu |
+| `supabase/` | SQL kurulum dosyaları |
+| `scripts/` | Sözdizimi ve oyun kontrolleri |
+| `tests/` | Arayüz, veri izolasyonu ve içerik testleri |
+| `.github/workflows/pages.yml` | Pages yayınlama iş akışı |
+
+## Doğrulama
+
+Proje kökünde, testlerin tamamı için Node.js 24 kullan:
+
+```bash
+npm run check
+npm run test:games
+npm install --prefix tests
+npm test --prefix tests
+```
+
+Testler kişisel veri izolasyonunu, topluluk paylaşımını, öğrenme/oyun akışlarını, hesap arayüzünü, başlangıç setlerini ve 80 kaynak sorunun cevap eşleşmesini kontrol eder. Kimlik doğrulama testlerinde taklit servis kullanılır; canlı Google girişini veya SMTP teslimatını kanıtlamaz.
+
+Yayın sonrası kontrol:
+
+- Google ile giriş yap, profil adını kontrol et.
+- Bir set oluştur; **Buluta kaydedildi** mesajını bekle.
+- Çıkış yapıp aynı hesapla tekrar gir; setin korunduğunu doğrula.
+- Başka hesapla girişte özel setlerin görünmediğini kontrol et.
+- Şifremi unuttum bağlantısının yeni şifre ekranına döndüğünü dene.
+- Yedi başlangıç setini, bir kaynak YDS sorusunu ve bir kelime oyununu aç.
+
+## Mevcut sınırlar ve kaynaklar
+
+- Çevrimiçi PvP ve rekabetçi global leaderboard henüz uygulanmamıştır. Amiral Battı botla oynanır.
+- XP ve CEFR rozetleri çalışma göstergesidir; resmî dil yeterliliği ölçümü değildir.
+- Misafir verileri aynı tarayıcıda saklanır; hesaba otomatik taşınmaz.
+- Profil görsel deposu herkese açıktır; görsel URL'sini bilen görüntüleyebilir. Eski görseller otomatik temizlenmez.
+- Kullanıcı setleri varsayılan olarak özeldir. Topluluk paylaşımı açık bir yayınlama işlemiyle yapılır.
+- A1–B2 listeleri projeye sağlanan Ozan Dur hazırlamalı kelime PDF'lerinden; akademik ek kelimeler Ahmet Akın / Akın Dil YDS & YÖKDİL listesinden aktarılmıştır. Kaynaklar içeriklerde belirtilir.
+- C1 seçkisi ve ek alıştırmalar proje için hazırlanmıştır; düzeyler yaklaşık çalışma etiketidir.
+- Kaynak YDS soruları sağlanan PDF'nin görsellerini ve cevap anahtarını kullanır. PDF'nin resmî özgünlüğü bağımsız olarak doğrulanmamıştır. Üretilen sorular kaynak sınav sorularından ayrı işaretlenir.
+
+Kurulum belgeleri: [Supabase Google](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [Yönlendirme adresleri](https://supabase.com/docs/guides/auth/redirect-urls), [Özel SMTP](https://supabase.com/docs/guides/auth/auth-smtp).

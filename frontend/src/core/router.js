@@ -1,5 +1,7 @@
+import { starterById } from '../data/starter-sets.js';
+import { starterSection, bindStarters } from '../features/starters.js';
 import { $, escape, uid } from './utils.js';
-import { user, page, timer, allWords, save, setPage, setSession, setSetId } from './state.js';
+import { user, page, timer, allWords, save, setPage, setSession, setSetId, setSharedSet } from './state.js';
 import { modal } from '../ui/modal.js';
 import { header } from '../ui/header.js';
 import { tile, bindActions } from '../ui/components.js';
@@ -9,7 +11,54 @@ import { study } from '../features/study.js';
 import { play } from '../games/index.js';
 import { profile } from '../features/profile.js';
 import { leaderboard } from '../features/leaderboard.js';
-
-export function initNavigation(){history.replaceState({page:'home'},'');window.addEventListener('popstate',e=>{if(user)go(e.state?.page||'home',e.state?.arg,false)});$('sidebarSet').onclick=newSet;document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));$('newFolder').onclick=()=>modal('<h2>Yeni klasör</h2><label>İsim</label><input name="name" required placeholder="YDS 2026">',d=>{if(!d.get('name').trim())return;user.folders.push({id:uid(),name:d.get('name').trim()});save();go('sets')});}
-export let folderFilter=null;export function go(p,arg,push=true){if(push)history.pushState({page:p,arg},'');clearInterval(timer);setPage(p);setSession(null);if(p==='sets')folderFilter=arg||null;if(p==='detail')setSetId(arg);document.querySelectorAll('.nav[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));render()}
-export function render(){header();const v=$('view');if(page==='home'){let acc=user.stats.total?Math.round(user.stats.correct/user.stats.total*100):0;v.innerHTML='<div class="hero"><p class="eyebrow">ÇALIŞMA PANELİ</p><h1>Merhaba, '+escape(user.name)+'.</h1><p class="muted">Bugün hangi kelimeleri keşfedeceğiz?</p><button class="primary" id="quick">＋ Yeni çalışma seti</button></div><div class="grid"><div class="card stat"><span class="muted">Kelime</span><strong>'+allWords().length+'</strong></div><div class="card stat"><span class="muted">Doğruluk</span><strong>'+acc+'%</strong></div><div class="card stat"><span class="muted">Toplam XP</span><strong>'+user.xp+'</strong></div><div class="card stat"><span class="muted">Tahmini seviye</span><strong>'+user.level+'</strong></div></div><div class="section"><h2>Bugün nasıl çalışalım?</h2><div class="grid">'+tile('▱','Öğren','Kartlar ve yazılı tekrar','learn')+tile('◎','Test','Çoktan seçmeli / boşluk','test')+tile('◷','Deneme','Süreli karma sınav','exam')+tile('✦','Oyunlar','Refleks, kelime ve strateji','games')+'</div></div><div class="section"><h2>Son çalışma setlerin</h2>'+setList(user.sets.slice(-4).reverse())+'</div>';$('quick').onclick=newSet;v.insertAdjacentHTML('beforeend','<div class="card section"><h2>Bir set bul</h2><input id="homeSearch" placeholder="Çalışma setlerinde ara..."><div id="homeResults"></div><p class="muted">Topluluk setleri online bağlantı kurulduğunda burada yer alacak.</p></div>');$('homeSearch').oninput=()=>{$('homeResults').innerHTML=setList(user.sets.filter(s=>s.name.toLocaleLowerCase('tr').includes($('homeSearch').value.toLocaleLowerCase('tr'))));bindSets()};bindActions(m=>m==='games'?go('games'):chooseSet(m));bindSets();return}if(page==='sets'){v.innerHTML='<div class="top"><div><p class="eyebrow">KÜTÜPHANE</p><h1>Çalışma setleri</h1></div><div class="actions"><button id="folderBtn">＋ Klasör</button><button class="primary" id="setBtn">＋ Set oluştur</button></div></div><div class="actions">'+['Tümü',...user.folders.map(f=>f.name)].map((n,i)=>'<button data-filter="'+(i?escape(user.folders[i-1].id):'')+'" class="'+((i?user.folders[i-1].id:null)===folderFilter?'active':'')+'">'+escape(n)+'</button>').join('')+'</div><div class="section">'+setList(user.sets.filter(s=>!folderFilter||s.folder===folderFilter))+'</div>';$('folderBtn').onclick=$('newFolder').onclick;$('setBtn').onclick=newSet;v.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>go('sets',b.dataset.filter));bindSets();return}if(page==='detail'){detail();return}if(page==='games'){v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><p class="muted">Botlara karşı veya tek başına antrenman.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('◇','Eşleştirme','Kelimeleri karşılıklarıyla eşleştir','match')+tile('▦','Bloklar','Renkli kelime bloklarını temizle','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+'</div><div class="card section"><strong>PvP arenaları</strong><p class="muted">Çevrimiçi eşleşme sunucusu bağlandığında seviye bazlı eşleşme açılacak.</p><button disabled>Çevrimiçi PvP · yakında</button></div>';bindActions(chooseSet);return}if(page==='leaderboard'){leaderboard();return}if(page==='profile'){profile(user);return}if(page==='study'){study();return}if(page==='play'){play();return}}
+import { discoverySearch, bindDiscovery, explore, openShared } from '../features/explore.js';
+export let folderFilter=null, routeArg=null;
+export function initNavigation(){
+ history.replaceState({page:'home'},'');
+ window.addEventListener('popstate',e=>{if(user)go(e.state?.page||'home',e.state?.arg,false)});
+ $('sidebarSet').onclick=newSet;
+ document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));
+ $('newFolder').onclick=()=>modal('<h2>Yeni klasör</h2><label>İsim</label><input name="name" required maxlength="80" placeholder="Örn. Seyahat İngilizcesi">',d=>{
+  if(!d.get('name').trim())return;
+  const id=uid();user.folders.push({id,name:d.get('name').trim()});save();go('sets',id);
+ });
+}
+export function go(p,arg,push=true){
+ if(push)history.pushState({page:p,arg},'');
+ clearInterval(timer);setPage(p);setSession(null);setSharedSet(null);routeArg=arg;
+ folderFilter=p==='sets'?(arg||null):null;
+ if(p==='detail')setSetId(arg);
+ if(p==='starter'){setSharedSet(starterById(arg)||null);setSetId(arg)}
+ render();
+}
+export function render(){
+ header();const v=$('view');
+ if(page==='home'){
+  const acc=user.stats.total?Math.round(user.stats.correct/user.stats.total*100):0;
+  v.innerHTML=`<div class="hero"><p class="eyebrow">ÇALIŞMA PANELİ</p><h1>Merhaba, ${escape(user.name)}.</h1><p class="muted">Bugün nasıl çalışmak istersin?</p>${discoverySearch()}</div>
+  <div class="grid"><div class="card stat"><span class="muted">Kütüphanendeki kelimeler</span><strong>${allWords().length}</strong></div><div class="card stat"><span class="muted">Doğruluk</span><strong>${acc}%</strong></div><div class="card stat"><span class="muted">Toplam XP</span><strong>${user.xp}</strong></div></div>
+  <div class="section"><div class="top"><h2>Senin çalışma setlerin</h2><button class="primary" id="quick">＋ Set oluştur</button></div>${setList(user.sets.slice(-4).reverse())}</div>${starterSection()}
+  <div class="section"><h2>Bugün nasıl çalışalım?</h2><div class="grid">${tile('▱','Kartlar','Çevir, kaydır, tekrar et','cards')+tile('✎','Öğren','Sorularla pekiştir','learn')+tile('◎','Test','Karma sorular','test')+tile('✦','Oyunlar','Kelimelerle oyna','games')}</div></div>`;
+  $('quick').onclick=newSet;bindDiscovery();bindSets();bindStarters();bindActions(m=>m==='games'?go('games'):chooseSet(m));return;
+ }
+ if(page==='sets'){
+  const folder=user.folders.find(f=>f.id===folderFilter);
+  v.innerHTML=`<div class="top"><div><p class="eyebrow">SENİN KÜTÜPHANEN</p><h1>${folder?escape(folder.name):'Benim çalışma setlerim'}</h1><p class="muted">${folder?'Bu klasöre koyduğun setler.':'Oluşturduğun ve kütüphanene kopyaladığın setler.'}</p></div><div class="actions"><button id="folderBtn">＋ Klasör</button><button class="primary" id="setBtn">＋ Set oluştur</button></div></div>
+  ${folder?'<button id="allMine">← Benim tüm setlerim</button>':''}
+  <div class="card">${discoverySearch()}<p class="muted">Bu arama toplulukta paylaşılmış setleri bulur.</p></div>
+  <div class="section">${setList(user.sets.filter(s=>!folderFilter||s.folder===folderFilter))}</div>${folder?'':starterSection()}`;
+  $('folderBtn').onclick=$('newFolder').onclick;$('setBtn').onclick=newSet;
+  if($('allMine'))$('allMine').onclick=()=>go('sets');bindSets();bindDiscovery();bindStarters();return;
+ }
+ if(page==='explore'){explore(routeArg);return}
+ if(page==='shared'){void openShared(routeArg);return}
+ if(page==='detail'||page==='starter'){detail();return}
+ if(page==='games'){
+  v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><p class="muted">Kendi setini seç veya Keşfet’te bir set açıp oyun başlat.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('◇','Eşleştirme','Kelimeleri karşılıklarıyla eşleştir','match')+tile('▦','Bloklar','Renkli kelime bloklarını temizle','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+'</div><p class="notice section">Oyunlar tek oyunculu veya botlara karşıdır. Çevrimiçi PvP henüz yok.</p>';
+  bindActions(chooseSet);return;
+ }
+ if(page==='leaderboard'){leaderboard();return}
+ if(page==='profile'){profile(user);return}
+ if(page==='study'){study();return}
+ if(page==='play'){play();return}
+}

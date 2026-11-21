@@ -4,3 +4,33 @@
 .fleet-tools{display:flex;flex-wrap:wrap;gap:12px}.fleet-tool{display:flex;flex-direction:column;gap:8px;padding:10px;border:2px solid var(--line);border-radius:12px}.fleet-tool.selected{border-color:var(--accent)}.fleet-board{max-width:400px}.board button.selected-ship{outline:3px solid #b8f46a;outline-offset:-4px;background:#354d78}.ship-part{display:inline-block;font-size:clamp(18px,4vw,32px)}.ship-part.vertical{transform:rotate(90deg)}
 /* JS controls obstacle position; disable the legacy off-screen animation. */
 .runner-scene .obstacle{animation:none!important;right:auto;left:calc(100% - 60px);width:42px;height:48px;bottom:44px;z-index:2;border:3px solid #ffe0a3;background:repeating-linear-gradient(45deg,#ea8036 0 10px,#512a17 10px 20px);border-radius:5px;box-shadow:0 0 18px #ed986f55;display:grid;place-items:center;font-size:30px;font-weight:900;color:white}.runner-scene .obstacle.high{bottom:80px;height:62px;width:55px;background:repeating-linear-gradient(45deg,#557ae5 0 10px,#213667 10px 20px)}.runner-scene .human{z-index:3;animation:none}.runner-scene .human.jump{bottom:150px}.runner-scene .human.duck{height:65px;transform:scaleY(.45);transform-origin:bottom}.runner-scene .human.crash{transform:rotate(-70deg);transform-origin:bottom;animation:none}.runner-scene .human.crash i{animation-play-state:paused}.runner-scene .human.respawning{animation:respawn .18s infinite}.runner-scene .ground{background:repeating-linear-gradient(90deg,#0b121c 0 35px,#243845 35px 39px);animation:run-ground .65s linear infinite}.runner-scene.waiting .ground{animation-play-state:paused}.run-feedback{position:absolute;top:65px;left:45%;font-size:64px;font-weight:900}.runner-scene .hud{right:10px;z-index:4}.runner-scene .hud span{display:block;font-size:14px;margin-top:8px}@keyframes run-ground{to{background-position:-39px 0}}
+
+/* Personal library and discovery */
+.discovery-search{position:relative;z-index:1;margin:18px 0}.discovery-search .actions{flex-wrap:wrap}.discovery-search input{flex:1;min-width:180px;margin:0}.public-set h2{overflow-wrap:anywhere}.author-link{padding:0;border:0;background:none;color:var(--accent);text-decoration:underline}.public-set{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.public-set .open-set{margin-top:auto}.hero:after{pointer-events:none}.fleet-tools button{overflow-wrap:anywhere}
+/* Two physical faces keep a visible rotation instead of replacing the text. */
+.flash-stage{perspective:1100px;max-width:720px;margin:24px auto;transition:transform .32s ease,opacity .32s ease}.flip-card{display:block;width:100%;padding:0;border:0;background:none;touch-action:pan-y;cursor:pointer;text-align:center}.flip-inner{display:grid;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.7,.2,1)}.flip-card.is-flipped .flip-inner{transform:rotateY(180deg)}.flip-face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;min-height:250px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:32px;background:var(--soft);border:1px solid var(--line);border-radius:20px;font-size:clamp(24px,4vw,40px);font-weight:750;overflow-wrap:anywhere;min-width:0}.flip-face small{font-size:14px;color:var(--muted);font-weight:450;white-space:pre-wrap}.flip-back{transform:rotateY(180deg);border-color:var(--accent)}.swipe-left{transform:translateX(-130px) rotate(-12deg);opacity:0}.swipe-right{transform:translateX(130px) rotate(12deg);opacity:0}#question{overflow:hidden}#guestJoin{padding:5px 9px;font-size:13px}#setDifficulty{width:auto}#publishStatus{overflow-wrap:anywhere}details li{margin:8px 0}
+@media(prefers-reduced-motion:reduce){.flip-inner,.flash-stage{transition-duration:.01ms}}
+#discoverySuggestions:not(:empty){margin-top:12px;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:14px}.search-suggestion{display:block;width:100%;text-align:left;margin:6px 0;background:var(--soft)}
+
+/* Account access */
+.google-auth{display:flex;align-items:center;justify-content:center;gap:12px;font-weight:650;min-height:48px}
+.google-letter{font-family:Arial,sans-serif;font-size:23px;font-weight:700}
+.auth-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:20px 0}
+.auth-divider:before,.auth-divider:after{content:"";height:1px;background:var(--line);flex:1}
+.password-control{position:relative;margin:7px 0 17px}.password-control input{margin:0;padding-right:54px}
+.password-eye{position:absolute;right:3px;top:3px;bottom:3px;width:44px;padding:9px;border:0;background:transparent;display:grid;place-items:center;color:var(--muted)}
+.password-eye svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.password-eye[aria-pressed="true"]{color:var(--text)}
+.auth-link{display:block;margin:-5px 0 16px auto;padding:5px 0;background:transparent;border:0;color:var(--muted);font-size:14px;text-decoration:underline}
+#authMessage{line-height:1.55;margin:14px 0;overflow-wrap:anywhere}#authMessage[data-error="true"]{color:var(--bad)}#authMessage[data-error="false"]{color:var(--good)}
+#authBack{margin-bottom:10px}.auth-form{padding-block:30px}
+
+/* Shared starter catalog */
+.starter-section{padding-top:12px;border-top:1px solid var(--line)}
+.starter-tile{position:relative;min-height:205px}.starter-tile p{font-size:13px;line-height:1.5;color:var(--muted);margin:12px 0 0}
+.starter-level{display:inline-block;padding:5px 10px;border:1px solid var(--line);border-radius:8px;font-weight:800;color:var(--accent)}
+.study-controls{display:flex;gap:18px;align-items:start;flex-wrap:wrap;margin:18px 0}.study-controls label{flex:1;min-width:200px}.study-controls select{margin-bottom:0}.study-controls .notice{width:100%;margin:0}
+.source-question{margin:18px 0;max-width:680px}.source-question img{display:block;width:100%;height:auto;background:white;border-radius:8px;border:1px solid var(--line)}.source-question figcaption{margin-top:8px;font-size:13px}.source-question a{color:var(--muted)}
+#contentList .row>div:first-child{flex:1}#contentList details{margin:10px 0}#contentList summary{cursor:pointer}
+#question .choices button{white-space:pre-wrap;text-align:left;line-height:1.5}
+@media(max-width:600px){.study-controls{padding:14px;gap:10px}.study-controls label{min-width:100%}.source-question{margin-inline:0}.starter-tile{min-height:180px}}
