@@ -55,7 +55,7 @@ export function explore(arg={}) {
     const card=document.createElement('article');card.className='card public-set';
     card.innerHTML=`<span class="ico">▱</span><h2>${escape(row.title)}</h2><button class="author-link">${escape(row.author_name)}</button><p class="muted">${row.item_count} içerik · ${escape((row.levels||[]).join(' · '))}</p><button class="primary open-set">Seti aç</button>`;
     card.querySelector('.open-set').onclick=()=>go('shared',{owner:row.owner_id,id:row.set_id});
-    card.querySelector('.author-link').onclick=()=>go('explore',{owner:row.owner_id,name:row.author_name});
+    card.querySelector('.author-link').onclick=()=>go('user',{id:row.owner_id});
     results.append(card);
    }
    offset+=rows.length;status.textContent=offset?`${offset} set gösteriliyor${q?' · En yakın eşleşmeler önce':''}`:'Eşleşen paylaşılan set bulunamadı.';

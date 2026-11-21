@@ -20,7 +20,7 @@ export function leaderboard(){
     row.innerHTML=`<span class="board-rank">#${Number(r.place)}</span>${avatar({name:r.name,avatar:r.avatar},true)}<span class="board-name">${escape(r.name)}<small class="muted">${escape(r.city||'')}</small></span><span class="badge">${escape(r.level)}</span><strong>${Number(r.xp)} XP</strong>`;
     row.onclick=()=>go('user',{id:r.user_id});rows.append(row);
    }
-   offset+=list.length;status.textContent=offset?'':'Henüz sıralamada kimse yok. XP kazanan ilk kişi sen olabilirsin.';
+   offset+=list.length;status.textContent=offset?'':'Henüz sıralamada kimse yok.';
    more.textContent='Daha fazla göster';more.hidden=list.length<50;
   }catch(e){if(alive(t)){status.textContent=e.message;more.hidden=false;more.textContent='Tekrar dene'}}
   finally{busy=false;if(alive(t))more.disabled=false}

@@ -94,7 +94,7 @@ language sql stable security invoker set search_path = '' as $$
   select (row_number() over (order by p.xp desc,p.user_id))::bigint as place,
    p.user_id,p.name,p.avatar,p.city,p.xp,p.level
   from public.wordshift_profiles p
-  where p.xp>0 and (scope<>'city' or (coalesce(city_filter,'')<>'' and p.city=city_filter))
+  where (scope<>'city' or (coalesce(city_filter,'')<>'' and p.city=city_filter))
  ) r order by r.place limit 50 offset greatest(coalesce(page_offset,0),0);
 $$;
 revoke all on function public.wordshift_leaderboard(text,text,integer) from public, anon;
@@ -105,7 +105,7 @@ returns bigint language sql stable security invoker set search_path = '' as $$
  select r.place from (
   select (row_number() over (order by p.xp desc,p.user_id))::bigint as place,p.user_id
   from public.wordshift_profiles p
-  where p.xp>0 and (scope<>'city' or (coalesce(city_filter,'')<>'' and p.city=city_filter))
+  where (scope<>'city' or (coalesce(city_filter,'')<>'' and p.city=city_filter))
  ) r where r.user_id=(select auth.uid());
 $$;
 revoke all on function public.wordshift_my_rank(text,text) from public, anon;
