@@ -97,7 +97,8 @@ begin
 end $$;
 revoke all on function wordshift_private.expire_rooms() from public,anon,authenticated;
 
-create or replace function public.wordshift_pvp_lobby(action text, game_mode text default 'meteor', words jsonb default '[]', set_title text default '', room_code text default '')
+drop function if exists public.wordshift_pvp_lobby(text,text,jsonb,text,text);
+create or replace function public.wordshift_pvp_lobby(action text, game_mode text default 'meteor', words jsonb default '[]', set_title text default '', room_code text default '', pool_level text default '')
 returns uuid language plpgsql security definer set search_path='' as $$
 declare who uuid:=auth.uid(); r wordshift_private.rooms; lvl text; nick text; deck_data jsonb; order_data integer[]; candidate uuid;
 begin
@@ -117,6 +118,9 @@ begin
  select coalesce(nullif(document->>'name',''),'Oyuncu'),coalesce(document->>'level','A1') into nick,lvl from public.wordshift_workspaces where user_id=who;
  nick:=left(coalesce(nick,'Oyuncu'),60); lvl:=coalesce(lvl,'A1');
  if lvl not in ('A1','A2','B1','B2','C1','C2') then lvl:='A1'; end if;
+ -- Optional exam pool: players who pick YDS or YOKDIL are matched with each other, whatever their CEFR level.
+ if coalesce(pool_level,'') not in ('','YDS','YOKDIL') then raise exception 'Geçersiz eşleşme havuzu.'; end if;
+ if pool_level in ('YDS','YOKDIL') and game_mode<>'sentences' then lvl:=pool_level; end if;
  if action='join' then
   select * into r from wordshift_private.rooms where code=upper(trim(room_code)) for update;
   if not found or r.status<>'waiting' or cardinality(r.players)<>1 then raise exception 'Oda bulunamadı, dolu veya süresi dolmuş.'; end if;
@@ -262,17 +266,19 @@ begin
  end if;
  return result;
 end $$;
-revoke all on function public.wordshift_pvp_lobby(text,text,jsonb,text,text) from public,anon;
+revoke all on function public.wordshift_pvp_lobby(text,text,jsonb,text,text,text) from public,anon;
 revoke all on function public.wordshift_pvp_room(uuid,text,integer,integer,jsonb) from public,anon;
-grant execute on function public.wordshift_pvp_lobby(text,text,jsonb,text,text) to authenticated;
+grant execute on function public.wordshift_pvp_lobby(text,text,jsonb,text,text,text) to authenticated;
 grant execute on function public.wordshift_pvp_room(uuid,text,integer,integer,jsonb) to authenticated;
 
-create or replace function public.wordshift_pvp_pools() returns jsonb language plpgsql security definer set search_path='' as $$
+drop function if exists public.wordshift_pvp_pools();
+create or replace function public.wordshift_pvp_pools(pool_level text default '') returns jsonb language plpgsql security definer set search_path='' as $$
 declare who uuid:=auth.uid();lvl text;output jsonb;
 begin
  if who is null then raise exception 'Giriş yapmalısın.';end if;
  perform wordshift_private.expire_rooms();
  select coalesce(document->>'level','A1') into lvl from public.wordshift_workspaces where user_id=who;lvl:=coalesce(lvl,'A1');
+ if pool_level in ('YDS','YOKDIL') then lvl:=pool_level;end if;
  select jsonb_agg(jsonb_build_object('mode',m,'waiting',
   (select count(*) from wordshift_private.rooms where mode=m and status='waiting' and quick and not who=any(players)),
   'compatible',(select count(*) from wordshift_private.rooms where mode=m and level=lvl and status='waiting' and quick and not who=any(players)),
@@ -289,9 +295,9 @@ begin
  select coalesce(jsonb_agg(to_jsonb(h)||jsonb_build_object('me',array_position(h.players,who)) order by h.ended_at desc),'[]') into output from (select * from wordshift_private.match_history where who=any(players) order by ended_at desc limit 20 offset greatest(0,least(coalesce(page_offset,0),10000))) h;
  return output;
 end $$;
-revoke all on function public.wordshift_pvp_pools() from public,anon;
+revoke all on function public.wordshift_pvp_pools(text) from public,anon;
 revoke all on function public.wordshift_pvp_history(integer) from public,anon;
-grant execute on function public.wordshift_pvp_pools() to authenticated;
+grant execute on function public.wordshift_pvp_pools(text) to authenticated;
 grant execute on function public.wordshift_pvp_history(integer) to authenticated;
 
 notify pgrst, 'reload schema';
