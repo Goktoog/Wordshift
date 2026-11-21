@@ -3,7 +3,7 @@ import { poolForSet, poolLabel } from '../games/pvp-panels.js';
 import { questionMedia } from './starters.js';
 import { $, escape, uid, levels } from '../core/utils.js';
 import { user, save, current } from '../core/state.js';
-import { go, folderFilter } from '../core/router.js';
+import { go } from '../core/router.js';
 import { modal } from '../ui/modal.js';
 import { tile, bindActions } from '../ui/components.js';
 import { begin, gameModes } from './session.js';
@@ -12,17 +12,16 @@ import { publication, publishSet, unpublishSet } from '../services/community.js'
 import { markPublished, markPrivate } from '../services/auto-publish.js';
 import { toast } from '../ui/feedback.js';
 const poolNote=s=>{const p=poolForSet(s);return p?`Bu set <strong>${poolLabel(p)}</strong> havuzunda eşleşir: karşındaki oyuncunun A1–C2 seviyesi fark etmez, herkes ${poolLabel(p)} çalışır.`:`Hızlı eşleşmede kendi seviyendeki (<strong>${escape(user.level||'A1')}</strong>) oyuncularla eşleşirsin. YDS veya YÖKDİL havuzunda eşleşmek için ilgili hazır seti aç ya da Oyunlar sayfasından havuz seç.`};
-export function setList(sets){return '<div class="grid">'+(sets.length?sets.map(s=>`<button class="tile" data-set="${escape(s.id)}"><span class="ico">▱</span><strong>${escape(s.name)}</strong><span class="muted">${s.items.length} içerik · ${escape(user.folders.find(f=>f.id===s.folder)?.name||'Klasörsüz')}</span></button>`).join(''):'<div class="card muted">Henüz çalışma seti yok. Yeni bir set oluşturabilir veya Keşfet’te çalışabilirsin.</div>')+'</div>'}
+export function setList(sets){return '<div class="grid">'+(sets.length?sets.map(s=>`<button class="tile" data-set="${escape(s.id)}"><span class="ico">▱</span><strong>${escape(s.name)}</strong><span class="muted">${s.items.length} içerik</span></button>`).join(''):'<div class="card muted">Henüz çalışma seti yok. Yeni bir set oluşturabilir veya Keşfet’te çalışabilirsin.</div>')+'</div>'}
 export function bindSets(){$('view').querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>go('detail',b.dataset.set))}
-function folderOptions(selected){return '<option value="">Klasörsüz</option>'+user.folders.map(f=>`<option value="${escape(f.id)}" ${f.id===selected?'selected':''}>${escape(f.name)}</option>`).join('')}
 function visibilityField(selected,guest){return '<label>Görünürlük</label><select name="visibility" '+(guest?'disabled':'')+'><option value="public" '+(selected==='public'?'selected':'')+'>Herkese açık · Keşfet’te görünür</option><option value="private" '+(selected!=='public'?'selected':'')+'>Gizli · Yalnızca ben görürüm</option></select><p class="notice">'+(guest?'Misafir setleri gizlidir. Herkese açık set için hesapla giriş yap.':'İstediğin zaman değiştirebilirsin. Herkese açık setin en az bir içerik eklendiğinde Keşfet’te görünür.')+'</p>'}
-export function newSet(){modal('<h2>Çalışma seti oluştur</h2><label>Set adı</label><input name="name" maxlength="120" required placeholder="Örn. B1 günlük konuşma"><label>Klasör</label><select name="folder">'+folderOptions(folderFilter)+'</select>'+visibilityField(user.guest?'private':'public',user.guest),d=>{
- const s={id:uid(),name:d.get('name').trim(),folder:d.get('folder')||null,items:[],visibility:user.guest?'private':(d.get('visibility')==='private'?'private':'public')};if(!s.name)return;user.sets.push(s);save();go('detail',s.id);
+export function newSet(){modal('<h2>Çalışma seti oluştur</h2><label>Set adı</label><input name="name" maxlength="120" required placeholder="Örn. B1 günlük konuşma">'+visibilityField(user.guest?'private':'public',user.guest),d=>{
+ const s={id:uid(),name:d.get('name').trim(),items:[],visibility:user.guest?'private':(d.get('visibility')==='private'?'private':'public')};if(!s.name)return;user.sets.push(s);save();go('detail',s.id);
 })}
 export function detail(){
  const s=current();if(!s){go('sets');return}
  const readOnly=!!s.publicSource, review=reviewItems(user,s), words=s.items.filter(x=>x.type==='word');
- $('view').innerHTML=`<div class="top"><div><p class="eyebrow">${s.starterSource?'BAŞLANGIÇ SETİ':readOnly?'TOPLULUK SETİ':'SENİN ÇALIŞMA SETİN'}</p><h1>${escape(s.name)}</h1><p class="muted">${s.items.length} içerik${readOnly?' · '+escape(s.authorName):''}</p></div><div class="actions">${readOnly?(s.starterSource?'':'<button id="authorSets">Oluşturanın setleri</button>')+'<button id="copySet">Kütüphaneme kopyala</button>':'<button id="bulk">Toplu ekle</button><button class="primary" id="itemAdd">＋ İçerik ekle</button>'}</div></div>
+ $('view').innerHTML=`<div class="top"><div><p class="eyebrow">${s.starterSource?'BAŞLANGIÇ SETİ':readOnly?'TOPLULUK SETİ':'SENİN ÇALIŞMA SETİN'}</p><h1>${escape(s.name)}</h1><p class="muted">${s.items.length} içerik${readOnly?' · '+escape(s.authorName):''}</p></div><div class="actions">${readOnly?(s.starterSource?'':'<button id="authorSets">Oluşturanın setleri</button>')+'<button id="copySet">Kütüphaneme kopyala</button>':'<button id="renameSet">✎ Adı / görünürlüğü düzenle</button><button id="bulk">Toplu ekle</button><button class="primary" id="itemAdd">＋ İçerik ekle</button><button class="danger" id="deleteSet">🗑 Seti sil</button>'}</div></div>
  ${s.starterSource?`<p class="notice">${escape(s.description)} Hazır içerik ortak, ilerleme ve tekrar listen kişiseldir. CEFR etiketleri yaklaşık çalışma düzeyidir.</p>`:''}
  <div class="study-controls card"><label>Çalışılacak içerik<select id="studyContent"><option value="all">Tüm içerikler</option><option value="word">Yalnızca kelimeler</option><option value="questions">Yalnızca sorular</option><option value="blank">Boşluk doldurma</option><option value="paragraph">Paragraf</option><option value="translate">Çeviri</option><option value="mc">Çoktan seçmeli / diğer</option>${s.items.some(x=>x.sourceQuestion)?`<option value="source-exam">PDF’deki YDS soruları (${s.items.filter(x=>x.sourceQuestion).length})</option>`:''}</select></label><label>Oturum uzunluğu<select id="studyLimit"><option value="20" ${s.starterSource?'selected':''}>20 içerik</option><option value="50">50 içerik</option><option value="0" ${s.starterSource?'':'selected'}>Tümü</option></select></label><p id="studySelectionNote" class="notice">Kartlar ve oyunlar kelimelerle çalışır. Deneme 30 dakika; PDF soru seçimi 180 dakikadır.</p></div>
  <div class="grid">${tile('▱','Kartlar','Çevir ve sağa / sola kaydır','cards')+tile('✎','Öğren','Yazılı ve seçenekli sorular','learn')+tile('◎','Test','Karma sorular','test')+tile('◷','Deneme','Süreli sınav','exam')}</div>
@@ -30,7 +29,7 @@ export function detail(){
  <section class="section"><div class="top"><h2>Çevrimiçi oyna</h2><button id="setOnline" class="primary">Bu setle çevrimiçi oyna</button></div><p class="muted">${poolNote(s)}</p></section>
  <section class="section"><div class="top"><h2>Tek başına veya botla oyna</h2><label>Zorluk <select id="setDifficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select></label></div><p class="muted">${words.length} kelime / kalıp · Zorluk yalnızca bu bölümdeki tek oyunculu ve botlu oyunlarda koşu hızını ve botu etkiler; çevrimiçi maçlarda geçerli değildir.</p><div class="grid">${tile('🏃','Word Runner','Engelleri kelimelerle aş','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, atış yap','battle')+tile('▦','Kelime blokları','İngilizce ve Türkçe blokları eşleştir','blocks')+tile('🚀','Meteor avı','Doğru karşılığı vur','meteor')}</div>${words.length?'':'<p class="notice">Oyunlar için bu sette kelime / kalıp türünde içerik olmalı.</p>'}</section>
  ${readOnly?'':`<section class="card section"><h2>Toplulukla paylaş</h2><p>Setler varsayılan olarak özeldir. Paylaşınca set adı, kullanıcı adın ve içerikler herkes tarafından görülebilir ve kopyalanabilir.</p><p id="publishStatus" role="status">${user.guest?'Paylaşmak için hesapla giriş yap.':'Paylaşım durumu kontrol ediliyor…'}</p><div class="actions"><button id="publishSet" ${user.guest?'disabled':''}>Herkesle paylaş / Yayını güncelle</button><button id="unpublishSet" ${user.guest?'disabled':''}>Paylaşımı kaldır</button></div><p class="muted">Düzenlemeler kendiliğinden yayımlanmaz; Yayını güncelle düğmesini kullan.</p></section>`}
- <div class="section top"><h2>İçerikler</h2>${readOnly?'':'<button id="rename">Seti düzenle</button>'}</div><input id="search" aria-label="Set içinde ara" placeholder="Kelime veya soru ara..."><div class="card" id="contentList"></div>`;
+ <div class="section top"><h2>İçerikler</h2></div><input id="search" aria-label="Set içinde ara" placeholder="Kelime veya soru ara..."><div class="card" id="contentList"></div>`;
  $('setOnline').onclick=()=>openOnline(s,'runner',false,poolForSet(s));
  $('reviewSet').onclick=()=>begin('learn',s,'normal',true);
  $('search').oninput=contentList;contentList();
@@ -39,11 +38,19 @@ export function detail(){
  if(!words.length)$('view').querySelectorAll('[data-action]').forEach(b=>{if(gameModes.includes(b.dataset.action)||b.dataset.action==='cards')b.disabled=true});
  if(readOnly){
   if($('authorSets'))$('authorSets').onclick=()=>go('explore',{owner:s.ownerId,name:s.authorName});
-  $('copySet').onclick=()=>{if(!confirm('Bu setin bağımsız bir kopyası kütüphanene eklensin mi?'))return;const copy={id:uid(),name:s.name,folder:null,items:s.items.map(x=>({...x,id:uid(),attempts:0,correct:0})),sourceAuthor:s.authorName};user.sets.push(copy);save();go('detail',copy.id);toast('Kopya kütüphanene eklendi.')};return;
+  $('copySet').onclick=()=>{if(!confirm('Bu setin bağımsız bir kopyası kütüphanene eklensin mi?'))return;const copy={id:uid(),name:s.name,items:s.items.map(x=>({...x,id:uid(),attempts:0,correct:0})),sourceAuthor:s.authorName};user.sets.push(copy);save();go('detail',copy.id);toast('Kopya kütüphanene eklendi.')};return;
  }
  $('itemAdd').onclick=()=>editor();
  $('bulk').onclick=()=>modal('<h2>Toplu kelime ekle</h2><p>Her satır: İngilizce | Türkçe | seviye (isteğe bağlı)</p><textarea name="bulk" required placeholder="although | -mesine rağmen | B1"></textarea>',d=>{for(const line of d.get('bulk').split('\n')){const [a,b,l]=line.split('|').map(x=>x.trim());if(a&&b)s.items.push({id:uid(),type:'word',front:a,back:b,level:levels.includes(l)?l:'B1',extra:'',options:[],attempts:0,correct:0})}save();detail()});
- $('rename').onclick=()=>modal('<h2>Seti düzenle</h2><input name="name" required maxlength="120" value="'+escape(s.name)+'"><label>Klasör</label><select name="folder">'+folderOptions(s.folder)+'</select>'+visibilityField(s.visibility==='public'?'public':'private',user.guest),d=>{s.name=d.get('name').trim()||s.name;s.folder=d.get('folder')||null;const next=user.guest?'private':(d.get('visibility')==='public'?'public':'private'),was=s.visibility;s.visibility=next;save();if(was==='public'&&next==='private'){markPrivate(s);unpublishSet(s).catch(e=>toast(e.message))}detail()});
+ $('renameSet').onclick=()=>modal('<h2>Seti düzenle</h2><input name="name" required maxlength="120" value="'+escape(s.name)+'">'+visibilityField(s.visibility==='public'?'public':'private',user.guest),d=>{s.name=d.get('name').trim()||s.name;const next=user.guest?'private':(d.get('visibility')==='public'?'public':'private'),was=s.visibility;s.visibility=next;save();if(was==='public'&&next==='private'){markPrivate(s);unpublishSet(s).catch(e=>toast(e.message))}detail()});
+ $('deleteSet').onclick=async()=>{
+  if(!confirm('“'+s.name+'” seti ve içindeki '+s.items.length+' içerik kalıcı olarak silinsin mi? Bu işlem geri alınamaz.'+(s.visibility==='public'&&!user.guest?' Set Keşfet’ten de kaldırılır.':'')))return;
+  const button=$('deleteSet');button.disabled=true;
+  try{
+   if(!user.guest&&s.visibility==='public')await unpublishSet(s);
+   markPrivate(s);user.sets=user.sets.filter(x=>x.id!==s.id);save();toast('Set silindi.');go('sets');
+  }catch(e){button.disabled=false;toast('Set silinemedi: '+e.message)}
+ };
  const status=$('publishStatus'),pub=$('publishSet'),unpub=$('unpublishSet');
  if(!user.guest){
   const owner=user.id;

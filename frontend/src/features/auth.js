@@ -9,7 +9,7 @@ let mode = 'login', authEpoch = 0, busy = false, recoveryReady = false;
 const eye = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const eyeOff = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1 12 5c6.5 0 10 7 10 7a19 19 0 0 1-3 3.8M6.2 6.2A21 21 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5.8-1.8M10 10a3 3 0 0 0 4 4"/></svg>';
 function makeUser(name, email, guest = false) {
- return { id:uid(), name, email, guest, avatar:'', banner:'', city:'', xp:0, level:'A1', folders:guest?[{id:'yds',name:'YDS çalışma'}]:[], sets:guest?[{id:uid(),name:'YDS bağlaçlar · örnek',folder:'yds',items:sample.map(x=>({...x,id:uid()}))}]:[], stats:{correct:0,total:0} };
+ return { id:uid(), name, email, guest, avatar:'', banner:'', city:'', xp:0, level:'A1', folders:[], sets:guest?[{id:uid(),name:'YDS bağlaçlar · örnek',items:sample.map(x=>({...x,id:uid()}))}]:[], stats:{correct:0,total:0} };
 }
 function message(text = '', error = false) { $('authMessage').textContent=text; $('authMessage').dataset.error=String(error); }
 function concealPasswords(clear = false) {

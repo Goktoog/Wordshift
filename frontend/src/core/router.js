@@ -16,21 +16,16 @@ import { leaderboard } from '../features/leaderboard.js';
 import { discoverySearch, bindDiscovery, explore, openShared } from '../features/explore.js';
 import { openUser } from '../features/people.js';
 import { mistakesPage } from '../features/mistakes-page.js';
-export let folderFilter=null, routeArg=null;
+export let routeArg=null;
 export function initNavigation(){
  history.replaceState({page:'home'},'');
  window.addEventListener('popstate',e=>{if(user)go(e.state?.page||'home',e.state?.arg,false)});
  $('sidebarSet').onclick=newSet;
  document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));
- $('newFolder').onclick=()=>modal('<h2>Yeni klasör</h2><label>İsim</label><input name="name" required maxlength="80" placeholder="Örn. Seyahat İngilizcesi">',d=>{
-  if(!d.get('name').trim())return;
-  const id=uid();user.folders.push({id,name:d.get('name').trim()});save();go('sets',id);
- });
 }
 export function go(p,arg,push=true){
  if(push)history.pushState({page:p,arg},'');
  clearInterval(timer);setPage(p);setSession(null);setSharedSet(null);routeArg=arg;
- folderFilter=p==='sets'?(arg||null):null;
  if(p==='detail')setSetId(arg);
  if(p==='starter'){setSharedSet(starterById(arg)||null);setSetId(arg)}
  render();
@@ -46,13 +41,10 @@ export function render(){
   $('quick').onclick=newSet;bindDiscovery();bindSets();bindStarters();bindActions(m=>m==='games'?go('games'):chooseSet(m));return;
  }
  if(page==='sets'){
-  const folder=user.folders.find(f=>f.id===folderFilter);
-  v.innerHTML=`<div class="top"><div><p class="eyebrow">SENİN KÜTÜPHANEN</p><h1>${folder?escape(folder.name):'Benim çalışma setlerim'}</h1><p class="muted">${folder?'Bu klasöre koyduğun setler.':'Oluşturduğun ve kütüphanene kopyaladığın setler.'}</p></div><div class="actions"><button id="folderBtn">＋ Klasör</button><button class="primary" id="setBtn">＋ Set oluştur</button></div></div>
-  ${folder?'<button id="allMine">← Benim tüm setlerim</button>':''}
+  v.innerHTML=`<div class="top"><div><p class="eyebrow">SENİN KÜTÜPHANEN</p><h1>Benim çalışma setlerim</h1><p class="muted">Oluşturduğun ve kütüphanene kopyaladığın setler. Bir setin içinde adını değiştirebilir veya silebilirsin.</p></div><div class="actions"><button class="primary" id="setBtn">＋ Set oluştur</button></div></div>
   <div class="card">${discoverySearch()}<p class="muted">Bu arama toplulukta paylaşılmış setleri bulur.</p></div>
-  <div class="section">${setList(user.sets.filter(s=>!folderFilter||s.folder===folderFilter))}</div>${folder?'':starterSection()}`;
-  $('folderBtn').onclick=$('newFolder').onclick;$('setBtn').onclick=newSet;
-  if($('allMine'))$('allMine').onclick=()=>go('sets');bindSets();bindDiscovery();bindStarters();return;
+  <div class="section">${setList(user.sets)}</div>${starterSection()}`;
+  $('setBtn').onclick=newSet;bindSets();bindDiscovery();bindStarters();return;
  }
  if(page==='explore'){explore(routeArg);return}
  if(page==='shared'){void openShared(routeArg);return}

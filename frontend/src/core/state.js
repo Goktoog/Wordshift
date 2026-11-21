@@ -4,7 +4,10 @@ import { scheduleAutoPublish } from '../services/auto-publish.js';
 
 export const db=loadData();
 export let user=null,page='home',setId=null,session=null,timer=null;
-export const setUser=v=>{user=v};
+// Klasörler kaldırıldı: eski hesaplardaki klasörler temizlenir, setler korunur.
+// `folders` anahtarı Supabase kaydı için boş dizi olarak kalır.
+const dropFolders=v=>{if(!v)return v;v.folders=[];if(Array.isArray(v.sets))v.sets.forEach(s=>{delete s.folder});return v};
+export const setUser=v=>{user=dropFolders(v)};
 export const setPage=v=>{page=v};
 export const setSetId=v=>{setId=v};
 export const setSession=v=>{session=v};

@@ -15,7 +15,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 
 ## Özellikler
 
-- **Kişisel kütüphane:** Klasörler, çalışma setleri, kelimeler ve kalıplar oluşturma; toplu kelime ekleme.
+- **Kişisel kütüphane:** Çalışma setleri, kelimeler ve kalıplar oluşturma; setlerin adını değiştirme ve silme; toplu kelime ekleme.
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
