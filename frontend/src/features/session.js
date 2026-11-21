@@ -8,7 +8,7 @@ import { go, render } from '../core/router.js';
 import { newSet } from './sets.js';
 import { updateProgress, reviewItems, itemProgress } from './progress.js';
 import { computeLevel, isMastered, logMastery } from './level.js';
-export const gameModes=['runner','battle','match','blocks','meteor'];
+export const gameModes=['runner','battle','blocks','meteor'];
 export function chooseSet(m){
  modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
 }
@@ -39,7 +39,12 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  history.pushState({page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id},'');
  setSession({m,pool,i:0,score:0,skipped:0,flip:false,difficulty,deadline:Date.now()+(filter==='source-exam'?10800000:1800000),reviewOnly:onlyReview,settings});
  setPage(gameModes.includes(m)?'play':'study');
- if(m==='match'||m==='blocks'){session.pool=pool.slice(0,8);session.cards=shuffle(session.pool.flatMap(x=>[{x,side:'a'},{x,side:'b'}]));session.done=[];session.pick=null}
+ if(m==='blocks'){
+  session.pool=pool.slice(0,8);
+  const L=session.pool.map(x=>({x,side:'a'}));let R;
+  for(let t=0;t<30;t++){R=shuffle(session.pool).map(x=>({x,side:'b'}));if(session.pool.length<2||R.every((c,i)=>c.x!==L[i].x))break}
+  session.left=L;session.right=R;session.done=[];session.pick=null;
+ }
  if(m==='runner')Object.assign(session,{distance:0,lives:3,gate:null,action:'jump'});
  if(m==='battle')Object.assign(session,{enemy:[],mine:[],shots:[],botShots:[],phase:'question',message:''});
  render();

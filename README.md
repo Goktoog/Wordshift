@@ -19,7 +19,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Word Runner, Amiral Battı (botla), Eşleştirme, Bloklar ve Meteor Avı.
+- **Oyunlar:** Word Runner, Amiral Battı (botla), Kelime blokları ve Meteor Avı.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
 - **Gizli veya herkese açık setler:** Set oluştururken seçersin, istediğin zaman değiştirebilirsin. Setler varsayılan olarak yalnızca senindir; herkese açık seçersen Keşfet'te görünür.
 - **Liderlik tablosu:** XP'ye göre global ve şehir sıralaması.

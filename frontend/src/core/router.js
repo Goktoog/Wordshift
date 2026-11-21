@@ -56,7 +56,7 @@ export function render(){
  if(page==='user'){void openUser(routeArg);return}
  if(page==='detail'||page==='starter'){detail();return}
  if(page==='games'){
-  v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><p class="muted">Kendi setini seç veya Keşfet’te bir set açıp oyun başlat.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('◇','Eşleştirme','Kelimeleri karşılıklarıyla eşleştir','match')+tile('▦','Bloklar','Renkli kelime bloklarını temizle','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+'</div><p class="notice section">Oyunlar tek oyunculu veya botlara karşıdır. Çevrimiçi PvP henüz yok.</p>';
+  v.innerHTML='<p class="eyebrow">OYUN SALONU</p><h1>Oyna ve öğren.</h1><p class="muted">Kendi setini seç veya Keşfet’te bir set açıp oyun başlat.</p><div class="grid">'+tile('🏃','Word Runner','Engelleri aş, doğru cevabı yetiştir','runner')+tile('⚓','Amiral Battı','Kelimeyi bil, botun gemisini vur','battle')+tile('▦','Kelime blokları','İngilizce ve Türkçe blokları eşleştir','blocks')+tile('🚀','Meteor avı','Doğru meteoru seç','meteor')+'</div><p class="notice section">Oyunlar tek oyunculu veya botlara karşıdır. Çevrimiçi PvP henüz yok.</p>';
   bindActions(chooseSet);return;
  }
  if(page==='leaderboard'){leaderboard();return}

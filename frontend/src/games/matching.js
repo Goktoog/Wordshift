@@ -1,6 +1,22 @@
-import { $, escape, shuffle } from '../core/utils.js';
-import { session, timer, setTimer, user, page, current } from '../core/state.js';
-import { record, begin, opts, finish, topStudy, exitBind, answerMarkup, bindAnswer, equal } from '../features/session.js';
+import { $, escape } from '../core/utils.js';
+import { session } from '../core/state.js';
+import { record, finish, topStudy, exitBind } from '../features/session.js';
 import { toast, sound } from '../ui/feedback.js';
 
-export function match(){let s=session;if(s.done.length===s.pool.length){s.score=s.done.length;finish();return}$('view').innerHTML=topStudy(s.m==='blocks'?'Kelime blokları':'Eşleştirme')+'<p class="muted">'+s.done.length+' / '+s.pool.length+' eşleşme</p><div class="match two-columns">'+(s.m==='match'?s.cards.filter(c=>c.side==='a').flatMap((c,i)=>[c,s.cards.filter(x=>x.side==='b')[i]]):s.cards).map((c,i)=>'<button data-card="'+i+'" class="'+(s.done.includes(c.x.id)?'good':s.pick===c?'selected':'')+'" '+(s.done.includes(c.x.id)?'disabled':'')+' style="'+(s.m==='blocks'?'border-color:'+['#728d45','#587baa','#aa7958','#a765ae'][i%4]:'')+'">'+escape(c.side==='a'?c.x.front:c.x.back)+'</button>').join('')+'</div>';exitBind();$('view').querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{let ordered=s.m==='match'?s.cards.filter(c=>c.side==='a').flatMap((c,i)=>[c,s.cards.filter(x=>x.side==='b')[i]]):s.cards;let c=ordered[+b.dataset.card];if(!s.pick||s.pick.side===c.side){s.pick=c;match();return}let ok=s.pick.x.id===c.x.id;if(ok){s.done.push(c.x.id);record(c.x,true)}else{sound(false);toast('Yanlış eşleştirme')}s.pick=null;match()})}
+// Kelime blokları: solda İngilizce, sağda Türkçe. Her satırda bir İngilizce ve bir Türkçe blok durur; çiftleri bul.
+export function match(){
+  const s=session;
+  if(s.done.length===s.pool.length){s.score=s.done.length;finish();return}
+  const rows=s.left.flatMap((c,i)=>[c,s.right[i]]);
+  $('view').innerHTML=topStudy('Kelime blokları')+'<p class="muted">'+s.done.length+' / '+s.pool.length+' eşleşme · önce bir İngilizce, sonra Türkçe karşılığını seç</p><div class="match two-columns blocks"><span class="eyebrow">İngilizce</span><span class="eyebrow">Türkçe</span>'+rows.map((c,i)=>{
+    const done=s.done.includes(c.x.id);
+    return '<button data-card="'+i+'" class="block-'+(c.side==='a'?'en':'tr')+' '+(done?'good':s.pick===c?'selected':'')+'" '+(done?'disabled':'')+'>'+escape(c.side==='a'?c.x.front:c.x.back)+'</button>';
+  }).join('')+'</div>';
+  exitBind();
+  $('view').querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{
+    const c=rows[+b.dataset.card];
+    if(!s.pick||s.pick.side===c.side){s.pick=c;match();return}
+    if(s.pick.x.id===c.x.id){s.done.push(c.x.id);record(c.x,true)}else{sound(false);toast('Yanlış eşleştirme')}
+    s.pick=null;match();
+  });
+}

@@ -41,7 +41,7 @@ const correct=[...document.querySelectorAll('[data-answer]')].find(b=>b.textCont
 state.session.i=16;study();assert.equal(document.querySelectorAll('#question img').length,2);document.querySelector('#skip').click();assert.equal(reviewItems(me,yds).length,1);assert.equal(reviewItems({...me,studyProgress:{}},yds).length,0);
 returnToSet();assert.equal(state.page,'starter');assert.equal(state.current(),yds);
 for(const type of ['word','blank','paragraph','translate','questions']){begin('test',yds,'normal',false,{content:type,limit:20});assert.ok(state.session.pool.length<=20);assert.ok(state.session.pool.every(x=>type==='questions'?x.type!=='word':x.type===type));returnToSet()}
-for(const game of ['runner','battle','match','blocks','meteor']){begin(game,yds,'normal',false,{limit:20});assert.ok(state.session.pool.every(x=>x.type==='word'));assert.equal(state.current(),yds);returnToSet()}
+for(const game of ['runner','battle','blocks','meteor']){begin(game,yds,'normal',false,{limit:20});assert.ok(state.session.pool.every(x=>x.type==='word'));assert.equal(state.current(),yds);returnToSet()}
 assert.equal(matchesAnswer('yürürlüğü sağlama',{type:'word',back:'uygulama, yürürlüğü sağlama'},true),true);assert.equal(matchesAnswer('sağlama',{type:'word',back:'uygulama, yürürlüğü sağlama'},true),false);
 // Explicit copy is independent; merely studying never inserts it into the library.
 assert.equal(me.sets.length,0);document.querySelector('#copySet').click();assert.equal(me.sets.length,1);assert.ok(!me.sets[0].publicSource);assert.notEqual(me.sets[0].items[0].id,yds.items[0].id);assert.equal(JSON.stringify(yds),snapshot);

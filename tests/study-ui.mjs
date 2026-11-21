@@ -16,13 +16,13 @@ const own={id:'own',name:'Personal YDS',folder:'yds',items:[word('one'),word('tw
 const user={id:'me',name:'Ben',guest:true,sets:[own,{id:'other',name:'Other folder',folder:'other',items:[]}],folders:[{id:'yds',name:'YDS çalışma'},{id:'other',name:'Other'}],stats:{total:0,correct:0},xp:0,level:'A1'};
 state.setUser(user);state.db.users.push(user);initNavigation();
 go('sets','yds');assert.equal(document.querySelector('#view h1').textContent,'YDS çalışma');assert.ok(document.querySelector('[data-folder="yds"]').classList.contains('active'));assert.ok(!document.querySelector('[data-page="sets"]').classList.contains('active'));assert.equal(document.querySelectorAll('[data-set]').length,1);assert.equal(document.querySelector('[data-filter]'),null);assert.equal(document.querySelector('#discoverQuery').placeholder,'Çalışacak setler mi arıyorsun?');
-go('detail','own');assert.equal(document.querySelectorAll('[data-action]').length,9);
+go('detail','own');assert.equal(document.querySelectorAll('[data-action]').length,8);
 begin('cards',own);const first=state.session.pool[0];document.querySelector('#flip').click();assert.ok(document.querySelector('#flip').classList.contains('is-flipped'));document.querySelector('#hard').click();assert.ok(document.querySelector('#swipeCard').classList.contains('swipe-left'));await new Promise(r=>setTimeout(r,370));assert.ok(reviewItems(user,own).some(x=>x.id===first.id));document.querySelector('#know').click();assert.ok(document.querySelector('#swipeCard').classList.contains('swipe-right'));await new Promise(r=>setTimeout(r,370));assert.ok(document.querySelector('#reviewAgain'));
 begin('learn',own,'normal',true);const before=user.stats.total;document.querySelector('#skip').click();assert.equal(user.stats.total,before);assert.equal(state.session.skipped,1);assert.ok(reviewItems(user,own).length>0);
 const shared={id:'shared',ownerId:'ahmet',authorName:'Ahmet',name:'Ahmet B1',publicSource:true,items:[word('a'),word('b'),word('c')]};
-state.setSharedSet(shared);state.setSetId(shared.id);state.setPage('shared');detail();assert.equal(document.querySelector('#itemAdd'),null);assert.equal(document.querySelector('[data-edit]'),null);assert.equal(document.querySelectorAll('[data-action]').length,9);
+state.setSharedSet(shared);state.setSetId(shared.id);state.setPage('shared');detail();assert.equal(document.querySelector('#itemAdd'),null);assert.equal(document.querySelector('[data-edit]'),null);assert.equal(document.querySelectorAll('[data-action]').length,8);
 const snapshot=JSON.stringify(shared.items),libraryCount=user.sets.length;
-for(const mode of ['runner','battle','match','blocks','meteor']){
+for(const mode of ['runner','battle','blocks','meteor']){
  begin(mode,shared);assert.equal(state.current(),shared);assert.ok(state.session.pool.every(x=>shared.items.includes(x)));go('sets');
 }
 begin('cards',shared);record(state.session.pool[0],false);assert.equal(JSON.stringify(shared.items),snapshot);assert.equal(user.sets.length,libraryCount);assert.equal(reviewItems(user,shared).length,1);assert.equal(reviewItems({...user,studyProgress:{}},shared).length,0);assert.equal(reviewItems(user,{...shared,ownerId:'selen'}).length,0);
@@ -32,4 +32,4 @@ begin('cards',own);document.querySelector('#hard').click();go('sets');await new 
 // Own profile cards link back to their set.
 go('profile');document.querySelector('[data-profile-set="own"]').click();assert.equal(state.page,'detail');assert.equal(state.current().id,'own');
 clearInterval(state.timer);await window.happyDOM.abort();
-console.log('PASS DOM: folder isolation/highlight, discovery placeholder, nine study/game actions, physical flip and both swipe classes, saved review, skip without wrong answer, five games from shared source, private progress/source immutability, navigation guards, profile set links.');
+console.log('PASS DOM: folder isolation/highlight, discovery placeholder, eight study/game actions, physical flip and both swipe classes, saved review, skip without wrong answer, four games from shared source, private progress/source immutability, navigation guards, profile set links.');

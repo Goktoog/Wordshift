@@ -71,3 +71,21 @@
 .board-name small{display:block}
 .people-list{margin:10px 0}
 #peopleForm input{flex:1;min-width:180px;margin:0}
+
+/* Tur süresi (Amiral Battı ve Meteor avı) */
+.turn-timer{display:flex;align-items:center;gap:12px;margin:8px 0}.turn-timer span{font-weight:900;color:var(--accent);min-width:48px}.turn-timer .progress{flex:1;margin:0}.turn-timer .progress i{transition:width .15s linear}
+/* Kelime blokları: iki sütun */
+.blocks{align-items:stretch}.blocks .eyebrow{padding:0 4px}.blocks button{min-height:64px}.block-en{border-color:#728d45}.block-tr{border-color:#587baa}.blocks button.selected{outline:2px solid var(--accent)}
+/* Meteor avı */
+.space{cursor:crosshair;touch-action:none}.space .meteor{cursor:pointer}.space.firing .meteor{animation-play-state:paused}.space .meteor.exploded{background:#2a3350;pointer-events:none}
+.rocket-wrap{position:absolute;left:50%;bottom:8px;width:40px;height:70px;margin-left:-20px;transform-origin:50% 66%;transition:transform .06s linear;pointer-events:none}
+.missile{position:absolute;width:14px;height:30px;margin:-15px 0 0 -7px;pointer-events:none;z-index:3}.missile svg{display:block}
+.missile .flame{position:absolute;left:3px;top:27px;width:8px;height:18px;border-radius:50% 50% 60% 60%;background:linear-gradient(#fff2a8,#ff9f1c 55%,transparent);animation:flicker .09s infinite alternate}
+@keyframes flicker{from{transform:scaleY(.75)}to{transform:scaleY(1.25)}}
+.puff{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;pointer-events:none;animation:puff .7s forwards;z-index:2}.puff.smoke{background:#cfd6e6}.puff.fire{background:#ffb347}
+@keyframes puff{from{opacity:.8}to{transform:scale(3);opacity:0}}
+.boom{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:radial-gradient(circle,#fff,#ffd166 40%,#ef476f 70%,transparent 72%);animation:boom .55s forwards;pointer-events:none;z-index:4}
+@keyframes boom{to{transform:scale(7);opacity:0}}
+.big-tick{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:96px;font-weight:900;color:var(--good);text-shadow:0 0 24px #0008;animation:tick .9s forwards;pointer-events:none;z-index:5}
+@keyframes tick{from{transform:translate(-50%,-50%) scale(.4);opacity:0}25%{transform:translate(-50%,-50%) scale(1.15);opacity:1}to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+@media(prefers-reduced-motion:reduce){.puff,.boom,.big-tick,.missile .flame{animation-duration:.01s}}

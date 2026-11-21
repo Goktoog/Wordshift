@@ -3,7 +3,8 @@ import { session, timer, setTimer, user, page, current } from '../core/state.js'
 import { record, begin, opts, finish, topStudy, exitBind, answerMarkup, bindAnswer, equal } from '../features/session.js';
 import { toast, sound } from '../ui/feedback.js';
 
-import { shipCells as cells, canPlace } from './fleet-layout.js';
+import { shipCells as cells, canPlace, randomFleet } from './fleet-layout.js';
+import { turnTimer, timerMarkup } from './turn-timer.js';
 
 function placement() {
  const s = session;
@@ -45,17 +46,15 @@ function placement() {
  $('resetFleet').onclick = () => {s.fleet = null; s.selectedShip = 0; placement()};
  $('startBattle').onclick = () => {
    if (!s.fleet.every(ship => ship.cells.length)) return;
-   s.mine = s.fleet.flatMap(ship => ship.cells); s.enemy = [];
-   for (const len of [3,2,1]) {
-     let group;
-     do {group = cells(Math.floor(Math.random()*25), len, Math.random()>.5)} while (!group || group.some(i => s.enemy.includes(i)));
-     s.enemy.push(...group);
-   }
-   s.placed = true; battle();
+   s.mine = s.fleet.flatMap(ship => ship.cells); s.enemy = randomFleet();
+ s.placed = true; battle();
  };
 }
 
-export function battle(){let s=session;if(!s.placed){placement();return}let won=s.enemy.every(i=>s.shots.includes(i)),lost=s.mine.every(i=>s.botShots.includes(i));if(won||lost){$('view').innerHTML=topStudy(won?'Zafer!':'Bot kazandı.')+'<div class="hero"><h2>'+s.score+' doğru cevap</h2><button id="again" class="primary">Yeni maç</button></div>';exitBind();$('again').onclick=()=>begin('battle',current(),s.difficulty);return}let x=s.pool[s.i%s.pool.length];function board(ships,shots,enemy){return '<div class="board">'+Array.from({length:25},(_,i)=>'<button '+(enemy?'data-shot="'+i+'"':'disabled')+' class="'+(shots.includes(i)?ships.includes(i)?'hit':'miss':!enemy&&ships.includes(i)?'ship':'')+'" '+(enemy&&(s.phase!=='shoot'||shots.includes(i))?'disabled':'')+'>'+ (shots.includes(i)?ships.includes(i)?'✹':'·':!enemy&&ships.includes(i)?'⛴':'')+'</button>').join('')+'</div>'}$('view').innerHTML=topStudy('Amiral Battı')+'<div class="boards"><div><h3>Senin filon</h3>'+board(s.mine,s.botShots,false)+'</div><div><h3>Bot filosu</h3>'+board(s.enemy,s.shots,true)+'</div></div><div class="card section"><p class="muted">'+escape(s.message||'Kelimeyi bil, atış hakkı kazan.')+'</p>'+(s.phase==='shoot'?'<h2>Bir hedef seç!</h2>':'<h2>'+escape(x.front)+'</h2>'+answerMarkup(x))+'</div>';exitBind();function botTurn(){if(s.enemy.every(i=>s.shots.includes(i))){battle();return}let possible=Array.from({length:25},(_,i)=>i).filter(i=>!s.botShots.includes(i)),smart={easy:0,normal:.3,hard:.6}[s.difficulty]??.3,near=[];
+export function battle(){clearInterval(timer);let s=session;if(!s.placed){placement();return}let won=s.enemy.every(i=>s.shots.includes(i)),lost=s.mine.every(i=>s.botShots.includes(i));if(won||lost){$('view').innerHTML=topStudy(won?'Zafer!':'Bot kazandı.')+'<div class="hero"><h2>'+s.score+' doğru cevap</h2><button id="again" class="primary">Yeni maç</button></div>';exitBind();$('again').onclick=()=>begin('battle',current(),s.difficulty);return}let x=s.pool[s.i%s.pool.length];function board(ships,shots,enemy){return '<div class="board">'+Array.from({length:25},(_,i)=>'<button '+(enemy?'data-shot="'+i+'"':'disabled')+' class="'+(shots.includes(i)?ships.includes(i)?'hit':'miss':!enemy&&ships.includes(i)?'ship':'')+'" '+(enemy&&(s.phase!=='shoot'||shots.includes(i))?'disabled':'')+'>'+ (shots.includes(i)?ships.includes(i)?'✹':'·':!enemy&&ships.includes(i)?'⛴':'')+'</button>').join('')+'</div>'}$('view').innerHTML=topStudy('Amiral Battı')+'<div class="boards"><div><h3>Senin filon</h3>'+board(s.mine,s.botShots,false)+'</div><div><h3>Bot filosu</h3>'+board(s.enemy,s.shots,true)+'</div></div><div class="card section"><p class="muted">'+escape(s.message||'Kelimeyi bil, atış hakkı kazan.')+'</p>'+timerMarkup()+(s.phase==='shoot'?'<h2>Bir hedef seç!</h2>':'<h2>'+escape(x.front)+'</h2>'+answerMarkup(x))+'</div>';exitBind();function botTurn(){if(s.enemy.every(i=>s.shots.includes(i))){battle();return}let possible=Array.from({length:25},(_,i)=>i).filter(i=>!s.botShots.includes(i)),smart={easy:0,normal:.3,hard:.6}[s.difficulty]??.3,near=[];
   // Bot only uses what it has legitimately seen: neighbours of its own earlier hits.
   for(const h of s.botShots.filter(i=>s.mine.includes(i)))for(const n of [h-5,h+5,h%5>0?h-1:-1,h%5<4?h+1:-1])if(n>=0&&n<25&&possible.includes(n))near.push(n);
-  let target=near.length&&Math.random()<smart?shuffle(near)[0]:shuffle(possible)[0];s.botShots.push(target);s.message=s.mine.includes(target)?'Bot isabet etti!':'Bot ıskaladı.';s.i++;s.phase='question';battle()}if(s.phase==='shoot')$('view').querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>{s.shots.push(+b.dataset.shot);sound(s.enemy.includes(+b.dataset.shot));botTurn()});else bindAnswer(x,v=>{let ok=equal(v,x.back);record(x,ok);if(ok){s.score++;s.phase='shoot';s.message='Doğru! Şimdi hedefini seç.';battle()}else{toast('Doğru: '+x.back);botTurn()}})}
+  let target=near.length&&Math.random()<smart?shuffle(near)[0]:shuffle(possible)[0];s.botShots.push(target);s.message=s.mine.includes(target)?'Bot isabet etti!':'Bot ıskaladı.';s.i++;s.phase='question';battle()}function fire(i){clearInterval(timer);s.shots.push(i);sound(s.enemy.includes(i));botTurn()}
+if(s.phase==='shoot'){$('view').querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>fire(+b.dataset.shot));turnTimer(s,10,()=>{if(session!==s)return;const free=Array.from({length:25},(_,i)=>i).filter(i=>!s.shots.includes(i));toast('Süre doldu, rastgele bir yere atış yapıldı.');fire(shuffle(free)[0])})}
+else{bindAnswer(x,v=>{clearInterval(timer);let ok=equal(v,x.back);record(x,ok);if(ok){s.score++;s.phase='shoot';s.message='Doğru! 10 saniyen var, hedefini seç.';battle()}else{toast('Doğru: '+x.back);botTurn()}});turnTimer(s,10,()=>{if(session!==s)return;record(x,false);toast('Süre doldu. Doğru: '+x.back);botTurn()})}
+}
