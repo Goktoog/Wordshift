@@ -2,6 +2,7 @@ import { $, escape } from '../core/utils.js';
 import { user, page } from '../core/state.js';
 import { go } from '../core/router.js';
 import { avatar } from '../ui/components.js';
+import { styledName, adminBadge } from '../ui/name-style.js';
 import { leaderboard as fetchBoard, myRank } from '../services/social.js';
 let scope='global', request=0;
 export function leaderboard(){
@@ -17,7 +18,7 @@ export function leaderboard(){
    const list=await fetchBoard(scope,user.city,offset);if(!alive(t))return;
    for(const r of list){
     const row=document.createElement('button');row.type='button';row.className='board-row'+(r.user_id===user.id?' me':'');
-    row.innerHTML=`<span class="board-rank">#${Number(r.place)}</span>${avatar({name:r.name,avatar:r.avatar},true)}<span class="board-name">${escape(r.name)}<small class="muted">${escape(r.city||'')}</small></span><span class="badge">${escape(r.level)}</span><strong>${Number(r.xp)} XP</strong>`;
+    row.innerHTML=`<span class="board-rank">#${Number(r.place)}</span>${avatar({name:r.name,avatar:r.avatar},true)}<span class="board-name">${styledName(r.name,{color:r.name_color,glow:r.name_glow,anim:r.name_anim})}<small class="muted">${escape(r.city||'')}</small></span>${r.is_admin?adminBadge():''}<span class="badge">${escape(r.level)}</span><strong>${Number(r.xp)} XP</strong>`;
     row.onclick=()=>go('user',{id:r.user_id});rows.append(row);
    }
    offset+=list.length;status.textContent=offset?'':'Henüz sıralamada kimse yok.';

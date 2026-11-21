@@ -2,6 +2,7 @@ import { $, escape } from '../core/utils.js';
 import { user, page } from '../core/state.js';
 import { go } from '../core/router.js';
 import { avatar } from '../ui/components.js';
+import { styledName, adminBadge } from '../ui/name-style.js';
 import { toast } from '../ui/feedback.js';
 import { searchPublic } from '../services/community.js';
 import { userProfile, followList, searchUsers, follow, unfollow } from '../services/social.js';
@@ -92,7 +93,7 @@ function draw(p, request) {
   const view = $('view'), state = {followers: Number(p.followers), following: Number(p.following)};
   let following = !!p.is_following;
   view.innerHTML = `<div class="banner profile-cover">${p.banner ? `<img src="${escape(p.banner)}" alt="Profil kapak görseli">` : ''}</div>
-  <div class="profile-info">${avatar({name: p.name, avatar: p.avatar})}<div><h1 style="margin:0">${escape(p.name)}</h1><span class="badge">${escape(p.level)}</span> <span class="muted">${escape(p.city || 'Şehir belirtilmedi')}</span></div><button id="followBtn" class="primary"></button></div>
+  <div class="profile-info">${avatar({name: p.name, avatar: p.avatar})}<div><h1 style="margin:0">${styledName(p.name,{color:p.name_color,glow:p.name_glow,anim:p.name_anim})}</h1>${p.is_admin?adminBadge():''}<span class="badge">${escape(p.level)}</span> <span class="muted">${escape(p.city || 'Şehir belirtilmedi')}</span></div><button id="followBtn" class="primary"></button></div>
   <div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${Number(p.xp)}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${Number(p.answered)}</strong></div><div class="card stat"><span class="muted">Paylaştığı set</span><strong>${Number(p.public_sets)}</strong></div></div>
   <p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>
   <div class="section" id="userSocial"></div>

@@ -3,6 +3,8 @@ import { uploadImage } from '../services/cloud.js';
 import { $, escape } from '../core/utils.js';
 import { user, save, page } from '../core/state.js';
 import { avatar } from '../ui/components.js';
+import { styledName, adminBadge, cleanNameStyle, NAME_ANIMS, NAME_GLOWS, NAME_SWATCHES } from '../ui/name-style.js';
+import { userProfile } from '../services/social.js';
 import { modal } from '../ui/modal.js';
 import { header } from '../ui/header.js';
 import { toast } from '../ui/feedback.js';
@@ -33,15 +35,41 @@ function chooseMedia(account,kind){
  };
  input.click();
 }
+let isAdminUser=false;
+function nameStyleMarkup(account){
+ if(!isAdminUser)return '';
+ const st=cleanNameStyle(account.nameStyle);
+ return `<fieldset class="name-style-box"><legend>İsim stili</legend><div class="name-preview" id="namePreview"></div>
+ <label>Renk</label><div class="swatches" id="nameSwatches">${NAME_SWATCHES.map(c=>`<button type="button" class="swatch" data-color="${c}" style="background:${c}" aria-label="Renk ${c}"></button>`).join('')}<input type="color" id="nameColor" value="${st.color||'#c1fa6b'}" aria-label="Özel renk"><button type="button" id="nameColorReset">Varsayılan</button></div>
+ <label>Glow</label><div class="opt-row" id="nameGlow">${NAME_GLOWS.map(([v,t])=>`<button type="button" data-glow="${v}">${t}</button>`).join('')}</div>
+ <label>Animasyon</label><div class="opt-row" id="nameAnim">${NAME_ANIMS.map(([v,t])=>`<button type="button" data-anim="${v}">${t}</button>`).join('')}</div></fieldset>`;
+}
+function bindNameStyle(account){
+ let st=cleanNameStyle(account.nameStyle);
+ const draw=()=>{
+  $('namePreview').innerHTML=styledName($('profileName').value.trim()||account.name,st);
+  document.querySelectorAll('#nameSwatches .swatch').forEach(b=>b.classList.toggle('on',b.dataset.color===st.color));
+  document.querySelectorAll('#nameGlow button').forEach(b=>b.classList.toggle('on',+b.dataset.glow===st.glow));
+  document.querySelectorAll('#nameAnim button').forEach(b=>b.classList.toggle('on',b.dataset.anim===st.anim));
+ };
+ document.querySelectorAll('#nameSwatches .swatch').forEach(b=>b.onclick=()=>{st={...st,color:b.dataset.color};$('nameColor').value=st.color;draw()});
+ $('nameColor').oninput=e=>{st=cleanNameStyle({...st,color:e.target.value});draw()};
+ $('nameColorReset').onclick=()=>{st={...st,color:''};draw()};
+ document.querySelectorAll('#nameGlow button').forEach(b=>b.onclick=()=>{st={...st,glow:+b.dataset.glow};draw()});
+ document.querySelectorAll('#nameAnim button').forEach(b=>b.onclick=()=>{st={...st,anim:b.dataset.anim};draw()});
+ $('profileName').addEventListener('input',draw);draw();
+ return()=>cleanNameStyle(st);
+}
 function editProfile(account){
- modal(`<h2>Profili düzenle</h2><label for="profileName">İsim</label><input id="profileName" name="name" value="${escape(account.name)}" required maxlength="35">${cityPickerMarkup(account.city)}<div class="profile-media-actions"><button type="button" id="editAvatarFromForm">Profil fotoğrafını değiştir</button><button type="button" id="editBannerFromForm">Kapak görselini değiştir</button></div><p class="notice">Görseller kırpma ekranındaki “Kırp ve kaydet” düğmesiyle ayrı kaydedilir.</p><p id="profileError" class="error" role="status"></p>`,d=>{
+ modal(`<h2>Profili düzenle</h2><label for="profileName">İsim</label><input id="profileName" name="name" value="${escape(account.name)}" required maxlength="35">${cityPickerMarkup(account.city)}<div class="profile-media-actions"><button type="button" id="editAvatarFromForm">Profil fotoğrafını değiştir</button><button type="button" id="editBannerFromForm">Kapak görselini değiştir</button></div>${nameStyleMarkup(account)}<p class="notice">Görseller kırpma ekranındaki “Kırp ve kaydet” düğmesiyle ayrı kaydedilir.</p><p id="profileError" class="error" role="status"></p>`,d=>{
   const name=d.get('name').trim();if(!name){$('profileError').textContent='İsim boş olamaz.';return false}
   if(user!==account){$('profileError').textContent='Oturum değişti. Profilini yeniden aç.';return false}
-  const previous={name:account.name,city:account.city};account.name=name;account.city=canonicalCity(d.get('city'));
+  const previous={name:account.name,city:account.city,nameStyle:account.nameStyle};account.name=name;account.city=canonicalCity(d.get('city'));if(readNameStyle)account.nameStyle=readNameStyle();
   try{save()}catch(error){Object.assign(account,previous);$('profileError').textContent='Değişiklikler kaydedilemedi.';return false}
   header();profile(account);toast('Profilin güncellendi.');
  });
  bindCityPicker($('cityPicker'));
+ const readNameStyle=isAdminUser?bindNameStyle(account):null;
  $('editAvatarFromForm').onclick=()=>chooseMedia(account,'avatar');$('editBannerFromForm').onclick=()=>chooseMedia(account,'banner');
 }
 function levelCard(u,own){
@@ -61,10 +89,11 @@ export function profile(u){
  const own=u.id===user.id;
  const banner=`<div class="banner profile-cover">${u.banner?`<img src="${escape(u.banner)}" alt="Profil kapak görseli">`:''}${own?`<button type="button" id="editBanner" class="media-edit cover-edit" aria-label="Kapak görselini değiştir" title="Kapak görselini değiştir">${pencil}<span>Kapak görselini değiştir</span></button>`:''}</div>`;
  const picture=own?`<button type="button" id="editAvatar" class="profile-avatar-button" aria-label="Profil fotoğrafını değiştir" title="Profil fotoğrafını değiştir">${avatar(u)}<span class="avatar-edit-overlay">${pencil}</span></button>`:avatar(u);
- $('view').innerHTML=banner+`<div class="profile-info">${picture}<div><h1 style="margin:0">${escape(u.name)}</h1><span class="badge">${escape(u.level)}</span> <span class="muted">${escape(u.city||'Şehir belirtilmedi')}</span></div></div>${levelCard(u,own)}<div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${u.xp}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${u.stats.total}</strong></div><div class="card stat"><span class="muted">Set</span><strong>${u.sets.length}</strong></div></div><p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>`+(own?'<button id="editProfile" class="primary">Profili düzenle</button> <button id="out">Çıkış yap</button>':'<button id="return">Sıralamaya dön</button>');
+ $('view').innerHTML=banner+`<div class="profile-info">${picture}<div><h1 style="margin:0">${styledName(u.name,u.nameStyle)}</h1><span id="adminSlot"></span><span class="badge">${escape(u.level)}</span> <span class="muted">${escape(u.city||'Şehir belirtilmedi')}</span></div></div>${levelCard(u,own)}<div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${u.xp}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${u.stats.total}</strong></div><div class="card stat"><span class="muted">Set</span><strong>${u.sets.length}</strong></div></div><p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>`+(own?'<button id="editProfile" class="primary">Profili düzenle</button> <button id="out">Çıkış yap</button>':'<button id="return">Sıralamaya dön</button>');
  $('view').insertAdjacentHTML('beforeend','<div class="section"><h2>Oluşturduğu çalışma setleri</h2>'+u.sets.map(s=>'<div class="card"><button data-profile-set="'+escape(s.id)+'"><strong>'+escape(s.name)+'</strong></button><p class="muted">'+s.items.length+' içerik</p></div>').join('')+'</div>');
  $('view').querySelectorAll('[data-profile-set]').forEach(b=>b.onclick=()=>go('detail',b.dataset.profileSet));
  if(!own){$('return').onclick=()=>go('leaderboard');return}
+ if(!u.guest)void userProfile(u.id).then(p=>{const slot=$('adminSlot');isAdminUser=!!p?.is_admin;if(isAdminUser&&slot&&slot.isConnected)slot.innerHTML=adminBadge()}).catch(()=>{});
  $('placementBtn').onclick=()=>openPlacement(()=>profile(u));
  $('out').onclick=$('logout').onclick;
  $('editProfile').onclick=()=>editProfile(u);$('editAvatar').onclick=()=>chooseMedia(u,'avatar');$('editBanner').onclick=()=>chooseMedia(u,'banner');

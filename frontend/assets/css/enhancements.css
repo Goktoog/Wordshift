@@ -105,3 +105,26 @@
 /* Doğru cevabın yanlış/boş sonrası okunabilmesi */
 .answer-reveal{margin:12px 0 0;font-weight:700;overflow-wrap:anywhere}
 .meteor.reveal{outline:3px solid var(--good);outline-offset:2px}
+
+/* Admin rozeti */
+.badge-admin{position:relative;display:inline-flex;align-items:center;gap:5px;overflow:hidden;vertical-align:middle;padding:4px 10px 4px 8px;border-radius:999px;font-size:12px;letter-spacing:.14em;color:#2a1b00;border:1px solid #fff6;background:linear-gradient(135deg,#ffe27a 0%,#ffb703 45%,#ff8a00 100%);box-shadow:0 0 0 1px #ffb70055,0 4px 18px #ff8a0066,inset 0 1px 0 #fff9;text-shadow:0 1px 0 #fff6;animation:adminGlow 2.8s ease-in-out infinite}
+.badge-admin b{font-weight:900}.badge-admin svg{filter:drop-shadow(0 1px 0 #fff7)}
+.badge-admin .shine{position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,#fffc,transparent);transform:skewX(-20deg);animation:adminShine 3.2s ease-in-out infinite}
+@keyframes adminShine{0%,55%{left:-60%}100%{left:140%}}
+@keyframes adminGlow{50%{box-shadow:0 0 0 1px #ffb70088,0 4px 26px #ff8a00aa,inset 0 1px 0 #fff9}}
+.board-name .badge-admin,.profile-info .badge-admin{margin-right:6px}
+/* İsim stilleri */
+.nm{display:inline-block}.nm-color{color:var(--nm)}
+.nm-glow-1{text-shadow:0 0 8px var(--nm,currentColor)}.nm-glow-2{text-shadow:0 0 6px var(--nm,currentColor),0 0 16px var(--nm,currentColor),0 0 32px var(--nm,currentColor)}
+.nm-l{display:inline-block;white-space:pre}
+.nm-wiggle .nm-l{animation:nmWiggle .9s ease-in-out infinite}.nm-jump .nm-l{animation:nmJump 1.1s ease-in-out infinite}
+.nm-expand{animation:nmExpand 2.4s ease-in-out infinite}.nm-pulse{animation:nmPulse 1.8s ease-in-out infinite}
+@keyframes nmWiggle{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+@keyframes nmJump{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-.32em)}}
+@keyframes nmExpand{0%,100%{letter-spacing:0}50%{letter-spacing:.18em}}
+@keyframes nmPulse{50%{filter:brightness(1.5) drop-shadow(0 0 10px var(--nm,currentColor))}}
+@media(prefers-reduced-motion:reduce){.badge-admin,.badge-admin .shine,.nm-wiggle .nm-l,.nm-jump .nm-l,.nm-expand,.nm-pulse{animation:none}}
+.name-style-box{border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0}.name-style-box legend{padding:0 6px;font-weight:800}
+.name-preview{font-size:26px;font-weight:900;margin:6px 0 12px;min-height:38px;overflow-wrap:anywhere}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 12px}.swatch{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}.swatch.on{outline:2px solid var(--accent);outline-offset:2px}.swatches input[type=color]{width:36px;height:30px;padding:0;border:0;background:none;cursor:pointer}
+.opt-row{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}.opt-row button{padding:6px 12px}.opt-row button.on{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
