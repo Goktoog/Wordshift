@@ -7,19 +7,25 @@ import { toast, sound } from '../ui/feedback.js';
 import { go, render } from '../core/router.js';
 import { newSet } from './sets.js';
 import { updateProgress, reviewItems, itemProgress } from './progress.js';
-import { computeLevel, isMastered, logMastery } from './level.js';
+import { computeLevel, logAnswer } from './level.js';
 export const gameModes=['runner','battle','blocks','meteor'];
 export function chooseSet(m){
  modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
 }
 export function record(x,ok,withSound=true){
  const set=current();if(!set)return;
- const wasMastered=isMastered(itemProgress(user,set,x));
  updateProgress(user,set,x,ok);
- if(!wasMastered&&isMastered(itemProgress(user,set,x)))logMastery(user);
  user.stats.total++;user.stats.correct+=ok?1:0;if(ok)user.xp+=10;
+ // Kartlarda cevabı çevirip bakıldığı için kart cevapları seviye kanıtı sayılmaz.
+ const up=session?.m==='cards'?null:logAnswer(user,x,ok);
  user.level=computeLevel(user);
  save();header();if(withSound)sound(ok);
+ if(up)toast('🎉 Seviye atladın: '+up.from+' → '+up.to);
+}
+// Kelime blokları gibi oyunlarda yanlış deneme: ilerleme kaydını bozmadan sadece seviye kanıtına yazılır.
+export function levelMiss(x){
+ if(session?.m==='cards')return;
+ logAnswer(user,x,false);save();
 }
 export function skipItem(x){updateProgress(user,current(),x,null);session.skipped++;save()}
 export function returnToSet(){const s=current();go(s?.starterSource?'starter':s?.publicSource?'shared':'detail',s?.starterSource?s.id:s?.publicSource?{owner:s.ownerId,id:s.id}:s?.id)}

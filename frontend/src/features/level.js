@@ -1,60 +1,61 @@
 import { starterSets } from './starters.js';
 import { levels, shuffle } from '../core/utils.js';
-import { allItems } from '../core/state.js';
-import { itemProgress } from './progress.js';
 
-// Bir seviyeyi "geçmiş" saymak için o seviyeden öğrenilmesi gereken içerik sayısı.
-export const NEED = { A1: 8, A2: 10, B1: 12, B2: 14, C1: 16, C2: 18 };
-export const isMastered = p => (p.attempts || 0) >= 2 && (p.correct || 0) / p.attempts >= 0.75;
-export const today = () => new Date().toISOString().slice(0, 10);
+// ---- Seviye kanıtı: her seviyeden verilen cevaplar (kartlar hariç) ----
+// Bir seviyedeki son WINDOW cevabın içinde en az MIN_ANSWERS cevap, en az MIN_DISTINCT farklı içerik
+// ve en az PASS_RATE doğruluk varsa o seviye "geçilmiş" sayılır. Dört şıklı sorularda rastgele
+// tahminle 30 sorudan 20+ doğru yapma ihtimali ihmal edilebilir düzeydedir.
+export const EVIDENCE = { WINDOW: 100, MIN_ANSWERS: 30, MIN_DISTINCT: 15, PASS_RATE: 0.65, STRONG_RATE: 0.8 };
+export const levelIndex = l => Math.max(0, levels.indexOf(l));
+const higher = (a, b) => levelIndex(a) >= levelIndex(b) ? a : b;
 
-// Kullanıcının kendi setleri + hazır setler; her öğe için kişisel ilerleme dahil.
-export function masteredByLevel(user) {
-  const counts = Object.fromEntries(levels.map(l => [l, 0]));
-  const seen = new Set();
-  const count = (set, item) => {
-    if (!counts.hasOwnProperty(item.level) || seen.has(item.id)) return;
-    if (isMastered(itemProgress(user, set, item))) { seen.add(item.id); counts[item.level]++; }
-  };
-  for (const s of user.sets) for (const x of s.items) count(s, x);
-  for (const s of starterSets) for (const x of s.items) count(s, x);
-  return counts;
+// Bir cevabı seviye kanıtı olarak kaydet. Seviye atlandıysa { from, to } döner.
+export function logAnswer(user, item, ok) {
+  if (!item || !levels.includes(item.level)) return null;
+  const from = computeLevel(user);
+  user.levelLog ||= {};
+  const log = user.levelLog[item.level] ||= [];
+  log.push([item.id, ok ? 1 : 0]);
+  if (log.length > EVIDENCE.WINDOW) log.splice(0, log.length - EVIDENCE.WINDOW);
+  const reached = passedLevel(user);
+  if (levelIndex(reached) > levelIndex(user.evidenceLevel || 'A1')) user.evidenceLevel = reached;
+  const to = computeLevel(user);
+  return levelIndex(to) > levelIndex(from) ? { from, to } : null;
 }
 
-// Seviye = sınavın verdiği taban ile çalışma kanıtından gelen seviyenin yükseği.
-export function computeLevel(user, counts = masteredByLevel(user)) {
+export function levelEvidence(user, level) {
+  const log = user.levelLog?.[level] || [];
+  const correct = log.reduce((a, e) => a + e[1], 0);
+  const distinct = new Set(log.map(e => e[0])).size;
+  return { n: log.length, correct, distinct, rate: log.length ? correct / log.length : 0 };
+}
+export const passes = ev => ev.n >= EVIDENCE.MIN_ANSWERS && ev.distinct >= EVIDENCE.MIN_DISTINCT && ev.rate >= EVIDENCE.PASS_RATE;
+
+// Kanıtı yeterli olan en yüksek seviye.
+function passedLevel(user) {
   let best = 'A1';
-  for (const l of levels) if (counts[l] >= NEED[l]) best = l;
-  const floor = user.placement?.level || 'A1';
-  return levels.indexOf(floor) > levels.indexOf(best) ? floor : best;
+  for (const l of levels) if (passes(levelEvidence(user, l))) best = l;
+  return best;
 }
 
-// Son 14 günde günlük ortalama kaç yeni içerik öğrenildi?
-export function dailyRate(user) {
-  const log = user.masteryLog || {};
-  const since = Date.now() - 14 * 86400000;
-  const days = Object.entries(log).filter(([d]) => new Date(d).getTime() >= since);
-  if (!days.length) return 0;
-  return days.reduce((a, [, n]) => a + n, 0) / days.length;
+// Seviye = sınavın verdiği taban, daha önce kazanılmış seviye ve güncel çalışma kanıtının yükseği.
+// Seviye bir kez kazanılınca (evidenceLevel) kötü bir günle geri düşmez.
+export function computeLevel(user) {
+  return [user.placement?.level, user.evidenceLevel, passedLevel(user)].filter(Boolean).reduce(higher, 'A1');
 }
 
 export function levelProgress(user) {
-  const counts = masteredByLevel(user), level = computeLevel(user, counts);
-  const i = levels.indexOf(level), next = levels[i + 1] || null;
-  if (!next) return { level, next: null, counts, pct: 100, have: counts[level], need: NEED[level], remaining: 0, eta: null };
-  // Sonraki seviyeye geçiş: o seviyeden NEED kadar içerik öğrenmek.
-  const have = Math.min(counts[next], NEED[next]), need = NEED[next];
-  const rate = dailyRate(user), remaining = need - have;
-  return { level, next, counts, pct: Math.round(have / need * 100), have, need, remaining, eta: rate > 0 ? Math.ceil(remaining / rate) : null };
-}
-
-// Öğrenme anını yakala: updateProgress'ten önce/sonra "öğrenildi" durumu değişti mi?
-export function logMastery(user) {
-  user.masteryLog ||= {};
-  const d = today();
-  user.masteryLog[d] = (user.masteryLog[d] || 0) + 1;
-  const keys = Object.keys(user.masteryLog).sort();
-  for (const k of keys.slice(0, Math.max(0, keys.length - 60))) delete user.masteryLog[k];
+  const level = computeLevel(user);
+  const i = levelIndex(level), next = levels[i + 1] || null;
+  const here = levelEvidence(user, level);
+  if (!next) return { level, next: null, here, pct: 100 };
+  const ev = levelEvidence(user, next);
+  // Çubuk: yeterli sayıda cevap + yeterli doğruluk, ikisinin de yarısı kadar ağırlık.
+  const pctAnswers = Math.min(1, ev.n / EVIDENCE.MIN_ANSWERS), pctRate = Math.min(1, ev.rate / EVIDENCE.PASS_RATE);
+  const pct = Math.round((pctAnswers * .5 + (ev.n ? pctRate : 0) * .5) * 100);
+  // Bu seviyeyi güçlü biliyorsa ve bir üstü henüz denenmediyse: "bir üstünü dene" önerisi.
+  const suggest = here.n >= EVIDENCE.MIN_ANSWERS && here.rate >= EVIDENCE.STRONG_RATE && ev.n < EVIDENCE.MIN_ANSWERS;
+  return { level, next, here, ev, pct, suggest, needAnswers: EVIDENCE.MIN_ANSWERS, needDistinct: EVIDENCE.MIN_DISTINCT, needRate: Math.round(EVIDENCE.PASS_RATE * 100) };
 }
 
 // ---- Seviye belirleme sınavı: A1'den başlar, her seviyede 5 soru, ≥4 doğruda sonraki seviyeye geçer ----

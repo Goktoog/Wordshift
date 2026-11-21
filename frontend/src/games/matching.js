@@ -1,6 +1,6 @@
 import { $, escape } from '../core/utils.js';
 import { session } from '../core/state.js';
-import { record, finish, topStudy, exitBind } from '../features/session.js';
+import { record, levelMiss, finish, topStudy, exitBind } from '../features/session.js';
 import { toast, sound } from '../ui/feedback.js';
 
 // Kelime blokları: solda İngilizce, sağda Türkçe. Her satırda bir İngilizce ve bir Türkçe blok durur; çiftleri bul.
@@ -16,7 +16,7 @@ export function match(){
   $('view').querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{
     const c=rows[+b.dataset.card];
     if(!s.pick||s.pick.side===c.side){s.pick=c;match();return}
-    if(s.pick.x.id===c.x.id){s.done.push(c.x.id);record(c.x,true)}else{sound(false);toast('Yanlış eşleştirme')}
+    if(s.pick.x.id===c.x.id){s.done.push(c.x.id);record(c.x,true)}else{levelMiss(s.pick.x);sound(false);toast('Yanlış eşleştirme')}
     s.pick=null;match();
   });
 }

@@ -10,7 +10,7 @@ import { cropImage, blobDataURL } from '../ui/image-cropper.js';
 import { cityPickerMarkup, bindCityPicker } from '../ui/city-picker.js';
 import { canonicalCity } from '../data/cities.js';
 import { mountSocial } from './people.js';
-import { levelProgress, NEED } from './level.js';
+import { levelProgress } from './level.js';
 import { openPlacement } from './placement.js';
 const pencil='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z"/></svg>';
 let picking=false;
@@ -46,10 +46,16 @@ function editProfile(account){
 function levelCard(u,own){
  if(!own)return '';
  const p=levelProgress(u);
- const eta=p.next?(p.eta?`Bu hızla yaklaşık ${p.eta} gün`:'Tahmin için birkaç gün çalış'):'';
  const pl=u.placement?`Son sınav: ${escape(u.placement.level)} · ${escape(u.placement.date)}`:'Henüz seviye sınavına girmedin';
- return `<div class="card section" id="levelCard"><p class="eyebrow">SEVİYE İLERLEMESİ</p><h2 style="margin:6px 0">${escape(p.level)}${p.next?` → ${escape(p.next)}`:' · en üst seviye'}</h2>${p.next?`<div class="progress" role="progressbar" aria-valuenow="${p.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p.pct}%"></i></div><p class="muted">${p.have}/${p.need} ${escape(p.next)} içeriği öğrenildi (%${p.pct}) · ${escape(eta)}</p>`:''}<p class="notice">Bir içerik, en az 2 denemede %75+ doğru yapınca "öğrenildi" sayılır. ${p.next?`${escape(p.next)} seviyesine geçmek için ${p.need} ${escape(p.next)} içeriği öğrenmen gerekir.`:''} ${pl}.</p><button id="placementBtn" class="primary">Seviye sınavına gir</button></div>`;
+ let detail='';
+ if(p.next){
+  const e=p.ev,rate=Math.round(e.rate*100);
+  detail=`<div class="progress" role="progressbar" aria-valuenow="${p.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p.pct}%"></i></div><p class="muted">${escape(p.next)} içeriğinde ${Math.min(e.n,p.needAnswers)}/${p.needAnswers} cevap · doğruluk %${rate} (hedef %${p.needRate})${e.n&&e.distinct<p.needDistinct?` · ${e.distinct}/${p.needDistinct} farklı içerik`:''}</p>`;
+  if(p.suggest)detail+=`<p class="notice">${escape(p.level)} içeriğini iyi biliyorsun (%${Math.round(p.here.rate*100)} doğru). ${escape(p.next)} sorularını dene; yeterince doğru yaparsan seviyen hemen yükselir.</p>`;
+ }
+ return `<div class="card section" id="levelCard"><p class="eyebrow">SEVİYE İLERLEMESİ</p><h2 style="margin:6px 0">${escape(p.level)}${p.next?` → ${escape(p.next)}`:' · en üst seviye'}</h2>${detail}<p class="notice">Öğrenme, test, deneme ve oyunlarda ${p.next?`${escape(p.next)} seviyesinden en az ${p.needAnswers} soruyu (en az ${p.needDistinct} farklı içerik) %${p.needRate}+ doğru cevaplarsan seviye atlarsın. `:''}Kartlar seviyeye sayılmaz. ${pl}.</p><button id="placementBtn" class="primary">Seviye sınavına gir</button></div>`;
 }
+
 export function profile(u){
  const own=u.id===user.id;
  const banner=`<div class="banner profile-cover">${u.banner?`<img src="${escape(u.banner)}" alt="Profil kapak görseli">`:''}${own?`<button type="button" id="editBanner" class="media-edit cover-edit" aria-label="Kapak görselini değiştir" title="Kapak görselini değiştir">${pencil}<span>Kapak görselini değiştir</span></button>`:''}</div>`;
