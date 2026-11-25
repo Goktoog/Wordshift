@@ -224,3 +224,10 @@
 @keyframes bng-swing{0%,100%{transform:rotate(-19deg)}25%{transform:rotate(-65deg)}55%,63%{transform:translateX(45cqw) rotate(80deg)}}
 @keyframes bng-sting{0%,40%,100%{transform:none}58%{transform:rotate(-9deg) scale(1.17);filter:sepia(.55) saturate(2.5)}}
 @media(prefers-reduced-motion:reduce){.swing .bng-mallet,.bonked .bng-head{animation:none}}
+
+/* Profil: takipçi / takip edilen (sağda) ve listeleri gösteren pencere */
+.follow-stats{margin-left:auto;display:flex;gap:10px}
+.follow-stats button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:92px;padding:8px 14px}
+.follow-stats strong{font-size:22px;line-height:1.1}.follow-stats span{font-size:12px;color:var(--muted)}
+.follow-dialog{min-width:min(420px,80vw)}.follow-dialog .people-host{max-height:50vh;overflow:auto;margin:12px 0}
+@media(max-width:600px){.profile-info{flex-wrap:wrap}.follow-stats{margin-left:0;width:100%}.follow-stats button{flex:1}}
