@@ -89,7 +89,7 @@ grant execute on function public.wordshift_unfollow(uuid) to authenticated;
 -- scope: 'global' or 'city'. Ordered by XP; ties are broken by id so places are stable.
 create or replace function public.wordshift_leaderboard(scope text default 'global', city_filter text default '', page_offset integer default 0)
 returns table(place bigint,user_id uuid,name text,avatar text,city text,xp integer,level text)
-language sql stable security invoker set search_path = '' as $$
+language sql stable security definer set search_path = '' as $$
  select r.place,r.user_id,r.name,r.avatar,r.city,r.xp,r.level from (
   select (row_number() over (order by p.xp desc,p.user_id))::bigint as place,
    p.user_id,p.name,p.avatar,p.city,p.xp,p.level
@@ -98,7 +98,7 @@ language sql stable security invoker set search_path = '' as $$
  ) r order by r.place limit 50 offset greatest(coalesce(page_offset,0),0);
 $$;
 revoke all on function public.wordshift_leaderboard(text,text,integer) from public, anon;
-grant execute on function public.wordshift_leaderboard(text,text,integer) to authenticated;
+grant execute on function public.wordshift_leaderboard(text,text,integer) to anon, authenticated;
 
 create or replace function public.wordshift_my_rank(scope text default 'global', city_filter text default '')
 returns bigint language sql stable security invoker set search_path = '' as $$
@@ -114,7 +114,7 @@ grant execute on function public.wordshift_my_rank(text,text) to authenticated;
 create or replace function public.wordshift_user_profile(target uuid)
 returns table(user_id uuid,name text,avatar text,banner text,city text,xp integer,level text,answered integer,correct integer,
  followers bigint,following bigint,public_sets bigint,is_following boolean)
-language sql stable security invoker set search_path = '' as $$
+language sql stable security definer set search_path = '' as $$
  select p.user_id,p.name,p.avatar,p.banner,p.city,p.xp,p.level,p.answered,p.correct,
   (select count(*) from public.wordshift_follows f where f.followee_id=p.user_id),
   (select count(*) from public.wordshift_follows f where f.follower_id=p.user_id),
@@ -123,7 +123,7 @@ language sql stable security invoker set search_path = '' as $$
  from public.wordshift_profiles p where p.user_id=target;
 $$;
 revoke all on function public.wordshift_user_profile(uuid) from public, anon;
-grant execute on function public.wordshift_user_profile(uuid) to authenticated;
+grant execute on function public.wordshift_user_profile(uuid) to anon, authenticated;
 
 -- kind: 'followers' (people who follow target) or 'following' (people target follows).
 create or replace function public.wordshift_follow_list(target uuid, kind text default 'followers', page_offset integer default 0)

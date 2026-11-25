@@ -10,7 +10,8 @@ import { newSet } from './sets.js';
 import { updateProgress, reviewItems, itemProgress } from './progress.js';
 import { computeLevel, logAnswer } from './level.js';
 import { noteMistake } from './mistakes.js';
-export const gameModes=['runner','battle','blocks','meteor','sentences'];
+import { gameModes } from '../games/catalog.js';
+export { gameModes };
 export function chooseSet(m){
  if(m==='sentences'){begin(m,sentenceSet(user.level||'A1'));return}
  modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
@@ -35,6 +36,14 @@ export function skipItem(x){updateProgress(user,current(),x,null);session.skippe
 export function returnToSet(){const s=current();if(s?.mistakes){go('mistakes');return}go(s?.starterSource?'starter':s?.publicSource?'shared':'detail',s?.starterSource?s.id:s?.publicSource?{owner:s.ownerId,id:s.id}:s?.id)}
 export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  if(!set)return;
+ if(m==='sentences'&&!set.sentenceBank){
+  const namedLevel=set.name?.toUpperCase().match(/\b([ABC][12])\b/)?.[1];
+  const counts=new Map();
+  for(const item of set.items)if(levels.includes(item.level))counts.set(item.level,(counts.get(item.level)||0)+1);
+  const level=namedLevel||[...counts].sort((a,b)=>b[1]-a[1])[0]?.[0]||user.level||'A1';
+  set=sentenceSet(level);
+  settings={...settings,content:'all'};
+ }
  let source=onlyReview?reviewItems(user,set):set.items;
  const filter=settings.content||'all';
  if(filter==='questions')source=source.filter(x=>x.type!=='word');
@@ -46,7 +55,7 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  if(!pool.length){toast(onlyReview?'Tekrar edilecek uygun içerik yok.':'Bu içerik seçimiyle bu modda çalışılacak öğe yok. Kelimeler veya Tüm içerikler seçimini dene.');return}
  clearInterval(timer);setSharedSet(set.publicSource?set:null);setSetId(set.id);
  // Keep browser Back pointing to the actual source set.
- history.pushState(set.mistakes?{page:'mistakes'}:gameModes.includes(m)?{page:'games'}:{page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id},'');
+ history.pushState(settings.origin|| (set.mistakes?{page:'mistakes'}:gameModes.includes(m)?{page:'games'}:{page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id}),'');
  setSession({m,pool,i:0,score:0,skipped:0,flip:false,difficulty,deadline:Date.now()+(filter==='source-exam'?10800000:1800000),reviewOnly:onlyReview,settings});
  setPage(gameModes.includes(m)?'play':'study');
  if(m==='blocks'){
@@ -63,13 +72,18 @@ export function opts(x){if(x.sourceQuestion)return ['A','B','C','D','E'];const o
 export function answerMarkup(x,typed=false){const options=opts(x);if(!x.sourceQuestion&&((typed&&x.type==='word')||(x.type==='blank'&&!x.options?.length)||options.length<2))return '<form id="answerForm"><input id="typed" required autocomplete="off" placeholder="Cevabını yaz"><button class="primary">Kontrol et</button></form>';return '<div class="choices">'+options.map((o,i)=>'<button data-answer="'+i+'">'+escape(o)+'</button>').join('')+'</div>'}
 export function bindAnswer(x,callback){$('view').querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>callback(b.textContent,b));if($('answerForm'))$('answerForm').onsubmit=e=>{e.preventDefault();callback($('typed').value)}}
 export const equal=(a,b)=>a.trim().toLocaleLowerCase('tr')===b.trim().toLocaleLowerCase('tr');
-export function topStudy(title){return '<div class="top"><div><p class="eyebrow">'+escape(current()?.name)+'</p><h1>'+title+'</h1></div><button id="exit">'+(gameModes.includes(session?.m)?'Oyunlara dön':'Sete dön')+'</button></div>'}
-export function exitBind(){$('exit').onclick=()=>gameModes.includes(session?.m)?go('games'):returnToSet()}
+export function topStudy(title){return '<div class="top"><div><p class="eyebrow">'+escape(current()?.name)+'</p><h1>'+title+'</h1></div><button id="exit">'+((gameModes.includes(session?.m)||current()?.sentenceBank)&&!session?.settings?.origin?'Oyunlara dön':'Sete dön')+'</button></div>'}
+export function exitBind(){$('exit').onclick=()=>{
+ const origin=session?.settings?.origin;
+ if(origin)go(origin.page,origin.arg);
+ else if(gameModes.includes(session?.m)||current()?.sentenceBank)go('games');
+ else returnToSet();
+}}
 export function finish(){
  clearInterval(timer);const s=session,set=current(),remaining=reviewItems(user,set);
  $('view').innerHTML=topStudy('Tamamlandı!')+`<div class="hero"><span class="ico">🏆</span><h1>${s.score} doğru</h1><p class="muted">${s.pool.length} içerik · ${s.skipped||0} boş · ${user.xp} toplam XP</p><div class="actions"><button class="primary" id="again">Tekrar başla</button>${remaining.length?`<button id="reviewAgain">Bilmediklerim / boşlar (${remaining.length})</button>`:''}</div></div>`;
  exitBind();$('again').onclick=()=>begin(s.m,set,s.difficulty,false,s.settings);
- if($('reviewAgain'))$('reviewAgain').onclick=()=>begin('learn',set,s.difficulty,true);
+ if($('reviewAgain'))$('reviewAgain').onclick=()=>begin('learn',set,s.difficulty,true,{origin:s.settings?.origin});
 }
 
 export function matchesAnswer(value,item,typed=false){if(equal(value,item.back))return true;return typed&&item.type==='word'&&item.back.split(/[,;]/).some(s=>equal(value,s));}

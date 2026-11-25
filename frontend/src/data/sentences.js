@@ -252,4 +252,4 @@ export const sentences=[
     "back": "By no means was the outcome inevitable."
   }
 ];
-export const sentenceSet=level=>({id:"sentence-duel",name:"Cümle Düellosu · "+level,publicSource:true,items:sentences.filter(s=>s.level===level)});
+export const sentenceSet=level=>({id:"sentence-duel",sentenceBank:true,name:"Cümle Düellosu · "+level,publicSource:true,items:sentences.filter(s=>s.level===level)});

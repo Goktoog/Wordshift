@@ -4,7 +4,14 @@ const KEY = 'wordshift-v1';
 
 export function loadData() {
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || { users: [], active: null };
+    const data = JSON.parse(localStorage.getItem(KEY));
+    if (!Array.isArray(data?.users)) return {users: [], active: null};
+    if (data.users.some(u => u.guest)) {
+      data.users = data.users.filter(u => !u.guest);
+      if (!data.users.some(u => u.id === data.active)) data.active = null;
+      saveData(data);
+    }
+    return data;
   } catch {
     return { users: [], active: null };
   }

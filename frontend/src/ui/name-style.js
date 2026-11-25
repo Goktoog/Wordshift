@@ -25,5 +25,6 @@ export function styledName(name, style) {
   return '<span class="' + classes + '" style="' + vars + '" aria-label="' + escape(text) + '">' + inner + '</span>';
 }
 
-const CROWN = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5L3 8Z" fill="currentColor"/></svg>';
-export const adminBadge = () => '<span class="badge-admin" title="Wordshift yöneticisi"><i class="shine" aria-hidden="true"></i>' + CROWN + '<b>ADMIN</b></span>';
+export const badgeColors = new Map([['gold','Altın'],['mint','Nane'],['sky','Gök mavisi'],['lilac','Leylak'],['rose','Gül']]);
+const CROWN = '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5L3 8Z" fill="currentColor"/></svg>';
+export const adminBadge = color => '<span class="badge-admin" data-tone="' + (badgeColors.has(color)?color:'gold') + '" title="Wordshift yöneticisi"><i class="shine" aria-hidden="true"></i>' + CROWN + '<b>ADMIN</b></span>';

@@ -76,7 +76,6 @@ export async function openUser(arg) {
   view.innerHTML = '<p role="status">Profil yükleniyor…</p>';
   try {
     if (!id) throw Error('Profil bağlantısı eksik.');
-    if (user.guest) throw Error('Profilleri görmek ve takip etmek için hesapla giriş yap.');
     const p = await userProfile(id);
     if (page !== 'user' || request !== requestId) return;
     if (!p) throw Error('Kullanıcı bulunamadı.');
@@ -93,25 +92,29 @@ function draw(p, request) {
   const view = $('view'), state = {followers: Number(p.followers), following: Number(p.following)};
   let following = !!p.is_following;
   view.innerHTML = `<div class="banner profile-cover">${p.banner ? `<img src="${escape(p.banner)}" alt="Profil kapak görseli">` : ''}</div>
-  <div class="profile-info">${avatar({name: p.name, avatar: p.avatar})}<div><h1 style="margin:0">${styledName(p.name,{color:p.name_color,glow:p.name_glow,anim:p.name_anim})}</h1>${p.is_admin?adminBadge():''}<span class="badge">${escape(p.level)}</span> <span class="muted">${escape(p.city || 'Şehir belirtilmedi')}</span></div><button id="followBtn" class="primary"></button></div>
+  <div class="profile-info">${avatar({name: p.name, avatar: p.avatar})}<div><h1 style="margin:0">${styledName(p.name,{color:p.name_color,glow:p.name_glow,anim:p.name_anim})}</h1>${p.is_admin?adminBadge(p.badge_color):''}<span class="badge">${escape(p.level)}</span> <span class="muted">${escape(p.city || 'Şehir belirtilmedi')}</span></div>${user.guest?'':'<button id="followBtn" class="primary"></button>'}</div>
   <div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${Number(p.xp)}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${Number(p.answered)}</strong></div><div class="card stat"><span class="muted">Paylaştığı set</span><strong>${Number(p.public_sets)}</strong></div></div>
   <p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>
   <div class="section" id="userSocial"></div>
   <div class="section"><h2>Paylaştığı çalışma setleri</h2><p class="muted">Yalnızca herkesle paylaşılan setler görünür.</p><div id="userSets" class="grid"></div><p id="userSetsStatus" role="status">Yükleniyor…</p><button id="userSetsMore" hidden>Daha fazla göster</button></div>
   <div class="section"><button id="backBoard">← Geri dön</button></div>`;
-  const social = socialBlock($('userSocial'), p.user_id, state), btn = $('followBtn');
-  const paint = () => { btn.textContent = following ? 'Takibi bırak' : 'Takip et'; btn.classList.toggle('primary', !following); };
-  paint();
-  btn.onclick = async () => {
-    btn.disabled = true;
-    try {
-      if (following) await unfollow(p.user_id); else await follow(p.user_id);
-      following = !following; state.followers += following ? 1 : -1;
-      if (page === 'user' && request === requestId) { paint(); social.refresh(); }
-      toast(following ? 'Takip ediliyor.' : 'Takip bırakıldı.');
-    } catch (e) { toast(e.message); }
-    finally { if (btn.isConnected) btn.disabled = false; }
-  };
+  if (user.guest) {
+    $('userSocial').textContent = state.followers + ' takipçi · ' + state.following + ' takip edilen';
+  } else {
+    const social = socialBlock($('userSocial'), p.user_id, state), btn = $('followBtn');
+    const paint = () => { btn.textContent = following ? 'Takibi bırak' : 'Takip et'; btn.classList.toggle('primary', !following); };
+    paint();
+    btn.onclick = async () => {
+      btn.disabled = true;
+      try {
+        if (following) await unfollow(p.user_id); else await follow(p.user_id);
+        following = !following; state.followers += following ? 1 : -1;
+        if (page === 'user' && request === requestId) { paint(); social.refresh(); }
+        toast(following ? 'Takip ediliyor.' : 'Takip bırakıldı.');
+      } catch (e) { toast(e.message); }
+      finally { if (btn.isConnected) btn.disabled = false; }
+    };
+  }
   $('backBoard').onclick = () => history.back();
   const results = $('userSets'), status = $('userSetsStatus'), more = $('userSetsMore');
   const alive = () => page === 'user' && request === requestId && $('userSets') === results;

@@ -7,7 +7,15 @@ const w=new Window({url:'http://localhost:3000/',settings:{disableJavaScriptEval
 Object.assign(globalThis,{window:w,document:w.document,history:w.history,localStorage:w.localStorage,confirm:()=>true,alert:()=>{}});
 document.write(readFileSync(new URL('../frontend/index.html',import.meta.url),'utf8').replace(/<script[^>]*>[\s\S]*?<\/script>/g,''));
 let signup,signupCalls=0,signOutCalls=0,oauth,resetRequest,updatedPassword,listener,resetError;
-globalThis.authClient={auth:{
+const rpcCalls=[];
+const publicPlayer={user_id:'public-player',name:'Deniz',city:'İzmir',level:'B1',xp:10,is_admin:true,badge_color:'rose',followers:2,following:0,public_sets:0,answered:1};
+globalThis.authClient={rpc:async(name,args)=>{
+ rpcCalls.push(name);
+ if(name==='wordshift_leaderboard')return {data:[{...publicPlayer,place:1}]};
+ if(name==='wordshift_user_profile')return {data:[publicPlayer]};
+ if(name==='wordshift_search_sets')return {data:[]};
+ throw Error('Unexpected guest RPC: '+name);
+},auth:{
  onAuthStateChange:cb=>{listener=cb;return {data:{subscription:{unsubscribe(){}}}}},
  getSession:async()=>({data:{session:null}}),
  signUp:async data=>{signupCalls++;signup=data;return {data:{session:null,user:{id:'real'}}}},
@@ -17,12 +25,20 @@ globalThis.authClient={auth:{
  resetPasswordForEmail:async(email,options)=>{resetRequest={email,options};return {error:resetError}},
  updateUser:async data=>{updatedPassword=data;return {data:{user:{id:'real'}}}}
 }};
+localStorage.setItem('wordshift-v1',JSON.stringify({active:'old-guest',users:[{id:'old-guest',guest:true},{id:'keep',guest:false}]}));
 const {initAuth}=await import('../frontend/src/features/auth.js');
 const {initNavigation}=await import('../frontend/src/core/router.js');
 const state=await import('../frontend/src/core/state.js');
 const $=id=>document.getElementById(id), submit=()=>$('authForm').onsubmit({preventDefault(){}});
 initNavigation();initAuth();await new Promise(r=>setTimeout(r,10));
-$('guest').click();assert.ok(state.user.guest);assert.equal(state.user.sets.length,1);const guestId=state.user.id;
+const settle=()=>new Promise(r=>setTimeout(r,0));
+$('guestBoard').click();await settle();
+assert.ok(!$('myProgress'));assert.ok(!rpcCalls.includes('wordshift_my_rank'));
+document.querySelector('[data-scope="city"]').click();$('guestCity').value='İzmir';$('guestCity').onchange();await settle();
+document.querySelector('.board-row').click();await settle();assert.ok(!$('followBtn'));assert.match($('userSocial').textContent,/2 takipçi/);assert.equal(document.querySelector('.badge-admin').dataset.tone,'rose');
+await $('logout').onclick();
+$('guest').click();assert.ok(state.user.guest);assert.equal(state.user.sets.length,1);const guestId=state.user.id;state.user.xp=123;state.save();
+assert.deepEqual(JSON.parse(localStorage.getItem('wordshift-v1')),{active:null,users:[{id:'keep',guest:false}]});
 $('guestJoin').click();await new Promise(r=>setTimeout(r,0));assert.equal(state.user,null);assert.equal(signOutCalls,0);assert.equal($('auth').hidden,false);
 // Both passwords can be shown independently, without submitting.
 document.querySelector('[data-auth="signup"]').click();$('signupName').value='Ahmet';$('email').value='test@example.com';$('password').value='test-password';$('confirmPassword').value='different-password';
@@ -32,7 +48,7 @@ $('confirmPassword').value='test-password';await submit();assert.equal(signupCal
 assert.equal(signup.options.emailRedirectTo,'https://goktoog.github.io/Wordshift/');assert.match($('authMessage').textContent,/doğrulama/);assert.equal($('confirmPassword').value,'');
 await $('googleAuth').onclick();assert.equal(oauth.provider,'google');assert.equal(oauth.options.redirectTo,'https://goktoog.github.io/Wordshift/');
 document.querySelector('[data-auth="login"]').click();assert.equal($('confirmPassword').disabled,true);assert.equal($('password').autocomplete,'current-password');
-$('password').value='test-password';await submit();assert.equal(state.user.id,'real');assert.equal(state.user.sets.length,0);assert.equal(state.db.users.find(u=>u.id===guestId).sets.length,1);assert.equal($('app').hidden,false);
+$('password').value='test-password';await submit();assert.equal(state.user.id,'real');assert.equal(state.user.sets.length,0);assert.ok(!state.db.users.some(u=>u.id===guestId));assert.equal($('app').hidden,false);
 await $('logout').onclick();assert.equal(state.user,null);assert.equal(signOutCalls,1);assert.equal(state.session,null);
 $('forgotPassword').click();assert.equal($('password').disabled,true);assert.equal($('passwordField').hidden,true);
 $('email').value='test@example.com';await submit();assert.equal(resetRequest.email,'test@example.com');assert.equal(resetRequest.options.redirectTo,'https://goktoog.github.io/Wordshift/?auth=recovery');assert.match($('authMessage').textContent,/uygun bir hesap varsa/);

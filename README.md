@@ -8,7 +8,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 
 ## Nasıl kullanılır?
 
-1. Siteyi aç. Hemen denemek için **Misafir olarak dene**'yi seç; hesap istemez, çalışmaların yalnızca o tarayıcıda saklanır.
+1. Siteyi aç. Hemen denemek için **Misafir olarak dene**'yi seç; hesap istemez, çalışmaların sayfayı yenileyene veya çıkış yapana kadar sürer.
 2. Çalışmalarını cihazlar arasında saklamak, setlerini paylaşmak ve sıralamaya girmek için **Google** veya **e-posta** ile üye ol.
 3. **Yeni çalışma seti** oluştur, kelimelerini veya sorularını ekle. Hazır **başlangıç setleriyle** de hemen çalışmaya başlayabilirsin.
 4. Kartlarla öğren, **Öğren / Test / Deneme** ile kendini sına, **Oyunlar** bölümünde eğlenerek tekrar et.
@@ -19,7 +19,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Tek oyunculu / botlu ve iki oyunculu çevrimiçi modlar.
+- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Bu beş oyun tek oyunculu / botlu ve iki oyunculu çevrimiçi modlarda oynanır. Kelime Geçidi ve Kelime Kulesi tek oyunculudur.
 - **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
 - **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
@@ -49,8 +49,8 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 ## Gizlilik
 
 - Setlerin varsayılan olarak **özeldir**. Yalnızca herkese açık yaptığın setler başkalarına görünür.
-- Hesabıyla giriş yaptıysan adın, profil fotoğrafın, kapak görselin, şehrin, XP'n ve seviyen diğer üyelere görünür. E-posta adresin hiçbir zaman gösterilmez.
-- Misafir olarak kullandığında verilerin yalnızca kendi tarayıcında kalır; sıralamada ve profillerde yer almazsın.
+- Hesabıyla giriş yaptıysan adın, profil fotoğrafın, kapak görselin, şehrin, XP'n ve seviyen herkese açık profilinde görünür. E-posta adresin hiçbir zaman gösterilmez.
+- Misafirler global ve şehir sıralamalarını, oyuncu profillerini ve paylaşılan setleri inceleyebilir. Misafirler için kalıcı profil oluşturulmaz. XP, setler ve oyun ilerlemesi oturum sonunda silinir.
 
 ## Kullanılan teknolojiler
 
@@ -76,7 +76,13 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 - PvP maçları alıştırmadır; global XP sıralamasını veya CEFR rozetini değiştirmez. Sonuçlar sunucuda ayrı tutulur.
 - Kuyruklar yaklaşık 3 saniyede, maç durumu yaklaşık 1 saniyede güncellenir. Hareket animasyonları cihazda çalışır; cevap, süre, can ve sonuçlar Supabase tarafından belirlenir.
 - XP ve seviye rozetleri çalışma göstergesidir; resmî bir dil yeterlilik sonucu değildir.
-- Misafir verileri aynı tarayıcıda saklanır; hesaba otomatik taşınmaz.
+- Profil fotoğrafı ve kapak görseli düzenleme kayıtlı hesaplara açıktır.
+
+## Misafir erişimi ve admin rozeti güncellemesi
+
+Sosyal özellikleri kurulu projelerde, bu sürümü yayınlamadan önce Supabase SQL Editor içinde güncel `supabase/admin-badge.sql` dosyasını çalıştır. İlk kurulumda sıra `setup.sql`, `community.sql`, `social.sql`, `admin-badge.sql` şeklindedir. Adminler **Profilim → Profili düzenle → Admin rozeti rengi** alanından renk seçebilir.
+
+Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde her doğru cevap bir şerit ilerletir. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın.
 
 ## 0.9 çevrimiçi oyun kurulumu
 

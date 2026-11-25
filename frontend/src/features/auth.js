@@ -1,5 +1,6 @@
 import { $, uid } from '../core/utils.js';
-import { db, save, setUser, timer, setSession, setSharedSet, setPage } from '../core/state.js';
+import { db, user, save, setUser, timer, setSession, setSharedSet, setPage } from '../core/state.js';
+import { applyTheme } from './settings.js';
 import { sample } from '../core/sample-data.js';
 import { go } from '../core/router.js';
 import { client, loadCloud, flushCloud, resetCloud, SITE_URL } from '../services/cloud.js';
@@ -34,7 +35,7 @@ function setMode(next) {
  $('googleAuth').hidden=!normal; $('authDivider').hidden=!normal;
  $('googleLabel').textContent=signup?'Google ile kayıt ol':'Google ile giriş yap';
  $('forgotPassword').hidden=next!=='login'; $('authBack').hidden=normal;
- $('guest').hidden=!normal; $('authNotice').hidden=!normal;
+ $('guestBoard').hidden=!normal; $('guest').hidden=!normal; $('authNotice').hidden=!normal;
  $('authTitle').textContent={login:'Hoş geldin.',signup:'Hesabını oluştur.',forgot:'Şifreni sıfırla.',reset:'Yeni şifreni belirle.'}[next];
  $('authInfo').textContent={login:'Hesabınla çalışma alanına devam et.',signup:'Kendi kelimelerin, kendi çalışma alanın.',forgot:'Hesabının e-posta adresine sıfırlama bağlantısı gönderelim.',reset:'Yeni şifreni iki alana da yaz.'}[next];
  $('authSubmit').textContent={login:'Giriş yap',signup:'Üye ol',forgot:'Sıfırlama bağlantısı gönder',reset:'Yeni şifreyi kaydet'}[next];
@@ -45,9 +46,10 @@ function clearAuthUrl() {
  if(/(?:access_token|refresh_token|error|type)=/.test(url.hash)) url.hash='';
  history.replaceState(history.state,'',url.pathname+url.search+url.hash);
 }
-function show(u) {
- db.users=db.users.filter(x=>x.id!==u.id); db.users.push(u); setUser(u); db.active=u.id; save();
- $('auth').hidden=true; $('app').hidden=false; concealPasswords(true); go('home');
+function show(u, initialPage='home') {
+ setUser(u);
+ if(!u.guest){db.users=db.users.filter(x=>x.id!==u.id);db.users.push(u);db.active=u.id;save()}
+ $('auth').hidden=true; $('app').hidden=false; concealPasswords(true); go(initialPage);
 }
 async function login(account, epoch) {
  const valid=()=>epoch===authEpoch&&mode!=='reset';
@@ -56,7 +58,7 @@ async function login(account, epoch) {
  if(u&&valid()) { clearAuthUrl(); show(u); }
 }
 function leaveWorkspace() { clearInterval(timer); setSession(null); setSharedSet(null); setPage('home'); }
-function showAuth() { leaveWorkspace(); resetCloud(); setUser(null); db.active=null; save(); $('app').hidden=true; $('auth').hidden=false; }
+function showAuth() { const wasGuest=user?.guest;leaveWorkspace(); resetCloud(); setUser(null); db.active=null; if(wasGuest)applyTheme();else save(); $('app').hidden=true; $('auth').hidden=false; }
 function enterRecovery(session) {
  authEpoch++; recoveryReady=!!session; showAuth(); setMode('reset');
  if(!session) message('Sıfırlama bağlantısı geçersiz veya süresi dolmuş. Giriş ekranına dönüp yeni bağlantı iste.',true);
@@ -115,22 +117,24 @@ export function initAuth() {
    else{concealPasswords(true);message('E-postandaki doğrulama bağlantısına tıkla, ardından giriş yap.')}
   }catch(err){message(authError(err),true)}finally{setBusy(false)}
  };
+ const enterGuest=page=>{authEpoch++;resetCloud();show(makeUser('Misafir','',true),page)};
+ $('guestBoard').onclick=()=>{if(!busy)enterGuest('leaderboard')};
  $('guest').onclick=()=>{
-  if(busy||!confirm('Misafir çalışmaları yalnızca bu tarayıcıda saklanır. Online yedekleme ve sosyal özellikler için üye olmanı öneririz. Devam edilsin mi?'))return;
-  authEpoch++;resetCloud();show(db.users.find(x=>x.guest)||makeUser('Misafir','',true));
+  if(busy||!confirm('Misafir olarak çalışmaların kaydedilmez. Sayfayı yenilediğinde veya çıktığında ilerlemen silinir. Devam edilsin mi?'))return;
+  enterGuest('home');
  };
  const sessionGone=e=>e?.name==='AuthSessionMissingError'||/auth session missing/i.test(e?.message||'');
  $('logout').onclick=async()=>{
   authEpoch++;
   try {
-   const guest=db.users.find(u=>u.id===db.active)?.guest;
+   const guest=user?.guest;
    if(!guest){
      // Oturum zaten düşmüşse (süresi dolmuş, başka cihazdan çıkılmış) çıkış yine de tamamlanmalı.
      try{await flushCloud()}catch(e){if(!sessionGone(e))throw e}
      const c=await client();const {error}=await c.auth.signOut({scope:'local'});
      if(error&&!sessionGone(error))throw error;
     }
-   showAuth();setMode('login');if(guest)message('Misafir çalışmaların bu tarayıcıda saklanıyor. Hesap kütüphanen ayrıdır.');
+   showAuth();setMode('login');if(guest)message('Misafir oturumun sona erdi.');
   }catch(e){alert(e.message)}
  };
  const startupEpoch=authEpoch;

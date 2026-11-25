@@ -12,7 +12,7 @@ export const setPage=v=>{page=v};
 export const setSetId=v=>{setId=v};
 export const setSession=v=>{session=v};
 export const setTimer=v=>{timer=v};
-export const save=()=>{saveData(db);queueCloud(user);scheduleAutoPublish(user)};
+export const save=()=>{if(user?.guest)return;saveData(db);queueCloud(user);scheduleAutoPublish(user)};
 export let sharedSet=null;
 export const setSharedSet=v=>{sharedSet=v};
 export const current=()=>sharedSet?.id===setId?sharedSet:user?.sets.find(x=>x.id===setId);
