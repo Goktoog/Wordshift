@@ -37,8 +37,8 @@ export function render(){
   const acc=user.stats.total?Math.round(user.stats.correct/user.stats.total*100):0;
   v.innerHTML=`<div class="hero"><p class="eyebrow">ÇALIŞMA PANELİ</p><h1>Merhaba, ${escape(user.name)}.</h1><p class="muted">Bugün nasıl çalışmak istersin?</p>${discoverySearch()}</div>
   <div class="grid"><div class="card stat"><span class="muted">Kütüphanendeki kelimeler</span><strong>${allWords().length}</strong></div><div class="card stat"><span class="muted">Doğruluk</span><strong>${acc}%</strong></div><div class="card stat"><span class="muted">Toplam XP</span><strong>${user.xp}</strong></div></div>
-  <div class="section"><h2>Bugün nasıl çalışalım?</h2><div class="grid">${tile('▱','Kartlar','Çevir, kaydır, tekrar et','cards')+tile('✎','Öğren','Sorularla pekiştir','learn')+tile('◎','Test','Karma sorular','test')+tile('✦','Oyunlar','Kelimelerle oyna','games')}</div></div>
-  <div class="section"><div class="top"><h2>Senin çalışma setlerin</h2><button class="primary" id="quick">＋ Set oluştur</button></div>${setList(user.sets.slice(-4).reverse())}</div>${starterSection()}`;
+  <div class="section"><div class="top"><h2>Senin çalışma setlerin</h2><button class="primary" id="quick">＋ Set oluştur</button></div>${setList(user.sets.slice(-4).reverse())}</div>${starterSection()}
+  <div class="section"><h2>Bugün nasıl çalışalım?</h2><div class="grid">${tile('▱','Kartlar','Çevir, kaydır, tekrar et','cards')+tile('✎','Öğren','Sorularla pekiştir','learn')+tile('◎','Test','Karma sorular','test')+tile('✦','Oyunlar','Kelimelerle oyna','games')}</div></div>`;
   $('quick').onclick=newSet;bindDiscovery();bindSets();bindStarters();bindActions(m=>m==='games'?go('games'):chooseSet(m));return;
  }
  if(page==='sets'){

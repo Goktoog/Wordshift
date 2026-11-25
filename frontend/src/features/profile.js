@@ -12,7 +12,7 @@ import { go } from '../core/router.js';
 import { cropImage } from '../ui/image-cropper.js';
 import { cityPickerMarkup, bindCityPicker } from '../ui/city-picker.js';
 import { canonicalCity } from '../data/cities.js';
-import { mountFollowStats } from './people.js';
+import { mountSocial } from './people.js';
 import { levelProgress } from './level.js';
 import { openPlacement } from './placement.js';
 const pencil='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z"/></svg>';
@@ -93,7 +93,7 @@ export function profile(u){
  isAdminUser=false;
  const banner=`<div class="banner profile-cover">${u.banner?`<img src="${escape(u.banner)}" alt="Profil kapak görseli">`:''}${editable?`<button type="button" id="editBanner" class="media-edit cover-edit" aria-label="Kapak görselini değiştir" title="Kapak görselini değiştir">${pencil}<span>Kapak görselini değiştir</span></button>`:''}</div>`;
  const picture=editable?`<button type="button" id="editAvatar" class="profile-avatar-button" aria-label="Profil fotoğrafını değiştir" title="Profil fotoğrafını değiştir">${avatar(u)}<span class="avatar-edit-overlay">${pencil}</span></button>`:avatar(u);
- $('view').innerHTML=banner+`<div class="profile-info">${picture}<div><h1 style="margin:0">${styledName(u.name,u.nameStyle)}</h1><span id="adminSlot"></span><span class="badge">${escape(u.level)}</span> <span class="muted">${escape(u.city||'Şehir belirtilmedi')}</span></div>${editable?'<div class="follow-stats" id="followStats"></div>':''}</div>${levelCard(u,own)}<div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${u.xp}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${u.stats.total}</strong></div><div class="card stat"><span class="muted">Set</span><strong>${u.sets.length}</strong></div></div><p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>`+(own?(editable?'<button id="editProfile" class="primary">Profili düzenle</button> ':'')+'<button id="out">Çıkış yap</button>':'<button id="return">Sıralamaya dön</button>');
+ $('view').innerHTML=banner+`<div class="profile-info">${picture}<div><h1 style="margin:0">${styledName(u.name,u.nameStyle)}</h1><span id="adminSlot"></span><span class="badge">${escape(u.level)}</span> <span class="muted">${escape(u.city||'Şehir belirtilmedi')}</span></div></div>${levelCard(u,own)}<div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${u.xp}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${u.stats.total}</strong></div><div class="card stat"><span class="muted">Set</span><strong>${u.sets.length}</strong></div></div><p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>`+(own?(editable?'<button id="editProfile" class="primary">Profili düzenle</button> ':'')+'<button id="out">Çıkış yap</button>':'<button id="return">Sıralamaya dön</button>');
  $('view').insertAdjacentHTML('beforeend','<div class="section"><h2>Oluşturduğu çalışma setleri</h2>'+u.sets.map(s=>'<div class="card"><button data-profile-set="'+escape(s.id)+'"><strong>'+escape(s.name)+'</strong></button><p class="muted">'+s.items.length+' içerik</p></div>').join('')+'</div>');
  $('view').querySelectorAll('[data-profile-set]').forEach(b=>b.onclick=()=>go('detail',b.dataset.profileSet));
  if(!own){$('return').onclick=()=>go('leaderboard');return}
@@ -103,5 +103,5 @@ export function profile(u){
  $('out').onclick=$('logout').onclick;
  if(!editable)return;
  $('editProfile').onclick=()=>editProfile(u);$('editAvatar').onclick=()=>chooseMedia(u,'avatar');$('editBanner').onclick=()=>chooseMedia(u,'banner');
- if(!u.guest){$('view').insertAdjacentHTML('beforeend','<section class="section" id="matchHistory"></section>');mountMatchHistory($('matchHistory'));void mountFollowStats(u.id);}
+ if(!u.guest){$('view').insertAdjacentHTML('beforeend','<section class="section" id="matchHistory"></section>');mountMatchHistory($('matchHistory'));void mountSocial(u.id);}
 }

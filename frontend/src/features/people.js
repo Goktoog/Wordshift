@@ -7,7 +7,6 @@ import { toast } from '../ui/feedback.js';
 import { searchPublic } from '../services/community.js';
 import { userProfile, followList, searchUsers, follow, unfollow } from '../services/social.js';
 import { profile } from './profile.js';
-import { modal } from '../ui/modal.js';
 let requestId = 0;
 
 function personButton(p) {
@@ -59,36 +58,16 @@ function socialBlock(host, ownerId, state) {
   return {refresh() { label(); if (current === 'followers') open('followers'); }};
 }
 
-// Profilin isim satırında sağda duran takipçi / takip edilen sayıları; tıklayınca listeler pencerede açılır.
-export async function mountFollowStats(ownerId) {
-  const slot = $('followStats');
-  if (!slot) return;
-  slot.innerHTML = '<button type="button" data-kind="followers"><strong>–</strong><span>takipçi</span></button><button type="button" data-kind="following"><strong>–</strong><span>takip edilen</span></button>';
-  const [a, b] = slot.querySelectorAll('button');
-  a.onclick = () => openFollowDialog(ownerId, 'followers');
-  b.onclick = () => openFollowDialog(ownerId, 'following');
+// Shown at the bottom of the signed-in user's own profile.
+export async function mountSocial(ownerId) {
+  $('view').insertAdjacentHTML('beforeend', '<div class="section" id="ownSocial"><h2>Takipçilerin ve takip ettiklerin</h2><p id="ownSocialStatus" class="muted" role="status">Yükleniyor…</p><div id="ownSocialBody"></div></div>');
+  const host = $('ownSocialBody'), status = $('ownSocialStatus');
   try {
     const p = await userProfile(ownerId);
-    if (!slot.isConnected) return;
-    a.querySelector('strong').textContent = Number(p?.followers || 0);
-    b.querySelector('strong').textContent = Number(p?.following || 0);
-  } catch { /* sayılar yüklenemezse çizgi kalır; listeler yine açılır */ }
-}
-
-function openFollowDialog(ownerId, kind) {
-  const actions = document.querySelector('#dialog .dialog-actions');
-  modal('<div class="follow-dialog"><div class="actions social-tabs"><button type="button" data-kind="followers">Takipçiler</button><button type="button" data-kind="following">Takip edilenler</button></div><div class="people-host"></div><div class="actions"><button type="button" id="followClose">Kapat</button></div></div>', () => false);
-  actions.hidden = true;
-  $('dialog').addEventListener('close', () => { actions.hidden = false; }, {once: true});
-  const tabs = $('modalBody').querySelectorAll('[data-kind]'), host = $('modalBody').querySelector('.people-host');
-  const show = k => {
-    tabs.forEach(x => x.classList.toggle('active', x.dataset.kind === k));
-    listLoader(host, off => followList(ownerId, k, off), 50);
-  };
-  tabs.forEach(x => x.onclick = () => show(x.dataset.kind));
-  host.addEventListener('click', e => { if (e.target.closest('.person')) $('dialog').close(); });
-  $('followClose').onclick = () => $('dialog').close();
-  show(kind);
+    if (!host.isConnected) return;
+    status.textContent = '';
+    socialBlock(host, ownerId, {followers: Number(p?.followers || 0), following: Number(p?.following || 0)});
+  } catch (e) { if (host.isConnected) status.textContent = e.message; }
 }
 
 export async function openUser(arg) {
