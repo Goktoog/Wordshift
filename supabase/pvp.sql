@@ -21,9 +21,12 @@ create table if not exists wordshift_private.rooms (
  finish_times bigint[] not null default array[null::bigint,null::bigint],
  event jsonb, winner integer, reason text
 );
+alter table wordshift_private.rooms add column if not exists guests boolean[] not null default array[false,false];
+alter table wordshift_private.rooms add column if not exists guesses jsonb not null default '[[],[]]';
+alter table wordshift_private.rooms add column if not exists lanes integer[] not null default array[0,0];
 alter table wordshift_private.rooms add column if not exists avatars integer[] not null default array[0,1];
 alter table wordshift_private.rooms drop constraint if exists rooms_mode_check;
-alter table wordshift_private.rooms add constraint rooms_mode_check check(mode in ('runner','meteor','blocks','battle','sentences','buzzer'));
+alter table wordshift_private.rooms add constraint rooms_mode_check check(mode in ('runner','meteor','blocks','battle','sentences','buzzer','tower','crossing','detective'));
 alter table wordshift_private.rooms enable row level security;
 revoke all on wordshift_private.rooms from public,anon,authenticated;
 create index if not exists wordshift_queue on wordshift_private.rooms(mode,level,created_at) where status='waiting';
@@ -81,10 +84,10 @@ create index if not exists wordshift_history_players on wordshift_private.match_
 create or replace function wordshift_private.save_result() returns trigger language plpgsql security definer set search_path='' as $$
 declare hit1 jsonb;hit2 jsonb;
 begin
- if new.status='finished' and old.status<>'finished' and cardinality(new.players)=2 and new.started_at is not null then
+ if new.status='finished' and old.status<>'finished' and cardinality(new.players)=2 and new.started_at is not null and new.guests<>array[true,true] then
   select coalesce(jsonb_agg(v),'[]') into hit1 from jsonb_array_elements(new.shots->0) v where (new.fleets->1) @> jsonb_build_array(v);
   select coalesce(jsonb_agg(v),'[]') into hit2 from jsonb_array_elements(new.shots->1) v where (new.fleets->0) @> jsonb_build_array(v);
-  insert into wordshift_private.match_history values(new.id,new.mode,new.level,new.title,new.players,new.names,new.scores,new.lives,new.correct_counts,new.wrong_counts,new.shots,jsonb_build_array(hit1,hit2),new.winner,new.reason,new.started_at,clock_timestamp(),new.round_no+1) on conflict(id) do nothing;
+  insert into wordshift_private.match_history values(new.id,new.mode,new.level,new.title,array[case when not new.guests[1] then new.players[1] end,case when not new.guests[2] then new.players[2] end],new.names,new.scores,new.lives,new.correct_counts,new.wrong_counts,new.shots,jsonb_build_array(hit1,hit2),new.winner,new.reason,new.started_at,clock_timestamp(),new.round_no+1) on conflict(id) do nothing;
  end if;return new;
 end $$;
 revoke all on function wordshift_private.save_result() from public,anon,authenticated;
@@ -101,9 +104,9 @@ end $$;
 revoke all on function wordshift_private.expire_rooms() from public,anon,authenticated;
 
 drop function if exists public.wordshift_pvp_lobby(text,text,jsonb,text,text);
-create or replace function public.wordshift_pvp_lobby(action text, game_mode text default 'meteor', words jsonb default '[]', set_title text default '', room_code text default '', pool_level text default '')
+create or replace function wordshift_private.play_lobby(who uuid, local_level text, action text, game_mode text default 'meteor', words jsonb default '[]', set_title text default '', room_code text default '', pool_level text default '')
 returns uuid language plpgsql security definer set search_path='' as $$
-declare who uuid:=auth.uid(); r wordshift_private.rooms; lvl text; nick text; deck_data jsonb; order_data integer[]; candidate uuid;
+declare  r wordshift_private.rooms; lvl text; nick text; deck_data jsonb; order_data integer[]; candidate uuid;
 begin
  if who is null then raise exception 'Çevrimiçi oynamak için giriş yap.'; end if;
  if action not in ('create','quick','join','resume') then raise exception 'Geçersiz işlem.'; end if;
@@ -119,6 +122,7 @@ begin
  end if;
  if action='resume' then return null; end if;
  select coalesce(nullif(document->>'name',''),'Oyuncu'),coalesce(document->>'level','A1') into nick,lvl from public.wordshift_workspaces where user_id=who;
+ if local_level is not null then nick:='Misafir';lvl:=local_level;end if;
  nick:=left(coalesce(nick,'Oyuncu'),60); lvl:=coalesce(lvl,'A1');
  if lvl not in ('A1','A2','B1','B2','C1','C2') then lvl:='A1'; end if;
  -- Optional exam pool: players who pick YDS or YOKDIL are matched with each other, whatever their CEFR level.
@@ -128,15 +132,15 @@ begin
   select * into r from wordshift_private.rooms where code=upper(trim(room_code)) for update;
   if not found or r.status<>'waiting' or cardinality(r.players)<>1 then raise exception 'Oda bulunamadı, dolu veya süresi dolmuş.'; end if;
  else
-  if game_mode not in ('runner','meteor','blocks','battle','sentences','buzzer') then raise exception 'Geçersiz oyun.'; end if;
+  if game_mode not in ('runner','meteor','blocks','battle','sentences','buzzer','tower','crossing','detective') then raise exception 'Geçersiz oyun.'; end if;
   if action='quick' then
    select * into r from wordshift_private.rooms where mode=game_mode and level=lvl and quick and status='waiting' and cardinality(players)=1 and players[1]<>who order by created_at limit 1 for update;
   else r.id:=null; end if;
  end if;
  if r.id is not null and r.status='waiting' then
-  update wordshift_private.rooms set players=array_append(players,who),names=array_append(names,nick),seen=array_append(seen,now()),
+  update wordshift_private.rooms set guests=array[guests[1],local_level is not null],players=array_append(players,who),names=array_append(names,nick),seen=array_append(seen,now()),
    status=case when mode='battle' then 'placing' else 'active' end, started_at=now(),starts_at=now()+interval '3 seconds',
-   deadline=now()+case when mode='battle' then interval '120 seconds' when mode='blocks' then interval '63 seconds' when mode='sentences' then interval '93 seconds' else interval '13 seconds' end
+   deadline=now()+case when mode='battle' then interval '120 seconds' when mode='blocks' then interval '63 seconds' when mode='detective' then interval '38 seconds' when mode='crossing' then interval '23 seconds' when mode='sentences' then interval '93 seconds' else interval '13 seconds' end
    where id=r.id;
   return r.id;
  end if;
@@ -173,8 +177,8 @@ begin
  if coalesce(jsonb_array_length(deck_data),0)<4 then raise exception 'En az 4 farklı İngilizce kelime ve Türkçe karşılık gerekli.'; end if;
  end if;
  select array_agg(i order by random()) into order_data from generate_series(0,jsonb_array_length(deck_data)-1) i;
- insert into wordshift_private.rooms(code,mode,level,title,quick,players,names,seen,deck,right_order)
- values(upper(substr(replace(gen_random_uuid()::text,'-',''),1,10)),game_mode,lvl,left(coalesce(set_title,''),120),action='quick',array[who],array[nick],array[now()],deck_data,order_data) returning id into candidate;
+ insert into wordshift_private.rooms(code,mode,level,title,quick,guests,players,names,seen,deck,right_order)
+ values(upper(substr(replace(gen_random_uuid()::text,'-',''),1,10)),game_mode,lvl,left(coalesce(set_title,''),120),action='quick',array[local_level is not null,false],array[who],array[nick],array[now()],deck_data,order_data) returning id into candidate;
  return candidate;
 end $$;
 
@@ -198,16 +202,17 @@ begin
 end $$;
 revoke all on function wordshift_private.buzzer_answer(wordshift_private.rooms,boolean,timestamptz) from public,anon,authenticated;
 
-create or replace function public.wordshift_pvp_room(room_id uuid, action text default 'poll', token integer default 0, value integer default -1, extra jsonb default 'null')
+create or replace function wordshift_private.play_room(who uuid, local_level text, room_id uuid, action text default 'poll', token integer default 0, value integer default -1, extra jsonb default 'null')
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare r wordshift_private.rooms; who uuid:=auth.uid(); me integer; other integer; t timestamptz:=clock_timestamp(); q jsonb; ok boolean; allcells integer[]:='{}'; groupcells integer[]; ship jsonb; cell integer; n integer; j integer; ending boolean:=false; next_turn boolean:=false; slow_turn boolean:=false; mine jsonb; theirs jsonb; result jsonb; prev_start timestamptz; buzzer_expired boolean:=false;
+declare r wordshift_private.rooms;  me integer; other integer; t timestamptz:=clock_timestamp(); q jsonb; ok boolean; allcells integer[]:='{}'; groupcells integer[]; ship jsonb; cell integer; n integer; j integer; ending boolean:=false; next_turn boolean:=false; slow_turn boolean:=false; mine jsonb; theirs jsonb; result jsonb; prev_start timestamptz; buzzer_expired boolean:=false;
+ letter text; word text; masked text; missed integer; lane integer; travel numeric; speed integer; spacing integer; offset_x integer; clearance integer; collision boolean;
 begin
  if who is null then raise exception 'Giriş yapmalısın.'; end if;
  select * into r from wordshift_private.rooms where id=room_id for update;
  t:=clock_timestamp();
  if not found or not who=any(r.players) then raise exception 'Bu odaya erişimin yok veya odanın süresi dolmuş.'; end if;
  me:=array_position(r.players,who); other:=3-me;
- if action not in ('poll','leave','answer','pair','fleet','shot','sentence','buzz','avatar') then raise exception 'Geçersiz işlem.'; end if;
+ if action not in ('poll','leave','answer','pair','fleet','shot','sentence','buzz','avatar','letter','hop') then raise exception 'Geçersiz işlem.'; end if;
  if r.status in ('active','placing') and (r.seen[other]<t-interval '30 seconds' or r.seen[me]<t-interval '30 seconds') then
   r.status:='finished';r.reason:='Bağlantı 30 saniye boyunca kurulamadı.';
   r.winner:=case when r.seen[1]<t-interval '30 seconds' and r.seen[2]<t-interval '30 seconds' then null when r.seen[1]<t-interval '30 seconds' then 2 else 1 end;
@@ -226,14 +231,14 @@ begin
   else r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.event:=null;r.starts_at:=t+interval '800 milliseconds';r.deadline:=r.starts_at+interval '10 seconds';
   end if;
  end if;
- if r.status='active' and r.mode in ('runner','meteor','sentences') then
+ if r.status='active' and r.mode in ('runner','meteor','sentences','tower','crossing','detective') then
   if r.phase='question' and t>=r.deadline then
    for j in 0..1 loop if r.answers->j='null'::jsonb then r.answers:=jsonb_set(r.answers,array[j::text],jsonb_build_object('ok',false,'timeout',true));r.wrong_counts[j+1]:=r.wrong_counts[j+1]+1;if r.mode in ('runner','meteor') then r.lives[j+1]:=greatest(0,r.lives[j+1]-1);end if;end if;end loop;
    r.phase:='feedback';r.deadline:=t+interval '3500 milliseconds';
   elsif r.phase='feedback' and t>=r.deadline then
    r.round_no:=r.round_no+1;
-   if r.mode='sentences' and r.round_no>=jsonb_array_length(r.deck) then r.status:='finished';r.reason:='Tüm kelimeler tamamlandı.';ending:=true;
-   else r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when r.mode='runner' then interval '2400 milliseconds' else interval '600 milliseconds' end;r.deadline:=r.starts_at+case when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
+   if r.mode in ('sentences','tower','crossing','detective') and r.round_no>=jsonb_array_length(r.deck) then r.status:='finished';r.reason:='Tüm kelimeler tamamlandı.';ending:=true;
+   else r.phase:='question';r.answers:='[null,null]';r.guesses:='[[],[]]';r.starts_at:=t+case when r.mode='runner' then interval '2400 milliseconds' else interval '600 milliseconds' end;r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
   end if;
  elsif r.status='active' and r.mode='blocks' and t>=r.deadline then r.status:='finished';r.reason:='Süre doldu.';ending:=true;
  elsif r.status='active' and r.mode='battle' and t>=r.deadline then
@@ -253,7 +258,7 @@ begin
    if n>1 and not ((groupcells[n]-groupcells[1]=n-1 and groupcells[1]/5=groupcells[n]/5) or (groupcells[n]-groupcells[1]=(n-1)*5 and (n<>3 or groupcells[2]-groupcells[1]=5))) then raise exception 'Gemi düz ve bitişik olmalı.';end if;
   end loop;
   r.fleets:=jsonb_set(r.fleets,array[(me-1)::text],to_jsonb(allcells));r.ready[me]:=true;
-  if r.ready[1] and r.ready[2] then r.status:='active';r.starts_at:=t+interval '3 seconds';r.deadline:=r.starts_at+case when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
+  if r.ready[1] and r.ready[2] then r.status:='active';r.starts_at:=t+interval '3 seconds';r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
  end if;
  q:=r.deck->(r.round_no%jsonb_array_length(r.deck));
  if r.status='active' and t>=r.starts_at and t<r.deadline and token=r.round_no then
@@ -270,7 +275,7 @@ begin
     end if;
     r:=wordshift_private.buzzer_answer(r,ok,t);
    end if;
-  elsif ((action='answer' and r.mode in ('runner','meteor','battle')) or (action='sentence' and r.mode='sentences')) and r.phase='question' and r.answers->(me-1)='null'::jsonb and (r.mode<>'battle' or r.turn_no=me) then
+  elsif ((action='answer' and r.mode in ('runner','meteor','battle','tower','crossing')) or (action='sentence' and r.mode='sentences')) and r.phase='question' and r.answers->(me-1)='null'::jsonb and (r.mode<>'battle' or r.turn_no=me) then
    if r.mode='sentences' then
     if jsonb_typeof(extra) is distinct from 'array' then raise exception 'Cümle sırası geçersiz.';end if;
     if jsonb_array_length(extra)<>jsonb_array_length(q->'options') then ok:=false;
@@ -284,7 +289,7 @@ begin
     r.wrong_counts[me]:=r.wrong_counts[me]+1;
    else
     r.answers:=jsonb_set(r.answers,array[(me-1)::text],jsonb_build_object('ok',ok,'choice',value));
-    if ok then r.scores[me]:=r.scores[me]+100;r.correct_counts[me]:=r.correct_counts[me]+1;else r.wrong_counts[me]:=r.wrong_counts[me]+1;if r.mode in ('runner','meteor') then r.lives[me]:=greatest(0,r.lives[me]-1);end if;end if;
+    if ok then if r.mode<>'crossing' then r.scores[me]:=r.scores[me]+100;end if;r.correct_counts[me]:=r.correct_counts[me]+1;else r.wrong_counts[me]:=r.wrong_counts[me]+1;if r.mode in ('runner','meteor') then r.lives[me]:=greatest(0,r.lives[me]-1);end if;end if;
     if r.mode='battle' then
      if ok then r.phase:='shoot';r.deadline:=t+interval '10 seconds';else next_turn:=true;slow_turn:=true;end if;
      r.event:=jsonb_build_object('serial',r.round_no,'text',case when ok then 'Doğru cevap! Atış hakkı kazanıldı.' else 'Yanlış cevap. Doğrusu: '||(q->>'back') end);
@@ -292,10 +297,27 @@ begin
      -- The first player to finish the sentence takes it; the other one gets no points and we move on.
      if r.answers->(other-1)='null'::jsonb then r.answers:=jsonb_set(r.answers,array[(other-1)::text],jsonb_build_object('ok',false,'lost',true));end if;
      r.phase:='feedback';r.deadline:=t+interval '2500 milliseconds';
-    elsif r.answers->0<>'null'::jsonb and r.answers->1<>'null'::jsonb then
+    elsif r.mode<>'crossing' and r.answers->0<>'null'::jsonb and r.answers->1<>'null'::jsonb then
      r.phase:='feedback';r.deadline:=t+case when coalesce((r.answers->0->>'ok')::boolean,false) and coalesce((r.answers->1->>'ok')::boolean,false) then interval '1600 milliseconds' else interval '3500 milliseconds' end;
     end if;
    end if;
+  elsif action='letter' and r.mode='detective' and r.phase='question' and r.answers->(me-1)='null'::jsonb then
+   letter:=lower(extra#>>'{}');word:=lower(q->>'front');
+   if jsonb_typeof(extra)='string' and char_length(letter)=1 and letter~'[[:alnum:]]' and not (r.guesses->(me-1) ? letter) then
+    r.guesses:=jsonb_set(r.guesses,array[(me-1)::text],(r.guesses->(me-1))||jsonb_build_array(letter));
+    select count(*) into missed from jsonb_array_elements_text(r.guesses->(me-1)) g where strpos(word,g)=0;
+    ok:=not exists(select 1 from regexp_split_to_table(word,'') ch where ch~'[[:alnum:]]' and not (r.guesses->(me-1) ? ch));
+    if ok or missed>=5 then
+     r.answers:=jsonb_set(r.answers,array[(me-1)::text],jsonb_build_object('ok',ok));
+     if ok then r.scores[me]:=r.scores[me]+100;r.correct_counts[me]:=r.correct_counts[me]+1;else r.wrong_counts[me]:=r.wrong_counts[me]+1;end if;
+    end if;
+   end if;
+  elsif action='hop' and r.mode='crossing' and r.phase='question' and r.answers->(me-1)->>'ok'='true' and not (r.answers->(me-1) ? 'hopAt') then
+   lane:=r.lanes[me]%3+1;travel:=extract(epoch from(t-r.starts_at));
+   speed:=(array[148,183,159])[lane];spacing:=(array[490,550,455])[lane];offset_x:=(array[125,331,88])[lane];clearance:=(array[47,43,50])[lane];
+   collision:=ceil((offset_x+speed*(travel+.27*.95)-clearance)/spacing)<=floor((offset_x+speed*(travel+.73*.95)+clearance)/spacing);
+   r.answers:=jsonb_set(r.answers,array[(me-1)::text],(r.answers->(me-1))||jsonb_build_object('hopAt',t,'collision',collision,'fromLane',lane-1));
+   if collision then r.lanes[me]:=0;else r.lanes[me]:=lane;r.scores[me]:=r.scores[me]+100;end if;
   elsif action='shot' and r.mode='battle' and r.phase='shoot' and r.turn_no=me and value between 0 and 24 and not r.shots->(me-1) @> jsonb_build_array(value) then
    r.shots:=jsonb_set(r.shots,array[(me-1)::text],(r.shots->(me-1))||jsonb_build_array(value));
    ok:=r.fleets->(other-1) @> jsonb_build_array(value);
@@ -316,12 +338,16 @@ begin
    end if;
   end if;
  end if;
+ if r.status='active' and r.phase='question' and r.mode in ('detective','crossing') and
+  not exists(select 1 from jsonb_array_elements(r.answers) a where a='null'::jsonb or (r.mode='crossing' and a->>'ok'='true' and not (a ? 'hopAt'))) then
+  r.phase:='feedback';r.deadline:=t+interval '2500 milliseconds';
+ end if;
  if r.status='active' and r.mode in ('runner','meteor') and r.phase='feedback' and (r.lives[1]=0 or r.lives[2]=0) then r.status:='finished';r.reason:='Üç can tükendi.';r.winner:=case when r.lives[1]=0 and r.lives[2]=0 then null when r.lives[1]=0 then 2 else 1 end;end if;
- if next_turn then r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1600 milliseconds' end;slow_turn:=false;r.deadline:=r.starts_at+case when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
+ if next_turn then r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1600 milliseconds' end;slow_turn:=false;r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
  if ending then
   r.winner:=case when r.mode in ('runner','meteor') and r.lives[1]>r.lives[2] then 1 when r.mode in ('runner','meteor') and r.lives[2]>r.lives[1] then 2 when r.scores[1]>r.scores[2] then 1 when r.scores[2]>r.scores[1] then 2 when r.mode='blocks' and coalesce(r.finish_times[1],9999999)<coalesce(r.finish_times[2],9999999) then 1 when r.mode='blocks' and coalesce(r.finish_times[2],9999999)<coalesce(r.finish_times[1],9999999) then 2 else null end;
  end if;
- update wordshift_private.rooms set avatars=r.avatars,lives=r.lives,correct_counts=r.correct_counts,wrong_counts=r.wrong_counts,seen=r.seen,status=r.status,phase=r.phase,starts_at=r.starts_at,deadline=r.deadline,round_no=r.round_no,turn_no=r.turn_no,scores=r.scores,ready=r.ready,answers=r.answers,fleets=r.fleets,shots=r.shots,completed=r.completed,last_attempt=r.last_attempt,finish_times=r.finish_times,event=r.event,winner=r.winner,reason=r.reason where id=r.id;
+ update wordshift_private.rooms set guesses=r.guesses,lanes=r.lanes,avatars=r.avatars,lives=r.lives,correct_counts=r.correct_counts,wrong_counts=r.wrong_counts,seen=r.seen,status=r.status,phase=r.phase,starts_at=r.starts_at,deadline=r.deadline,round_no=r.round_no,turn_no=r.turn_no,scores=r.scores,ready=r.ready,answers=r.answers,fleets=r.fleets,shots=r.shots,completed=r.completed,last_attempt=r.last_attempt,finish_times=r.finish_times,event=r.event,winner=r.winner,reason=r.reason where id=r.id;
  q:=r.deck->(r.round_no%jsonb_array_length(r.deck));
  result:=jsonb_build_object('avatars',r.avatars,'lives',r.lives,'correctCounts',r.correct_counts,'wrongCounts',r.wrong_counts,'id',r.id,'code',r.code,'mode',r.mode,'level',r.level,'title',r.title,'status',r.status,'phase',r.phase,'me',me,'names',r.names,'scores',r.scores,'ready',r.ready,'round',r.round_no,'turn',r.turn_no,'total',jsonb_array_length(r.deck),'startsAt',r.starts_at,'deadline',r.deadline,'serverNow',t,'seen',r.seen,'winner',r.winner,'reason',r.reason,'event',r.event,'answer',r.answers->(me-1),'opponentAnswered',r.answers->(other-1)<>'null'::jsonb,'opponentCorrect',r.answers->(other-1)->'ok');
  if r.mode='blocks' then
@@ -332,30 +358,36 @@ begin
   result:=result||jsonb_build_object('question',jsonb_build_object('front',q->>'front','options',case when r.mode='buzzer' and (r.phase<>'claimed' or r.turn_no<>me) then '[]'::jsonb else q->'options' end));
   if r.phase='feedback' or (r.mode<>'buzzer' and r.answers->(me-1)<>'null'::jsonb) then result:=result||jsonb_build_object('correct',q->>'back');end if;
  end if;
+ if r.mode='detective' and r.status in ('active','finished') then
+  word:=q->>'front';
+  select string_agg(case when ch!~'[[:alnum:]]' or r.guesses->(me-1) ? lower(ch) then ch else '_' end,'' order by ord)
+   into masked from regexp_split_to_table(word,'') with ordinality chars(ch,ord);
+  select count(*) into missed from jsonb_array_elements_text(r.guesses->(me-1)) g where strpos(lower(word),g)=0;
+  result:=(result-'correct')||jsonb_build_object('question',jsonb_build_object('front',q->>'back','options','[]'::jsonb),'mask',masked,'letters',r.guesses->(me-1),'missed',missed,
+   'extraLetters',(select coalesce(jsonb_agg(distinct lower(ch)),'[]') from regexp_split_to_table(word,'') ch where ch~'[[:alnum:]]' and lower(ch)!~'^[a-z]$'));
+  if r.answers->(me-1)<>'null'::jsonb or r.phase='feedback' then result:=result||jsonb_build_object('correct',word);end if;
+ end if;
+ if r.mode='crossing' then result:=result||jsonb_build_object('lanes',r.lanes);end if;
  if r.mode='battle' then
   result:=result||jsonb_build_object('fleet',r.fleets->(me-1),'shots',r.shots->(me-1),'incoming',r.shots->(other-1),'hits',(select coalesce(jsonb_agg(v),'[]') from jsonb_array_elements(r.shots->(me-1)) v where r.fleets->(other-1) @> jsonb_build_array(v)));
  end if;
  return result;
 end $$;
-revoke all on function public.wordshift_pvp_lobby(text,text,jsonb,text,text,text) from public,anon;
-revoke all on function public.wordshift_pvp_room(uuid,text,integer,integer,jsonb) from public,anon;
-grant execute on function public.wordshift_pvp_lobby(text,text,jsonb,text,text,text) to authenticated;
-grant execute on function public.wordshift_pvp_room(uuid,text,integer,integer,jsonb) to authenticated;
 
 drop function if exists public.wordshift_pvp_pools();
-create or replace function public.wordshift_pvp_pools(pool_level text default '') returns jsonb language plpgsql security definer set search_path='' as $$
-declare who uuid:=auth.uid();lvl text;output jsonb;
+create or replace function wordshift_private.play_pools(who uuid, local_level text, pool_level text default '') returns jsonb language plpgsql security definer set search_path='' as $$
+declare lvl text;output jsonb;
 begin
  if who is null then raise exception 'Giriş yapmalısın.';end if;
  perform wordshift_private.expire_rooms();
- select coalesce(document->>'level','A1') into lvl from public.wordshift_workspaces where user_id=who;lvl:=coalesce(lvl,'A1');
+ select coalesce(document->>'level','A1') into lvl from public.wordshift_workspaces where user_id=who;lvl:=coalesce(local_level,lvl,'A1');
  if pool_level in ('YDS','YOKDIL') then lvl:=pool_level;end if;
  select jsonb_agg(jsonb_build_object('mode',m,'waiting',
   (select count(*) from wordshift_private.rooms where mode=m and status='waiting' and quick and not who=any(players)),
   'compatible',(select count(*) from wordshift_private.rooms where mode=m and level=lvl and status='waiting' and quick and not who=any(players)),
   'samples',(select count(*) from wordshift_private.rooms where mode=m and level=lvl and quick and started_at>now()-interval '24 hours'),
   'estimateSeconds',(select case when count(*)>=3 then ceil(avg(extract(epoch from(started_at-created_at)))) else null end from wordshift_private.rooms where mode=m and level=lvl and quick and started_at>now()-interval '24 hours')
- )) into output from unnest(array['runner','battle','blocks','meteor','sentences','buzzer']) m;
+ )) into output from unnest(array['runner','battle','blocks','meteor','sentences','buzzer','tower','crossing','detective']) m;
  return jsonb_build_object('level',lvl,'pools',output,'serverNow',clock_timestamp());
 end $$;
 create or replace function public.wordshift_pvp_history(page_offset integer default 0) returns jsonb language plpgsql security definer set search_path='' as $$
@@ -366,10 +398,46 @@ begin
  select coalesce(jsonb_agg(to_jsonb(h)||jsonb_build_object('me',array_position(h.players,who)) order by h.ended_at desc),'[]') into output from (select * from wordshift_private.match_history where who=any(players) order by ended_at desc limit 20 offset greatest(0,least(coalesce(page_offset,0),10000))) h;
  return output;
 end $$;
-revoke all on function public.wordshift_pvp_pools(text) from public,anon;
 revoke all on function public.wordshift_pvp_history(integer) from public,anon;
-grant execute on function public.wordshift_pvp_pools(text) to authenticated;
 grant execute on function public.wordshift_pvp_history(integer) to authenticated;
+
+create or replace function wordshift_private.guest_id(secret text) returns uuid language plpgsql immutable set search_path='' as $$
+declare hash text;
+begin
+ if secret is null or length(secret)<>72 or secret !~ '^([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}){2}$' then raise exception 'Misafir oturumu geçersiz.';end if;
+ hash:=encode(sha256(convert_to('wordshift-pvp:'||secret,'UTF8')),'hex');
+ return overlay(substr(hash,1,32) placing '8' from 13 for 1)::uuid;
+end $$;
+revoke all on function wordshift_private.guest_id(text) from public,anon,authenticated;
+revoke all on function wordshift_private.play_lobby(uuid,text,text,text,jsonb,text,text,text) from public,anon,authenticated;
+create or replace function public.wordshift_pvp_lobby(action text, game_mode text default 'meteor', words jsonb default '[]', set_title text default '', room_code text default '', pool_level text default '') returns uuid
+language sql security definer set search_path='' as $$select wordshift_private.play_lobby(auth.uid(),null,action,game_mode,words,set_title,room_code,pool_level)$$;
+revoke all on function public.wordshift_pvp_lobby(text,text,jsonb,text,text,text) from public,anon;
+grant execute on function public.wordshift_pvp_lobby(text,text,jsonb,text,text,text) to authenticated;
+create or replace function public.wordshift_guest_lobby(guest_key text, guest_level text, action text, game_mode text default 'meteor', words jsonb default '[]', set_title text default '', room_code text default '', pool_level text default '') returns uuid
+language sql security definer set search_path='' as $$select wordshift_private.play_lobby(wordshift_private.guest_id(guest_key),case when guest_level in ('A1','A2','B1','B2','C1','C2') then guest_level else 'A1' end,action,game_mode,words,set_title,room_code,pool_level)$$;
+revoke all on function public.wordshift_guest_lobby(text,text,text,text,jsonb,text,text,text) from public;
+grant execute on function public.wordshift_guest_lobby(text,text,text,text,jsonb,text,text,text) to anon,authenticated;
+
+revoke all on function wordshift_private.play_room(uuid,text,uuid,text,integer,integer,jsonb) from public,anon,authenticated;
+create or replace function public.wordshift_pvp_room(room_id uuid, action text default 'poll', token integer default 0, value integer default -1, extra jsonb default 'null') returns jsonb
+language sql security definer set search_path='' as $$select wordshift_private.play_room(auth.uid(),null,room_id,action,token,value,extra)$$;
+revoke all on function public.wordshift_pvp_room(uuid,text,integer,integer,jsonb) from public,anon;
+grant execute on function public.wordshift_pvp_room(uuid,text,integer,integer,jsonb) to authenticated;
+create or replace function public.wordshift_guest_room(guest_key text, guest_level text, room_id uuid, action text default 'poll', token integer default 0, value integer default -1, extra jsonb default 'null') returns jsonb
+language sql security definer set search_path='' as $$select wordshift_private.play_room(wordshift_private.guest_id(guest_key),case when guest_level in ('A1','A2','B1','B2','C1','C2') then guest_level else 'A1' end,room_id,action,token,value,extra)$$;
+revoke all on function public.wordshift_guest_room(text,text,uuid,text,integer,integer,jsonb) from public;
+grant execute on function public.wordshift_guest_room(text,text,uuid,text,integer,integer,jsonb) to anon,authenticated;
+
+revoke all on function wordshift_private.play_pools(uuid,text,text) from public,anon,authenticated;
+create or replace function public.wordshift_pvp_pools(pool_level text default '') returns jsonb
+language sql security definer set search_path='' as $$select wordshift_private.play_pools(auth.uid(),null,pool_level)$$;
+revoke all on function public.wordshift_pvp_pools(text) from public,anon;
+grant execute on function public.wordshift_pvp_pools(text) to authenticated;
+create or replace function public.wordshift_guest_pools(guest_key text, guest_level text, pool_level text default '') returns jsonb
+language sql security definer set search_path='' as $$select wordshift_private.play_pools(wordshift_private.guest_id(guest_key),case when guest_level in ('A1','A2','B1','B2','C1','C2') then guest_level else 'A1' end,pool_level)$$;
+revoke all on function public.wordshift_guest_pools(text,text,text) from public;
+grant execute on function public.wordshift_guest_pools(text,text,text) to anon,authenticated;
 
 notify pgrst, 'reload schema';
 commit;

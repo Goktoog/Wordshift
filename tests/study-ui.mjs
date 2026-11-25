@@ -13,8 +13,11 @@ const {begin,record}=await import(new URL('../frontend/src/features/session.js',
 const {reviewItems,progressKey}=await import(new URL('../frontend/src/features/progress.js',import.meta.url));
 const word=(id)=>({id,type:'word',front:id,back:'TR '+id,options:[],level:'B1',extra:'example'});
 const own={id:'own',name:'Personal YDS',items:[word('one'),word('two')]};
-const user={id:'me',name:'Ben',guest:true,sets:[own,{id:'other',name:'Other set',items:[]}],folders:[],stats:{total:0,correct:0},xp:0,level:'A1'};
+const user={id:'me',name:'Ben',guest:false,sets:[own,{id:'other',name:'Other set',items:[]}],folders:[],stats:{total:0,correct:0},xp:0,level:'A1'};
 state.setUser(user);state.db.users.push(user);initNavigation();
+go('home');
+const panel=document.querySelector('#view').textContent;
+assert.ok(panel.indexOf('Toplam XP')<panel.indexOf('Bugün nasıl çalışalım?') && panel.indexOf('Bugün nasıl çalışalım?')<panel.indexOf('Senin çalışma setlerin'));
 go('sets');assert.equal(document.querySelector('#view h1').textContent,'Benim çalışma setlerim');assert.equal(document.querySelector('[data-folder]'),null);assert.ok(document.querySelector('[data-page="sets"]').classList.contains('active'));assert.equal(document.querySelectorAll('[data-set]').length,2);assert.equal(document.querySelector('[data-filter]'),null);assert.equal(document.querySelector('#discoverQuery').placeholder,'Çalışacak setler mi arıyorsun?');
 go('games');const games=[...document.querySelectorAll('[data-action]')].map(b=>b.dataset.action);
 assert.ok(games.includes('sentences')&&games.includes('crossing')&&games.includes('tower'));

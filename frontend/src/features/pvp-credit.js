@@ -26,7 +26,7 @@ export function findItem(front, back) {
 }
 // Aynı cevap iki kez sayılmasın (yeniden bağlanma, yenileme): son 80 anahtar hesapta saklanır.
 export function creditOnline({room, round, kind, front, back = '', ok}) {
-  if (!user || user.guest || !room || !front) return false;
+  if (!user || !room || !front) return false;
   const key = [room, round, kind, front].join('|');
   user.pvpSeen ||= [];
   if (user.pvpSeen.includes(key)) return false;

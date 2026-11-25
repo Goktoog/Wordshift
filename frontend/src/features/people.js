@@ -6,7 +6,7 @@ import { styledName, adminBadge } from '../ui/name-style.js';
 import { toast } from '../ui/feedback.js';
 import { searchPublic } from '../services/community.js';
 import { userProfile, followList, searchUsers, follow, unfollow } from '../services/social.js';
-import { profile } from './profile.js';
+import { modal } from '../ui/modal.js';
 let requestId = 0;
 
 function personButton(p) {
@@ -42,32 +42,31 @@ function listLoader(host, fetcher, pageSize) {
   more.onclick = load; void load();
 }
 
-// Follower / following counters with a list underneath. state = {followers, following}.
-function socialBlock(host, ownerId, state) {
-  host.innerHTML = '<div class="actions social-tabs"><button type="button" data-kind="followers"></button><button type="button" data-kind="following"></button></div><div class="people-host"></div>';
-  const [a, b] = host.querySelectorAll('button'), listHost = host.querySelector('.people-host');
-  let current = null;
-  const label = () => { a.textContent = state.followers + ' takipçi'; b.textContent = state.following + ' takip edilen'; };
-  const open = kind => {
-    current = kind;
-    [a, b].forEach(x => x.classList.toggle('active', x.dataset.kind === kind));
-    listLoader(listHost, off => followList(ownerId, kind, off), 50);
-  };
-  a.onclick = () => open('followers'); b.onclick = () => open('following');
-  label();
-  return {refresh() { label(); if (current === 'followers') open('followers'); }};
+export function mountFollowStats(host, ownerId, counts) {
+  host.innerHTML = '<button type="button" aria-haspopup="dialog" data-kind="followers"><strong>–</strong><span>takipçi</span></button><button type="button" aria-haspopup="dialog" data-kind="following"><strong>–</strong><span>takip edilen</span></button>';
+  const buttons=host.querySelectorAll('[data-kind]');
+  buttons.forEach(b=>b.onclick=()=>openFollowDialog(ownerId,b.dataset.kind));
+  const refresh=data=>buttons.forEach(b=>b.querySelector('strong').textContent=Number(data[b.dataset.kind]||0));
+  if(counts)refresh(counts);
+  return refresh;
 }
 
-// Shown at the bottom of the signed-in user's own profile.
-export async function mountSocial(ownerId) {
-  $('view').insertAdjacentHTML('beforeend', '<div class="section" id="ownSocial"><h2>Takipçilerin ve takip ettiklerin</h2><p id="ownSocialStatus" class="muted" role="status">Yükleniyor…</p><div id="ownSocialBody"></div></div>');
-  const host = $('ownSocialBody'), status = $('ownSocialStatus');
-  try {
-    const p = await userProfile(ownerId);
-    if (!host.isConnected) return;
-    status.textContent = '';
-    socialBlock(host, ownerId, {followers: Number(p?.followers || 0), following: Number(p?.following || 0)});
-  } catch (e) { if (host.isConnected) status.textContent = e.message; }
+function openFollowDialog(ownerId, kind) {
+  modal('<div class="follow-dialog"><h2>Takip listeleri</h2><div class="actions social-tabs"><button type="button" data-kind="followers">Takipçiler</button><button type="button" data-kind="following">Takip edilenler</button></div><div class="people-host"></div><div class="actions"><button type="button" id="followClose">Kapat</button></div></div>', () => false);
+  const tabs = $('modalBody').querySelectorAll('[data-kind]'), host = $('modalBody').querySelector('.people-host');
+  const show = k => {
+    tabs.forEach(x => {
+      x.classList.toggle('active', x.dataset.kind === k);
+      x.setAttribute('aria-pressed', String(x.dataset.kind === k));
+    });
+    const list=document.createElement('div');
+    host.replaceChildren(list);
+    listLoader(list, off => followList(ownerId, k, off), 50);
+  };
+  tabs.forEach(x => x.onclick = () => show(x.dataset.kind));
+  host.addEventListener('click', e => { if (e.target.closest('.person')) $('dialog').close(); });
+  $('followClose').onclick = () => $('dialog').close();
+  show(kind);
 }
 
 export async function openUser(arg) {
@@ -92,16 +91,14 @@ function draw(p, request) {
   const view = $('view'), state = {followers: Number(p.followers), following: Number(p.following)};
   let following = !!p.is_following;
   view.innerHTML = `<div class="banner profile-cover">${p.banner ? `<img src="${escape(p.banner)}" alt="Profil kapak görseli">` : ''}</div>
-  <div class="profile-info">${avatar({name: p.name, avatar: p.avatar})}<div><h1 style="margin:0">${styledName(p.name,{color:p.name_color,glow:p.name_glow,anim:p.name_anim})}</h1>${p.is_admin?adminBadge(p.badge_color):''}<span class="badge">${escape(p.level)}</span> <span class="muted">${escape(p.city || 'Şehir belirtilmedi')}</span></div>${user.guest?'':'<button id="followBtn" class="primary"></button>'}</div>
+  <div class="profile-info">${avatar({name: p.name, avatar: p.avatar})}<div><h1 style="margin:0">${styledName(p.name,{color:p.name_color,glow:p.name_glow,anim:p.name_anim})}</h1>${p.is_admin?adminBadge(p.badge_color):''}<span class="badge">${escape(p.level)}</span> <span class="muted">${escape(p.city || 'Şehir belirtilmedi')}</span></div><div id="followStats" class="follow-stats"></div>${user.guest?'':'<button id="followBtn" class="primary"></button>'}</div>
   <div class="grid"><div class="card stat"><span class="muted">XP</span><strong>${Number(p.xp)}</strong></div><div class="card stat"><span class="muted">Çözülen içerik</span><strong>${Number(p.answered)}</strong></div><div class="card stat"><span class="muted">Paylaştığı set</span><strong>${Number(p.public_sets)}</strong></div></div>
   <p class="notice section">Seviye rozeti, etiketlenen ve tekrar edilen kelimelerden hesaplanan tahmini bir ilerleme göstergesidir; resmi CEFR sonucu değildir.</p>
-  <div class="section" id="userSocial"></div>
   <div class="section"><h2>Paylaştığı çalışma setleri</h2><p class="muted">Yalnızca herkesle paylaşılan setler görünür.</p><div id="userSets" class="grid"></div><p id="userSetsStatus" role="status">Yükleniyor…</p><button id="userSetsMore" hidden>Daha fazla göster</button></div>
   <div class="section"><button id="backBoard">← Geri dön</button></div>`;
-  if (user.guest) {
-    $('userSocial').textContent = state.followers + ' takipçi · ' + state.following + ' takip edilen';
-  } else {
-    const social = socialBlock($('userSocial'), p.user_id, state), btn = $('followBtn');
+  const refreshCounts=mountFollowStats($('followStats'),p.user_id,state);
+  if (!user.guest) {
+    const btn=$('followBtn');
     const paint = () => { btn.textContent = following ? 'Takibi bırak' : 'Takip et'; btn.classList.toggle('primary', !following); };
     paint();
     btn.onclick = async () => {
@@ -109,7 +106,7 @@ function draw(p, request) {
       try {
         if (following) await unfollow(p.user_id); else await follow(p.user_id);
         following = !following; state.followers += following ? 1 : -1;
-        if (page === 'user' && request === requestId) { paint(); social.refresh(); }
+        if (page === 'user' && request === requestId) { paint(); refreshCounts(state); }
         toast(following ? 'Takip ediliyor.' : 'Takip bırakıldı.');
       } catch (e) { toast(e.message); }
       finally { if (btn.isConnected) btn.disabled = false; }

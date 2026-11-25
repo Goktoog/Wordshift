@@ -16,7 +16,7 @@ function kickSnow(player) {
   base.append(puff);
   puff.addEventListener('animationend', () => puff.remove(), {once:true});
 }
-function jump(player, target, landed) {
+export function jump(player, target, landed) {
   const start = player.getBoundingClientRect();
   const end = target.getBoundingClientRect();
   const dx = end.left + (end.width - start.width) / 2 - start.left;

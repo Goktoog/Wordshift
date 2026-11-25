@@ -1,7 +1,9 @@
 import { $, uid } from '../core/utils.js';
 import { db, user, save, setUser, timer, setSession, setSharedSet, setPage } from '../core/state.js';
 import { applyTheme } from './settings.js';
-import { sample } from '../core/sample-data.js';
+import { stopOnline } from '../games/online.js';
+import { room } from '../services/pvp.js';
+import { startGuest, loadGuest, clearGuest, GUEST_KEY } from '../services/local-storage.js';
 import { go } from '../core/router.js';
 import { client, loadCloud, flushCloud, resetCloud, SITE_URL } from '../services/cloud.js';
 
@@ -10,7 +12,7 @@ let mode = 'login', authEpoch = 0, busy = false, recoveryReady = false;
 const eye = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const eyeOff = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.1 12 5c6.5 0 10 7 10 7a19 19 0 0 1-3 3.8M6.2 6.2A21 21 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5.8-1.8M10 10a3 3 0 0 0 4 4"/></svg>';
 function makeUser(name, email, guest = false) {
- return { id:uid(), name, email, guest, avatar:'', banner:'', city:'', xp:0, level:'A1', folders:[], sets:guest?[{id:uid(),name:'YDS bağlaçlar · örnek',items:sample.map(x=>({...x,id:uid()}))}]:[], stats:{correct:0,total:0} };
+ return { id:uid(), name, email, guest, avatar:'', banner:'', city:'', xp:0, level:'A1', folders:[], sets:[], stats:{correct:0,total:0} };
 }
 function message(text = '', error = false) { $('authMessage').textContent=text; $('authMessage').dataset.error=String(error); }
 function concealPasswords(clear = false) {
@@ -55,10 +57,10 @@ async function login(account, epoch) {
  const valid=()=>epoch===authEpoch&&mode!=='reset';
  const name=account.user_metadata?.display_name||account.user_metadata?.full_name||account.user_metadata?.name||'Kullanıcı';
  const u=await loadCloud(account,()=>makeUser(name,account.email),valid);
- if(u&&valid()) { clearAuthUrl(); show(u); }
+ if(u&&valid()) { clearGuest();clearAuthUrl(); show(u); }
 }
-function leaveWorkspace() { clearInterval(timer); setSession(null); setSharedSet(null); setPage('home'); }
-function showAuth() { const wasGuest=user?.guest;leaveWorkspace(); resetCloud(); setUser(null); db.active=null; if(wasGuest)applyTheme();else save(); $('app').hidden=true; $('auth').hidden=false; }
+function leaveWorkspace() { stopOnline();clearInterval(timer); setSession(null); setSharedSet(null); setPage('home'); }
+function showAuth() { const wasGuest=user?.guest;leaveWorkspace(); resetCloud(); setUser(null); db.active=null; if(wasGuest){clearGuest();applyTheme()}else save(); $('app').hidden=true; $('auth').hidden=false; }
 function enterRecovery(session) {
  authEpoch++; recoveryReady=!!session; showAuth(); setMode('reset');
  if(!session) message('Sıfırlama bağlantısı geçersiz veya süresi dolmuş. Giriş ekranına dönüp yeni bağlantı iste.',true);
@@ -117,10 +119,10 @@ export function initAuth() {
    else{concealPasswords(true);message('E-postandaki doğrulama bağlantısına tıkla, ardından giriş yap.')}
   }catch(err){message(authError(err),true)}finally{setBusy(false)}
  };
- const enterGuest=page=>{authEpoch++;resetCloud();show(makeUser('Misafir','',true),page)};
+ const enterGuest=page=>{authEpoch++;resetCloud();show(startGuest(makeUser('Misafir','',true)),page)};
  $('guestBoard').onclick=()=>{if(!busy)enterGuest('leaderboard')};
  $('guest').onclick=()=>{
-  if(busy||!confirm('Misafir olarak çalışmaların kaydedilmez. Sayfayı yenilediğinde veya çıktığında ilerlemen silinir. Devam edilsin mi?'))return;
+  if(busy)return;
   enterGuest('home');
  };
  const sessionGone=e=>e?.name==='AuthSessionMissingError'||/auth session missing/i.test(e?.message||'');
@@ -128,6 +130,7 @@ export function initAuth() {
   authEpoch++;
   try {
    const guest=user?.guest;
+   if(guest&&user.roomId)void room(user.roomId,'leave').catch(()=>{});
    if(!guest){
      // Oturum zaten düşmüşse (süresi dolmuş, başka cihazdan çıkılmış) çıkış yine de tamamlanmalı.
      try{await flushCloud()}catch(e){if(!sessionGone(e))throw e}
@@ -137,6 +140,15 @@ export function initAuth() {
    showAuth();setMode('login');if(guest)message('Misafir oturumun sona erdi.');
   }catch(e){alert(e.message)}
  };
+ const restored=loadGuest();
+ if(restored&&!recovery&&!callbackError&&!url.hash.includes('access_token=')&&!url.searchParams.has('code'))show(restored);
+ const checkGuest=()=>{
+  if(user?.guest&&loadGuest()?.id!==user.id){
+    leaveWorkspace();resetCloud();setUser(null);applyTheme();$('app').hidden=true;$('auth').hidden=false;setMode('login');
+  }
+ };
+ window.addEventListener('storage',event=>{if(event.key===GUEST_KEY||event.key===null)checkGuest()});
+ window.addEventListener('pageshow',checkGuest);window.addEventListener('focus',checkGuest);
  const startupEpoch=authEpoch;
  void(async()=>{
   try {

@@ -128,7 +128,7 @@ grant execute on function public.wordshift_user_profile(uuid) to anon, authentic
 -- kind: 'followers' (people who follow target) or 'following' (people target follows).
 create or replace function public.wordshift_follow_list(target uuid, kind text default 'followers', page_offset integer default 0)
 returns table(user_id uuid,name text,avatar text,city text,level text,xp integer)
-language sql stable security invoker set search_path = '' as $$
+language sql stable security definer set search_path = '' as $$
  select p.user_id,p.name,p.avatar,p.city,p.level,p.xp
  from public.wordshift_follows f
  join public.wordshift_profiles p on p.user_id=(case when kind='following' then f.followee_id else f.follower_id end)
@@ -136,7 +136,7 @@ language sql stable security invoker set search_path = '' as $$
  order by f.created_at desc,p.user_id limit 50 offset greatest(coalesce(page_offset,0),0);
 $$;
 revoke all on function public.wordshift_follow_list(uuid,text,integer) from public, anon;
-grant execute on function public.wordshift_follow_list(uuid,text,integer) to authenticated;
+grant execute on function public.wordshift_follow_list(uuid,text,integer) to anon, authenticated;
 
 create or replace function public.wordshift_search_users(query_text text, page_offset integer default 0)
 returns table(user_id uuid,name text,avatar text,city text,level text,xp integer)

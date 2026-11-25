@@ -21,6 +21,8 @@ const account={id:'me',name:'Ayşe',guest:false,avatar:'',banner:'',city:'Ankara
 const $=id=>document.getElementById(id);
 assert.ok($('editAvatar')&&$('editBanner')&&$('editProfile'));assert.equal($('editAvatar').getAttribute('aria-label'),'Profil fotoğrafını değiştir');
 await new Promise(r=>setTimeout(r,0));
+document.querySelector('.profile-info #followStats [data-kind="following"]').click();
+assert.ok($('dialog').open);assert.equal(document.querySelector('.follow-dialog .active').dataset.kind,'following');$('followClose').click();
 $('editProfile').click();$('badgeColor').value='sky';$('badgeColor').onchange();assert.equal($('namePreview').querySelector('.badge-admin').dataset.tone,'sky');$('cityToggle').click();assert.equal(document.querySelectorAll('#cityOptions [role="option"]').length,81);
 $('citySearch').value='a';$('citySearch').dispatchEvent(new win.Event('input'));assert.ok($('cityOptions').textContent.includes('Ankara'));
 $('citySearch').value='izmir';$('citySearch').dispatchEvent(new win.Event('input'));$('citySearch').dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));$('citySearch').dispatchEvent(new win.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal($('cityValue').value,'İzmir');

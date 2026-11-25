@@ -171,7 +171,7 @@
 .bng-board{border-radius:18px;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#f7ce96,#ebc6b3 60%,#c6b9ce);color:#362f42;border:1px solid #a995a7;container-type:inline-size}
 .bng-prompt{margin:18px auto 0;padding:12px 18px;text-align:center;width:fit-content;max-width:92%;border-radius:12px;background:#fff8e9;box-shadow:0 3px 0 #8b6a7933;font-weight:750;white-space:pre-wrap;overflow-wrap:anywhere}
 .bng-arena{position:relative;height:clamp(178px,31cqw,245px);isolation:isolate}
-.bng-table{position:absolute;left:6%;right:6%;bottom:10px;height:34%;border-radius:50%;background:repeating-linear-gradient(174deg,#ab6d4d 0 16px,#ad7050 17px 18px);box-shadow:0 8px 0 #784831,0 14px 18px #6e4a552b}
+.bng-table{position:absolute;left:12%;right:12%;bottom:12px;height:25%;border-radius:50%;background:repeating-linear-gradient(174deg,#ab6d4d 0 16px,#ad7050 17px 18px);box-shadow:0 8px 0 #784831,0 14px 18px #6e4a552b}
 .bng-seat{--fur:#f9f5df;--ears:#3d4047;--muzzle:#f4e5ce;position:absolute;width:25%;bottom:31%;height:60%;left:8%;text-align:center}
 .bng-seat.seat-1{left:auto;right:8%}
 .bng-tag{display:flex;flex-wrap:wrap;justify-content:center;gap:.3em;line-height:1.15;font-weight:700;font-size:clamp(11px,2.5cqw,15px);overflow-wrap:anywhere}
@@ -224,3 +224,25 @@
 @keyframes bng-swing{0%,100%{transform:rotate(-19deg)}25%{transform:rotate(-65deg)}55%,63%{transform:translateX(45cqw) rotate(80deg)}}
 @keyframes bng-sting{0%,40%,100%{transform:none}58%{transform:rotate(-9deg) scale(1.17);filter:sepia(.55) saturate(2.5)}}
 @media(prefers-reduced-motion:reduce){.swing .bng-mallet,.bonked .bng-head{animation:none}}
+
+.bng-stage-clock{position:absolute;left:50%;top:6%;transform:translateX(-50%);pointer-events:none;color:#504253;font:800 clamp(44px,10cqw,78px)/1 system-ui;font-variant-numeric:tabular-nums;letter-spacing:-.05em}
+.bng-stage-clock:not([hidden]):after{content:'sn';display:block;font:700 12px/1.2 system-ui;text-align:center;letter-spacing:.03em}
+.bng-stage-clock.urgent-text{color:#a42739}
+.bng-buzz,.bng-buzz:disabled{bottom:14%}
+.bng-buzz:enabled:active{bottom:calc(14% - 2px)}
+.bng-seat.pressing{z-index:6;pointer-events:none}
+.bng-reach{transform-origin:left center}
+.bng-reach i{width:clamp(15px,3cqw,21px);height:clamp(15px,3cqw,21px);right:0;top:50%;transform:translate(50%,-50%)}
+.pressing .bng-reach{animation:bng-reach .65s ease-in-out}
+.bng-buzz.pressed:disabled{animation:bng-lit .65s ease-in-out}
+@keyframes bng-reach{0%,100%{width:84%;transform:rotate(12deg)}40%,65%{width:var(--reach-length);transform:rotate(var(--reach-angle))}}
+@keyframes bng-lit{0%,32%,100%{filter:none}42%,68%{filter:none;opacity:1;background:#ec243e;box-shadow:0 2px 0 #8b243c,0 0 12px 5px #ff7266,0 0 30px 10px #ff4c5666;transform:translate(-50%,2px)}}
+@media(prefers-reduced-motion:reduce){.pressing .bng-reach,.bng-buzz.pressed:disabled{animation:none}.bng-buzz.pressed:disabled{outline:3px solid #f85b52;filter:none}}
+
+/* Profil: takipçi / takip edilen (sağda) ve listeleri gösteren pencere */
+.follow-stats{margin-left:auto;display:flex;gap:10px}
+.follow-stats button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:92px;padding:8px 14px}
+.follow-stats strong{font-size:22px;line-height:1.1}.follow-stats span{font-size:12px;color:var(--muted)}
+.follow-dialog{min-width:min(420px,80vw)}.follow-dialog .people-host{max-height:50vh;overflow:auto;margin:12px 0}
+@media(max-width:600px){.profile-info{flex-wrap:wrap}.follow-stats{margin-left:0;width:100%}.follow-stats button{flex:1}}
+#dialog:has(.follow-dialog) .dialog-actions{display:none}

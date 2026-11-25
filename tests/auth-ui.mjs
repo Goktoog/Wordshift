@@ -13,6 +13,7 @@ globalThis.authClient={rpc:async(name,args)=>{
  rpcCalls.push(name);
  if(name==='wordshift_leaderboard')return {data:[{...publicPlayer,place:1}]};
  if(name==='wordshift_user_profile')return {data:[publicPlayer]};
+ if(name==='wordshift_follow_list')return {data:args.kind==='following'?[]:[publicPlayer]};
  if(name==='wordshift_search_sets')return {data:[]};
  throw Error('Unexpected guest RPC: '+name);
 },auth:{
@@ -35,11 +36,15 @@ const settle=()=>new Promise(r=>setTimeout(r,0));
 $('guestBoard').click();await settle();
 assert.ok(!$('myProgress'));assert.ok(!rpcCalls.includes('wordshift_my_rank'));
 document.querySelector('[data-scope="city"]').click();$('guestCity').value='İzmir';$('guestCity').onchange();await settle();
-document.querySelector('.board-row').click();await settle();assert.ok(!$('followBtn'));assert.match($('userSocial').textContent,/2 takipçi/);assert.equal(document.querySelector('.badge-admin').dataset.tone,'rose');
+document.querySelector('.board-row').click();await settle();assert.ok(!$('followBtn'));assert.equal(document.querySelector('.profile-info #followStats [data-kind="followers"] strong').textContent,'2');
+document.querySelector('#followStats [data-kind="followers"]').click();await settle();assert.ok($('dialog').open);assert.match($('modalBody').textContent,/Deniz/);
+document.querySelector('.follow-dialog [data-kind="following"]').click();await settle();assert.match($('modalBody').textContent,/Kimse bulunamadı/);$('followClose').click();assert.equal(document.querySelector('.badge-admin').dataset.tone,'rose');
 await $('logout').onclick();
-$('guest').click();assert.ok(state.user.guest);assert.equal(state.user.sets.length,1);const guestId=state.user.id;state.user.xp=123;state.save();
+$('guest').click();assert.ok(state.user.guest);assert.equal(state.user.sets.length,0);const guestId=state.user.id;state.user.xp=123;state.save();assert.equal(JSON.parse(localStorage.getItem('wordshift-guest-v1')).xp,123);
+// Startup restores the local guest before remote session lookup.
+state.setUser(null);initAuth();await settle();assert.equal(state.user.id,guestId);assert.equal(state.user.xp,123);assert.equal(state.user.name,'Misafir');
 assert.deepEqual(JSON.parse(localStorage.getItem('wordshift-v1')),{active:null,users:[{id:'keep',guest:false}]});
-$('guestJoin').click();await new Promise(r=>setTimeout(r,0));assert.equal(state.user,null);assert.equal(signOutCalls,0);assert.equal($('auth').hidden,false);
+$('guestJoin').click();await new Promise(r=>setTimeout(r,0));assert.equal(state.user,null);assert.equal(signOutCalls,0);assert.equal(localStorage.getItem('wordshift-guest-v1'),null);assert.equal($('auth').hidden,false);
 // Both passwords can be shown independently, without submitting.
 document.querySelector('[data-auth="signup"]').click();$('signupName').value='Ahmet';$('email').value='test@example.com';$('password').value='test-password';$('confirmPassword').value='different-password';
 for(const id of ['password','confirmPassword']){const button=document.querySelector(`[data-password="${id}"]`);button.click();assert.equal($(id).type,'text');assert.equal(button.getAttribute('aria-pressed'),'true');button.click();assert.equal($(id).type,'password')}

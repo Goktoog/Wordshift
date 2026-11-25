@@ -8,7 +8,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 
 ## Nasıl kullanılır?
 
-1. Siteyi aç. Hemen denemek için **Misafir olarak dene**'yi seç; hesap istemez, çalışmaların sayfayı yenileyene veya çıkış yapana kadar sürer.
+1. Siteyi aç. Hemen denemek için **Misafir olarak dene**'yi seç; hesap istemez, ilerlemen tarayıcıda kalır ve çıkış yaptığında veya site verilerini temizlediğinde silinir.
 2. Çalışmalarını cihazlar arasında saklamak, setlerini paylaşmak ve sıralamaya girmek için **Google** veya **e-posta** ile üye ol.
 3. **Yeni çalışma seti** oluştur, kelimelerini veya sorularını ekle. Hazır **başlangıç setleriyle** de hemen çalışmaya başlayabilirsin.
 4. Kartlarla öğren, **Öğren / Test / Deneme** ile kendini sına, **Oyunlar** bölümünde eğlenerek tekrar et.
@@ -19,7 +19,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Bunlar ve Bıng Düellosu tek oyunculu / botlu ve iki oyunculu çevrimiçi modlarda oynanır. Kelime Geçidi, Kelime Kulesi ve Kelime Dedektifi tek oyunculudur.
+- **Oyunlar:** Dokuz oyunun tamamında tek oyunculu / botlu ve iki oyunculu çevrimiçi seçenekleri bulunur.
 - **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
 - **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
@@ -50,7 +50,7 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 
 - Setlerin varsayılan olarak **özeldir**. Yalnızca herkese açık yaptığın setler başkalarına görünür.
 - Hesabıyla giriş yaptıysan adın, profil fotoğrafın, kapak görselin, şehrin, XP'n ve seviyen herkese açık profilinde görünür. E-posta adresin hiçbir zaman gösterilmez.
-- Misafirler global ve şehir sıralamalarını, oyuncu profillerini ve paylaşılan setleri inceleyebilir. Misafirler için kalıcı profil oluşturulmaz. XP, setler ve oyun ilerlemesi oturum sonunda silinir.
+- Misafirler global ve şehir sıralamalarını, oyuncu profillerini ve paylaşılan setleri inceleyebilir. Misafirler için kalıcı profil oluşturulmaz. XP ve çalışma ilerlemesi bu tarayıcıda saklanır. Misafir adı sabittir. Set oluşturma ve kopyalama ile profil fotoğrafı yükleme kayıtlı hesaplara açıktır.
 
 ## Kullanılan teknolojiler
 
@@ -72,17 +72,17 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 
 ## Sınırlar
 
-- Çevrimiçi PvP kayıtlı iki hesapla oynanır. Misafirler tek oyunculu oyunları kullanabilir.
-- PvP maçları alıştırmadır; global XP sıralamasını veya CEFR rozetini değiştirmez. Sonuçlar sunucuda ayrı tutulur.
+- Misafirler ve kayıtlı oyuncular aynı odalarda ve kuyruklarda eşleşebilir.
+- PvP’de doğru cevaplar XP kazandırır. Misafirlerin puanları ve seviye ilerlemesi yalnızca kendi tarayıcılarında tutulur.
 - Kuyruklar yaklaşık 3 saniyede, maç durumu yaklaşık 1 saniyede güncellenir. Hareket animasyonları cihazda çalışır; cevap, süre, can ve sonuçlar Supabase tarafından belirlenir.
 - XP ve seviye rozetleri çalışma göstergesidir; resmî bir dil yeterlilik sonucu değildir.
 - Profil fotoğrafı ve kapak görseli düzenleme kayıtlı hesaplara açıktır.
 
-## Bıng Düellosu ve misafir erişimi
+## Kafanı Kırarım ve misafir erişimi
 
 Mevcut sosyal özellikleri olan Supabase projesinde bu sürümle verilen **Wordshift-Guncelleme.sql** dosyasının tamamını SQL Editor’da bir kez çalıştır. Ardından ön yüzü yayınla. Tek tek kurmak için aynı değişiklikler sırasıyla `supabase/admin-badge.sql` ve `supabase/pvp.sql` içinde bulunur.
 
-Bot maçı için bir setten veya Oyunlar bölümünden **Bıng Düellosu** seç. İki kayıtlı oyuncu **Çevrimiçi PvP → Bıng Düellosu** ile eşleşebilir veya oda kodu kullanabilir. Oyuncular üçer canla başlar. Doğru cevap rakibin bir canını götürür. İlk basan on saniye içinde cevaplayamazsa veya yanlış cevaplarsa aynı soru rakibe geçer. İki oyuncu da bilemezse yeni soru gelir. Kelime, cümle ve boşluk doldurma soruları seçilen setin içeriğinden gelir.
+Bot maçı için bir setten veya Oyunlar bölümünden **Kafanı Kırarım** seç. İki oyuncu **Çevrimiçi PvP → Kafanı Kırarım** ile eşleşebilir veya oda kodu kullanabilir. Oyuncular üçer canla başlar. Doğru cevap rakibin bir canını götürür. İlk basan on saniye içinde cevaplayamazsa veya yanlış cevaplarsa aynı soru rakibe geçer. İki oyuncu da bilemezse yeni soru gelir. Kelime, cümle ve boşluk doldurma soruları seçilen setin içeriğinden gelir.
 
 ## Misafir erişimi ve admin rozeti güncellemesi
 
@@ -98,7 +98,7 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 2. [Supabase projenin SQL Editor sayfasını](https://supabase.com/dashboard/project/ageaooejmhwxpaajelbw/sql/new) aç. **New query** seç, yapıştır ve **Run** düğmesine bas. `Success. No rows returned` normaldir. Dosya tekrar çalıştırılabilir. Önceden kullanılan `setup.sql` kurulmuş olmalı; mevcut tabloları veya hesapları silmez.
 3. ZIP'in içindeki proje dosyalarını mevcut Git bağlantılı **Wordshift-GitHub** klasörünün içine kopyala, aynı dosyaları değiştir. `.git` klasörünü silme. Yeni clone veya Initialize Repository yapma.
 4. VS Code → **Source Control → Stage All → Commit → Push / Sync Changes**. GitHub Actions başarılı olunca siteyi **Ctrl+F5** ile yenile.
-5. İki ayrı hesap kullan: birinci tarayıcıda **Oyunlar → Oda oluştur / Koda katıl → oyun ve set seç → Arkadaş için oda oluştur**. İkinci hesapta aynı ekrandan 10 karakterli kodu gir. Aynı hesabın iki sekmesi iki rakip sayılmaz.
+5. İki farklı tarayıcı profili veya iki ayrı hesap kullan: birinci tarayıcıda **Oyunlar → Oda oluştur / Koda katıl → oyun ve set seç → Arkadaş için oda oluştur**. İkinci hesapta aynı ekrandan 10 karakterli kodu gir. Aynı hesabın iki sekmesi iki rakip sayılmaz.
 6. Hızlı eşleşme için oyun havuzundaki **Online rakip ara** düğmesini kullan. Aynı oyun ve aynı profil seviyesindeki oyuncular eşleşir. Kimse yoksa beklenir; bot gerçek oyuncu gibi gösterilmez. Başka oyunun havuzuna geçilebilir. Oda koduyla farklı seviyedeki arkadaşlar da oynayabilir.
 7. Maç bittiğinde **Profilim → Çevrimiçi maç geçmişim** bölümüne bak. Satıra dokunarak ayrıntıları aç.
 
@@ -110,13 +110,17 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 | Meteor Avı | 3 can. Her hedef için 10 saniye. Yanlış hedef / sürede ateş etmemek bir can götürür. Roket sabittir; hedefe döner ve füze atar. |
 | Amiral Battı | 3, 2 ve 1 hücrelik gemiyi yerleştir/döndür. Filo hazırlığı 120 saniye. Cevap için 10 saniye, doğru cevaptan sonra atış için ayrıca 10 saniye. Sıralı oynanır; rakibin tüm gemilerini batıran kazanır. |
 | Kelime Blokları | Solda İngilizce, sağda Türkçe. En fazla 8 çift, 60 saniye. Doğru +100, yanlış −15 (puan sıfırın altına inmez). Yüksek puan; eşitse daha erken bitiren kazanır. |
+| Kelime Kulesi | Her doğru platform bir kat ve 100 puan kazandırır. |
+| Kelime Geçidi | Doğru cevap geçiş hakkı verir. Güvenli geçiş 100 puan kazandırır. Çarpışmada kaldırıma dönersin. |
+| Kelime Dedektifi | Türkçe ipucunun İngilizcesini 35 saniyede ve en fazla beş yanlış harf tahminiyle çöz. |
+| Kafanı Kırarım | Düğmeye ilk basan on saniye içinde cevap verir. Yanlışta soru rakibe geçer. Üç isabet kazanır. |
 | Cümle Düellosu | Seviyeye göre 6 hazır cümle, cümle başına 90 saniye. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur; yanlış gönderim cümleyi bitirmez, süre dolana kadar düzeltebilirsin. Çevrimiçi maçta cümleyi ilk doğru tamamlayan +100 alır ve hemen sonraki cümleye geçilir; 90 saniyede kimse tamamlayamazsa kimse puan almaz. |
 
 - Runner ve Meteor'da iki oyuncu aynı turu tamamladıktan sonra canlar karşılaştırılır; ikisi de aynı turda son canını kaybederse berabere olur. Kelime havuzu bittiğinde yaşam mücadelesi devam eder. Maçın üst sınırı 15 dakikadır; bu sınıra ulaşılırsa önce kalan can, sonra puan karşılaştırılır.
 - Bağlantı kesilince **30 saniye** yeniden bağlanma süresi vardır. **Oyunlar → Oda oluştur / Koda katıl** devam eden odayı açar. Süre geçerse bağlı oyuncu kazanır; ikisi de kopmuşsa beraberlik kaydedilir. **Odadan ayrıl** düğmesi maç başladıktan sonra yenilgi sayılır.
 - Kuyrukta en fazla 10 dakika beklenir. Bekleme sayıları seni ve özel kodlu odaları içermez. “Uygun rakip” sayısı profil seviyene göre filtrelenir. Bekleme tahmini son 24 saatte en az 3 eşleşme varsa gösterilen ortalamadır; yeni oyuncunun ne zaman geleceğini garanti etmez.
 - Kelime oyunlarında en az 4 farklı kelime ve farklı karşılık gerekir. Seçilen setin en fazla 20 kelimesi (bloklarda 8) rakiple paylaşılır; setin bütünü veya hesap verileri paylaşılmaz. Hızlı eşleşme oyun salonundan açıldığında varsayılan olarak seviyene uygun başlangıç setini kullanır. Cümle oyunu hazır cümle havuzunu kullanır.
-- Sonuçlar yalnızca maçın iki katılımcısının kendi geçmişinde görünür. Sunucuda bir kez kaydedilir; skor/can doğrudan tarayıcıdan yazılamaz. Aktif oda kayıtları 24 saat sonra temizlenir, maç geçmişi korunur.
+- Misafirin gördüğü maç özeti bu tarayıcıya kaydedilir ve çıkışta silinir. İki misafirin maçı sunucudaki maç geçmişine yazılmaz. Kayıtlı oyuncunun geçmişinde misafir rakip yalnızca “Misafir” olarak görünür. Sunucuda bir kez kaydedilir; skor/can doğrudan tarayıcıdan yazılamaz. Aktif oda kayıtları 24 saat sonra temizlenir, maç geçmişi korunur.
 - Bu sürüm küçük ölçekli oyunlar için Supabase RPC üzerinden düzenli durum sorgular. WebSocket tabanlı hareket senkronizasyonu kullanmaz. Canlı projedeki kullanıcı ve ağ koşullarını iki ayrı hesapla test et.
 
 ### Geliştirme ve test

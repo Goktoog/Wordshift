@@ -1,3 +1,4 @@
+import { botOptions } from '../games/bot-skill.js';
 import { sentenceSet } from '../data/sentences.js';
 import { starterSets } from './starters.js';
 import { $, escape, shuffle, levels } from '../core/utils.js';
@@ -15,7 +16,7 @@ import { gameModes } from '../games/catalog.js';
 export { gameModes };
 export function chooseSet(m){
  if(m==='sentences'){begin(m,sentenceSet(user.level||'A1'));return}
- modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle','buzzer'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
+ modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle','buzzer'].includes(m)?'<label>Zorluk</label><select name="difficulty">'+(m==='runner'?'<option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option>':botOptions())+'</select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
 }
 export function record(x,ok,withSound=true){
  const set=current();if(!set)return;

@@ -21,3 +21,20 @@ const stop=g.node('runObstacle').style.left;g.step(9000);assert.equal(g.node('ru
 g=game();g.step(2400);g.step(10000);assert.deepEqual(g.records,[false]);assert.equal(g.ctx.session.lives,2);g.step(250);assert.ok(g.node('runner').classList.contains('crash'));g.step(500);assert.ok(g.node('runner').classList.contains('respawning'));
 g=game();g.ctx.page='home';g.step(20000);assert.equal(g.records.length,0);
 console.log('PASS: fleet bounds/rotation/overlap; approach before question; paused obstacle; 10-second timeout; jump success; duplicate-answer guard; crash/respawn; exit guard.');
+
+const {botProfile,answerChance,chooseShot}=await import('../frontend/src/games/bot-skill.js');
+const tiers=['A1','A2','B1','B2','C1','C2'];
+for(const level of tiers){
+ const chances=['easy','normal','hard'].map(d=>answerChance(botProfile(d),{type:'word',level}));
+ assert.ok(0<chances[0]&&chances[0]<chances[1]&&chances[1]<chances[2]&&chances[2]<1);
+}
+for(const difficulty of ['easy','normal','hard']){
+ const used=[],hits=[];
+ while(used.length<25){
+  const next=chooseShot(used,hits,difficulty,()=>.05);
+  assert.ok(next>=0&&next<25&&!used.includes(next));used.push(next);if(next%3===0)hits.push(next);
+ }
+ assert.equal(chooseShot(used,hits,difficulty),null);
+}
+assert.ok([5,8].includes(chooseShot([6,7],[6,7],'hard',()=>0)));
+console.log('PASS bot difficulty, imperfect accuracy and observed-hit targeting.');

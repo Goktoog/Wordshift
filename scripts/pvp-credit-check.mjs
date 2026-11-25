@@ -30,6 +30,6 @@ let n=0;for(let round=10;round<40;round++){const w=A2[round%20];creditOnline({ro
 assert.equal(computeLevel(u),'A2');assert.equal(u.level,'A2');assert.ok(u.toasts===undefined);
 assert.ok(globalThis.fake.toasts.some(t=>/A1 → A2/.test(t)));
 assert.ok(u.pvpSeen.length<=80);
-// Misafir hesapta hiçbir şey kaydedilmez.
-u.guest=true;const xp=u.xp;assert.equal(creditOnline({room:'r3',round:0,kind:'a',front:'a',back:'b',ok:true}),false);assert.equal(u.xp,xp);
+// Misafir XP yalnızca yerel kaydetme yoluna gider.
+u.guest=true;const xp=u.xp;assert.equal(creditOnline({room:'r3',round:0,kind:'a',front:'a',back:'b',ok:true}),true);assert.equal(u.xp,xp+10);
 console.log('PASS: online XP, dedupe, wrong-word list, per-match log, level-up via evidence, guest guard.');

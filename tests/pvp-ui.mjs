@@ -2,7 +2,7 @@ import {registerHooks} from 'node:module';
 import {Window} from 'happy-dom';
 import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
-const modes=['runner','battle','blocks','meteor','sentences','buzzer'];
+const {gameModes:modes}=await import('../frontend/src/games/catalog.js');
 let activeMode='runner',reply,roomCalls=[],lobbyCalls=[],resume=null;
 const poolReply={level:'B1',pools:modes.map((mode,i)=>({mode,waiting:i,compatible:i?1:0,samples:0,estimateSeconds:null}))};
 globalThis.pvpMock={async lobby(action,options){lobbyCalls.push({action,options});if(action==='resume')return resume;activeMode=options.mode;return 'room-1'},async room(id,action,token,value,extra){roomCalls.push({id,action,token,value,extra});if(action==='leave')reply={...reply,status:'finished',reason:'Oyuncu ayrıldı.'};if(action==='answer'||action==='sentence')reply={...reply,answer:{ok:true},scores:[100,0],correct:'bahçe'};return {...reply,serverNow:new Date().toISOString()}},async pools(){return poolReply},async matchHistory(){return [{id:'r1',mode:'runner',me:1,players:['me','other'],names:['Ayşe','<b>Selen</b>'],scores:[200,100],lives:[3,0],correct_counts:[2,1],wrong_counts:[0,3],shots:[[],[]],hits:[[],[]],winner:1,reason:'Üç can tükendi.',started_at:'2026-11-21T10:00:00Z',ended_at:'2026-11-21T10:01:30Z',rounds:3,title:'YDS',level:'B1'}]}};
@@ -13,9 +13,11 @@ document.write(readFileSync(new URL('../frontend/index.html',import.meta.url),'u
 const state=await import('../frontend/src/core/state.js'),{go,initNavigation}=await import('../frontend/src/core/router.js'),{openOnline}=await import('../frontend/src/games/online.js'),{mountMatchHistory}=await import('../frontend/src/games/pvp-panels.js');
 const account={id:'me',name:'Ayşe',guest:false,level:'B1',city:'Ankara',xp:0,stats:{total:0,correct:0},sets:[],folders:[]};state.setUser(account);state.db.users.push(account);initNavigation();const $=id=>document.getElementById(id),settle=async()=>{for(let i=0;i<5;i++)await new Promise(r=>setTimeout(r,0))};
 const base=(mode,status='active')=>({id:'room-1',code:'1234567890',mode,level:'B1',title:'Test',status,phase:'question',me:1,names:['Ayşe','Selen'],scores:[0,0],lives:[3,3],ready:[false,false],round:0,turn:1,total:8,startsAt:new Date(Date.now()-2000).toISOString(),deadline:new Date(Date.now()+10000).toISOString(),answer:null,opponentAnswered:false,question:{front:'garden',options:['bahçe','ev','yol','çiçek']},left:[{key:0,text:'garden'},{key:1,text:'house'}],right:[{key:0,text:'ev'},{key:1,text:'bahçe'}],completed:[],doneRight:[],fleet:[0,1,2,10,15,24],shots:[],incoming:[],hits:[],winner:null});
-go('games');await settle();assert.equal(document.querySelectorAll('[data-action]').length,9);assert.equal(document.querySelectorAll('[data-pool]').length,6);assert.match($('gamePools').textContent,/4 kişi bekliyor/);assert.match($('gamePools').textContent,/yeterli eşleşme verisi yok/);assert.equal(document.querySelector('[data-action="match"]'),null);
+go('games');await settle();assert.equal(document.querySelectorAll('[data-action]').length,9);assert.equal(document.querySelectorAll('[data-pool]').length,9);assert.match($('gamePools').textContent,/4 kişi bekliyor/);assert.match($('gamePools').textContent,/yeterli eşleşme verisi yok/);assert.equal(document.querySelector('[data-action="match"]'),null);
+$('onlineGamePick').value='tower';$('onlineLobby').click();await settle();assert.equal($('onlineMode').value,'tower');
+go('starter','starter-a1');$('onlineGamePick').value='crossing';$('setOnline').click();await settle();assert.equal($('onlineMode').value,'crossing');
 // Selection, signup gate, queue entry and a reconnecting active Runner.
-openOnline(null,'meteor');await settle();assert.equal($('onlineMode').value,'meteor');reply=base('meteor','waiting');$('quickMatch').click();await settle();assert.equal(lobbyCalls.at(-1).options.mode,'meteor');assert.match($('pvpStage').textContent,/1234567890/);assert.equal(document.querySelectorAll('[data-pool]').length,6);
+openOnline(null,'meteor');await settle();assert.equal($('onlineMode').value,'meteor');reply=base('meteor','waiting');$('quickMatch').click();await settle();assert.equal(lobbyCalls.at(-1).options.mode,'meteor');assert.match($('pvpStage').textContent,/1234567890/);assert.equal(document.querySelectorAll('[data-pool]').length,9);
 reply=base('runner');resume='room-1';openOnline();await settle();assert.ok($('onlineHuman'));assert.ok(document.querySelector('.rival-runner'));assert.match($('myLives').textContent,/3 \/ 3/);await new Promise(r=>setTimeout(r,150));document.querySelector('[data-online-answer="0"]').click();await settle();assert.equal(roomCalls.at(-1).action,'answer');assert.equal($('myScore').textContent,'100');
 // Blocks preserve separate English/Turkish columns.
 reply=base('blocks');openOnline();await settle();assert.deepEqual([...document.querySelectorAll('.word-blocks h3')].map(x=>x.textContent),['İngilizce','Türkçe']);
@@ -30,7 +32,16 @@ reply={...reply,phase:'claimed',turn:2};openOnline(null,'buzzer');await settle()
 assert.equal(document.querySelector('[data-bng-choice]'),null);
 reply={...reply,turn:1};openOnline(null,'buzzer');await settle();
 document.querySelector('[data-bng-choice="0"]').click();await settle();assert.equal(roomCalls.at(-1).action,'answer');
+// The three arcade modes mount their actual game controls, including reconnect state.
+reply=base('tower');openOnline(null,'tower');await settle();
+assert.equal(document.querySelectorAll('#towerAnswers [data-choice]').length,4);
+document.querySelector('[data-choice="0"]').click();await settle();assert.equal(roomCalls.at(-1).action,'answer');
+reply={...base('detective'),mask:'______',letters:[],missed:0,extraLetters:[]};openOnline(null,'detective');await settle();
+assert.equal($('detectiveWord').textContent,'______');document.querySelector('#detectiveKeys button').click();await settle();
+assert.equal(roomCalls.at(-1).action,'letter');assert.equal(roomCalls.at(-1).extra,'a');
+reply={...base('crossing'),lanes:[1,0],answer:{ok:true}};openOnline(null,'crossing');await settle();
+assert.equal($('crossingGo').hidden,false);$('crossingGo').click();await settle();assert.equal(roomCalls.at(-1).action,'hop');
 // Private history safely renders details and links opponents through the existing people route.
 go('home');$('view').innerHTML='<section id="historyTest"></section>';mountMatchHistory($('historyTest'));await settle();assert.match($('historyTest').textContent,/Kazandın/);assert.match($('historyTest').textContent,/200 : 100/);assert.equal($('historyTest').querySelector('b'),null);assert.match($('historyTest').textContent,/1 dk 30 sn/);
-state.setUser({...account,guest:true});openOnline();assert.match($('onlineRoot').textContent,/PvP için giriş yap/);assert.equal($('quickMatch'),null);
-clearInterval(state.timer);await win.happyDOM.abort();console.log('PASS PvP UI: six modes/pool counts and buzzer turns, honest ETA, lobby selection, Runner lives/answer, two-column blocks, fleet rotation/readiness, sentence ordering, safe detailed history, guest gate.');
+state.setUser({...account,guest:true});resume=null;openOnline();await settle();assert.equal($('onlineMode').options.length,9);assert.ok($('quickMatch'));
+clearInterval(state.timer);await win.happyDOM.abort();console.log('PASS PvP UI: nine modes/pool counts and buzzer turns, honest ETA, lobby selection, Runner lives/answer, two-column blocks, fleet rotation/readiness, sentence ordering, safe detailed history, guest lobby.');

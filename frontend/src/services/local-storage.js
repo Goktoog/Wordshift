@@ -20,3 +20,23 @@ export function loadData() {
 export function saveData(data) {
   localStorage.setItem(KEY, JSON.stringify(data));
 }
+
+export const GUEST_KEY = 'wordshift-guest-v1';
+export function loadGuest() {
+  try {
+    const guest = JSON.parse(localStorage.getItem(GUEST_KEY));
+    if (!guest?.guest || !guest.id || !guest.matchKey) return null;
+    return {...guest, name:'Misafir', sets:[], avatar:'', banner:'', city:''};
+  } catch { return null; }
+}
+export function startGuest(account) {
+  const previous = loadGuest();
+  if (previous) return previous;
+  account.matchKey = crypto.randomUUID() + crypto.randomUUID();
+  localStorage.setItem(GUEST_KEY, JSON.stringify(account));
+  return account;
+}
+export function saveGuest(account) {
+  if (loadGuest()?.id === account.id) localStorage.setItem(GUEST_KEY, JSON.stringify(account));
+}
+export function clearGuest() { localStorage.removeItem(GUEST_KEY); }

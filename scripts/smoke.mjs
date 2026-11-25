@@ -5,11 +5,11 @@ if (!globalThis.crypto) globalThis.crypto=webcrypto;
 // This is not a substitute for real browser UI tests.
 const els = new Map();
 const elem = id => {
-  if (!els.has(id)) els.set(id, {id,hidden:false,style:{},dataset:{},value:'',innerHTML:'',classList:{add(){},remove(){},toggle(){}},querySelectorAll(){return []},querySelector(){return this},setAttribute(){},insertAdjacentHTML(){}});
+  if (!els.has(id)) els.set(id, {id,hidden:false,style:{},dataset:{},value:'',innerHTML:'',classList:{add(){},remove(){},toggle(){}},querySelectorAll(){return []},querySelector(){return this},append(){},setAttribute(){},insertAdjacentHTML(){}});
   return els.get(id);
 };
-globalThis.confirm=()=>true;globalThis.history={replaceState(){},pushState(){}};globalThis.window={location:{href:'http://localhost/'},addEventListener(){}};
-globalThis.document={getElementById:elem,querySelector:elem,querySelectorAll(){return []},body:{dataset:{}}};
+globalThis.confirm=()=>true;globalThis.history={replaceState(){},pushState(){}};globalThis.window={location:{href:'http://localhost/'},setInterval(){return 0},clearInterval(){},addEventListener(){}};
+globalThis.document={createElement:elem,getElementById:elem,querySelector:elem,querySelectorAll(){return []},body:{dataset:{}}};
 const storage=new Map();
 globalThis.localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
 await import('../frontend/src/main.js');
@@ -18,8 +18,8 @@ const state=await import('../frontend/src/core/state.js');
 const {go}=await import('../frontend/src/core/router.js');
 const {begin}=await import('../frontend/src/features/session.js');
 assert.equal(state.user.name,'Misafir');
-const set=state.user.sets[0];
-go('sets'); go('detail',set.id);
+const set=(await import('../frontend/src/features/starters.js')).starterSets[0];
+go('sets'); go('starter',set.id);
 begin('cards',set); elem('flip').onclick(); elem('know').onclick();
 assert.equal(state.user.stats.correct,1);
 assert.equal(storage.has('wordshift-v1'),false);
