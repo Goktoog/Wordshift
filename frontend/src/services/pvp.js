@@ -1,7 +1,9 @@
+import { mixedQuestions, buzzerOptions } from '../games/buzzer-deck.js';
 import { client, flushCloud } from './cloud.js';
 export async function lobby(action,{mode='meteor',set=null,code='',pool=''}={}) {
  if(action==='create'||action==='quick')await flushCloud();
- const words=(set?.items||[]).filter(x=>x.type==='word').slice().sort(()=>Math.random()-.5).slice(0,100).map(x=>({front:x.front,back:x.back}));
+ const candidates=mode==='buzzer'&&['quick','create'].includes(action)?mixedQuestions(set?.items||[]):[];
+ const words=mode==='buzzer'?candidates.map(x=>({front:x.front,back:x.back,options:buzzerOptions(x,candidates)})):(set?.items||[]).filter(x=>x.type==='word').slice().sort(()=>Math.random()-.5).slice(0,100).map(x=>({front:x.front,back:x.back}));
  const c=await client();const {data,error}=await c.rpc('wordshift_pvp_lobby',{action,game_mode:mode,words,set_title:set?.name||'',room_code:code,...(pool?{pool_level:pool}:{})});if(error)throw friendly(error);return data;
 }
 export async function room(id,action='poll',token=0,value=-1,extra=null){

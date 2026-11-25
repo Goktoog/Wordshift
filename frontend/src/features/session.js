@@ -10,11 +10,12 @@ import { newSet } from './sets.js';
 import { updateProgress, reviewItems, itemProgress } from './progress.js';
 import { computeLevel, logAnswer } from './level.js';
 import { noteMistake } from './mistakes.js';
+import { mixedQuestions, buzzerEligible } from '../games/buzzer-deck.js';
 import { gameModes } from '../games/catalog.js';
 export { gameModes };
 export function chooseSet(m){
  if(m==='sentences'){begin(m,sentenceSet(user.level||'A1'));return}
- modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
+ modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle','buzzer'].includes(m)?'<label>Zorluk</label><select name="difficulty"><option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option></select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
 }
 export function record(x,ok,withSound=true){
  const set=current();if(!set)return;
@@ -49,8 +50,8 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  if(filter==='questions')source=source.filter(x=>x.type!=='word');
  else if(filter==='source-exam')source=source.filter(x=>x.sourceQuestion);
  else if(filter!=='all')source=source.filter(x=>x.type===filter);
- const suitable=['test','exam','learn'].includes(m)?source:source.filter(x=>x.type==='word');
- const ordered=filter==='source-exam'?suitable.slice().sort((a,b)=>a.questionNumber-b.questionNumber):shuffle(suitable);
+ const suitable=m==='buzzer'?source.filter(buzzerEligible):['test','exam','learn'].includes(m)?source:source.filter(x=>x.type==='word');
+ const ordered=m==='buzzer'?mixedQuestions(suitable,suitable.length):filter==='source-exam'?suitable.slice().sort((a,b)=>a.questionNumber-b.questionNumber):shuffle(suitable);
  const limit=Number(settings.limit)||0, pool=limit?ordered.slice(0,limit):ordered;
  if(!pool.length){toast(onlyReview?'Tekrar edilecek uygun içerik yok.':'Bu içerik seçimiyle bu modda çalışılacak öğe yok. Kelimeler veya Tüm içerikler seçimini dene.');return}
  clearInterval(timer);setSharedSet(set.publicSource?set:null);setSetId(set.id);

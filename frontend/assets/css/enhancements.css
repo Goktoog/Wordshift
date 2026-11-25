@@ -166,3 +166,61 @@
 .detective-keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(40px,1fr));gap:6px}
 .detective-keys button{padding:8px 4px;min-height:42px;font-weight:750}
 .detective-keys [data-found="true"]{color:var(--good);border-color:var(--good)}.detective-keys [data-found="false"]{text-decoration:line-through;opacity:.45}
+
+/* The two puppets face one another. Mirroring the right puppet shares the same striking animation. */
+.bng-board{border-radius:18px;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#f7ce96,#ebc6b3 60%,#c6b9ce);color:#362f42;border:1px solid #a995a7;container-type:inline-size}
+.bng-prompt{margin:18px auto 0;padding:12px 18px;text-align:center;width:fit-content;max-width:92%;border-radius:12px;background:#fff8e9;box-shadow:0 3px 0 #8b6a7933;font-weight:750;white-space:pre-wrap;overflow-wrap:anywhere}
+.bng-arena{position:relative;height:clamp(178px,31cqw,245px);isolation:isolate}
+.bng-table{position:absolute;left:6%;right:6%;bottom:10px;height:34%;border-radius:50%;background:repeating-linear-gradient(174deg,#ab6d4d 0 16px,#ad7050 17px 18px);box-shadow:0 8px 0 #784831,0 14px 18px #6e4a552b}
+.bng-seat{--fur:#f9f5df;--ears:#3d4047;--muzzle:#f4e5ce;position:absolute;width:25%;bottom:31%;height:60%;left:8%;text-align:center}
+.bng-seat.seat-1{left:auto;right:8%}
+.bng-tag{display:flex;flex-wrap:wrap;justify-content:center;gap:.3em;line-height:1.15;font-weight:700;font-size:clamp(11px,2.5cqw,15px);overflow-wrap:anywhere}
+.bng-tag span{color:#ac314e;letter-spacing:1px;white-space:nowrap}
+.bng-puppet{position:absolute;bottom:-8px;left:50%;width:clamp(53px,13cqw,86px);aspect-ratio:1;transform:translateX(-50%)}
+.seat-1 .bng-puppet{transform:translateX(-50%) scaleX(-1)}
+.bng-head{position:absolute;inset:0 0 7%;z-index:2}
+.bng-head{scale:var(--swelling,1)}
+.bng-head::after{content:"";position:absolute;inset:14% 5% 0;border-radius:47%;background:#ee4c52;opacity:var(--bruise,0);pointer-events:none}
+.bng-head i,.bng-mallet i,.bng-reach i{position:absolute;display:block}
+.bng-head .face{inset:12% 5% 0;border-radius:44% 44% 48% 47%;background:var(--fur);box-shadow:inset 0 -5px 0 #241d281c,0 2px 1px #32203122}
+.bng-head .ear{width:32%;height:35%;border-radius:52%;background:var(--ears);top:0}
+.bng-head .e1{left:1%;transform:rotate(-18deg)}.bng-head .e2{right:1%;transform:rotate(18deg)}
+.bng-head .eye{width:16%;height:19%;top:41%;border-radius:50%;background:radial-gradient(circle at 58% 35%,#fff 0 12%,transparent 15%),#2b2434}
+.bng-head .eye.a{left:23%}.bng-head .eye.b{right:23%}
+.bng-head .snout{left:30%;right:25%;bottom:7%;height:35%;border-radius:48%;background:var(--muzzle)}
+.bng-head .snout:before{content:"";display:block;width:35%;height:34%;margin:6% auto;background:#49363e;border-radius:45% 45% 60% 60%}
+.bng-head .bump{right:7%;top:16%;width:23%;height:23%;border-radius:50%;background:#ef7c77;box-shadow:0 -2px 0 #cb5861}
+[data-animal="0"] .eye{box-shadow:0 1px 0 4px #514a51}
+[data-animal="1"]{--fur:#575768;--ears:#484650;--muzzle:#a49aa1}
+[data-animal="1"] .face{border-radius:34% 34% 46% 46%}
+[data-animal="1"] .eye{border-top:4px solid #37313d}
+[data-animal="2"]{--fur:#986646;--ears:#d49774;--muzzle:#f0be9e}
+[data-animal="2"] .ear{top:26%;width:37%;height:43%;border:4px solid #976144}
+[data-animal="2"] .e1{left:-8%}[data-animal="2"] .e2{right:-8%}
+[data-animal="3"]{--fur:#e8a85f;--ears:#b57456;--muzzle:#ffdcac}
+[data-animal="3"] .ear{clip-path:polygon(45% 0,100% 100%,0 100%);border-radius:0}
+[data-animal="3"] .snout{border-left:3px double #9f745f;border-right:3px double #9f745f}
+[data-animal="4"]{--fur:#d59d70;--ears:#83593f;--muzzle:#f2d3a8}
+[data-animal="4"] .ear{top:18%;height:62%;border-radius:55% 50% 65% 65%}
+[data-animal="5"]{--fur:#aaa8ad;--ears:#a39193;--muzzle:#e4ced0}
+[data-animal="5"] .ear{height:47%;width:19%;top:-15%;border:3px solid #88828b}
+[data-animal="5"] .e1{left:14%}[data-animal="5"] .e2{right:14%}
+[data-animal="6"]{--fur:#80ae79;--ears:#4e8268;--muzzle:#a6c990}
+[data-animal="6"] .face{border-radius:55% 42% 27% 48%}
+[data-animal="6"] .ear{height:30%;width:25%;clip-path:polygon(50% 0,100% 100%,0 100%);top:0}
+[data-animal="6"] .snout{left:22%;right:-4%;border-radius:36%;height:39%;border-bottom:4px dashed #fff8d9}
+.bng-reach{position:absolute;left:63%;bottom:-9%;height:18%;width:84%;border-radius:55%;background:var(--fur);transform:rotate(12deg);box-shadow:0 3px 0 #43364138}
+.bng-reach i{right:-1%;top:-19%;width:31%;height:145%;border-radius:50%;background:var(--muzzle)}
+.bng-mallet{position:absolute;z-index:4;left:-9%;bottom:-10%;width:30%;height:98%;transform:rotate(-19deg);transform-origin:50% 90%}
+.bng-mallet .handle{left:37%;width:28%;height:85%;bottom:4%;border-radius:8px;background:#744a3e}
+.bng-mallet .pad{left:-38%;top:0;width:160%;height:35%;border-radius:7px;background:repeating-linear-gradient(90deg,#da7858 0 6px,#bd604d 7px 9px);border:2px solid #9c5346}
+.bng-mallet .grip{bottom:0;left:4%;width:90%;height:25%;border-radius:50%;background:var(--muzzle);z-index:1;border:1px solid #956e5d}
+.bng-buzz,.bng-buzz:disabled{position:absolute;z-index:5;bottom:18%;left:50%;transform:translateX(-50%);min-height:40px;border-radius:50%;background:linear-gradient(#fc7766,#c33743);border:2px solid #ff9c81;color:white;box-shadow:0 5px 0 #873842,0 8px 0 #664b59;font-size:clamp(11px,2.8cqw,16px);font-weight:800;padding:8px 12px}
+.bng-buzz:disabled{filter:saturate(.55);opacity:.85}.bng-buzz:enabled:active{bottom:calc(18% - 3px)}
+.bng-status{display:flex;gap:15px;align-items:center;justify-content:space-between}.bng-picker{display:inline-flex;align-items:center;gap:8px;margin:8px 12px 8px 0}.bng-picker select{width:auto}
+.swing{z-index:4}.bng-seat:has(.swing){z-index:3}
+.swing .bng-mallet{animation:bng-swing .8s ease-in-out}
+.bonked .bng-head{animation:bng-sting .9s ease-out}
+@keyframes bng-swing{0%,100%{transform:rotate(-19deg)}25%{transform:rotate(-65deg)}55%,63%{transform:translateX(45cqw) rotate(80deg)}}
+@keyframes bng-sting{0%,40%,100%{transform:none}58%{transform:rotate(-9deg) scale(1.17);filter:sepia(.55) saturate(2.5)}}
+@media(prefers-reduced-motion:reduce){.swing .bng-mallet,.bonked .bng-head{animation:none}}

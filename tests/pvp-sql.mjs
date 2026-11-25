@@ -90,4 +90,27 @@ assert.equal(s.status,'finished');assert.equal(s.winner,1);await as(a);const fin
 // Historic results survive room garbage collection and cannot be edited by a member.
 await assert.rejects(()=>db.exec("delete from wordshift_private.match_history"));await admin("delete from wordshift_private.rooms where id=$1",[winBattle]);await as(a);assert.ok((await db.query('select public.wordshift_pvp_history(0) r')).rows[0].r.some(x=>x.id===winBattle));
 await as(null,'anon');await assert.rejects(()=>db.query('select public.wordshift_pvp_pools()'));await assert.rejects(()=>db.query('select public.wordshift_pvp_history(0)'));
-await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, five game modes, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');
+// First buzz wins under the room lock, wrong answers transfer the same prompt, and three hits end the match.
+const prompts=[{front:'I have lived here ____ 2020.',back:'since',options:['since','for','until']}];
+await as(a);const duel=await lobby('create','buzzer','',prompts);
+s=await rpc(duel,'avatar',0,6);assert.equal(s.avatars[0],6);
+await as(b);await lobby('join','buzzer',s.code);await startClock(duel);
+const expire=async()=>{await admin("update wordshift_private.rooms set deadline=now()-interval '1 second' where id=$1",[duel]);await as(a);return rpc(duel)};
+await as(b);s=await rpc(duel,'buzz',0);assert.equal(s.turn,2);
+await as(a);s=await rpc(duel,'buzz',0);assert.equal(s.turn,2);assert.deepEqual(s.question.options,[]);
+s=await rpc(duel,'answer',0,0);assert.equal(s.answer,null);
+await as(b);s=await rpc(duel);s=await rpc(duel,'answer',0,s.question.options.indexOf('for'));assert.equal(s.turn,1);assert.equal(s.correct,undefined);
+await as(a);s=await rpc(duel);s=await rpc(duel,'answer',0,s.question.options.indexOf('until'));assert.equal(s.phase,'feedback');assert.deepEqual(s.lives,[3,3]);
+s=await expire();assert.equal(s.round,1);
+for(let i=1;i<=3;i++){
+ await startClock(duel);await as(b);await rpc(duel,'buzz',i);
+ s=await expire();assert.equal(s.turn,1);assert.equal(s.phase,'claimed');
+ const right=s.question.options.indexOf('since');assert.ok(right>=0);
+ s=await rpc(duel,'answer',i,right);assert.equal(s.event.by,1);assert.deepEqual(s.lives,[3,3-i]);
+ s=await rpc(duel,'answer',i,right);assert.deepEqual(s.lives,[3,3-i]);
+ s=await expire();
+}
+assert.equal(s.status,'finished');assert.equal(s.winner,1);
+const log=(await db.query('select public.wordshift_pvp_history(0) r')).rows[0].r.find(x=>x.id===duel);
+assert.deepEqual(log.lives,[3,0]);assert.equal(log.winner,1);
+await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, six game modes, buzzer ownership/steals/lives, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');

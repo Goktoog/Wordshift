@@ -6,6 +6,7 @@ const games = [
   ['blocks', '▦', 'Kelime blokları', 'İngilizce ve Türkçe blokları eşleştir'],
   ['meteor', '🚀', 'Meteor avı', 'Doğru karşılığı vur'],
   ['sentences', '▤', 'Cümle Düellosu', 'Seviyeye uygun hazır cümleleri kur'],
+  ['buzzer', '🔴', 'Bıng Düellosu', 'Düğmeye önce bas, doğru cevapla rakibin canını azalt'],
   ['tower', '🧊', 'Kelime Kulesi', 'Doğru platformu seç, bir kat yukarı zıpla'],
   ['detective', '🔎', 'Kelime Dedektifi', 'Türkçe ipucundan İngilizce kelimeyi harf harf çöz'],
   ['crossing', '🐔', 'Kelime Geçidi', 'Doğru cevabı bul, tavuğu karşıya geçir'],

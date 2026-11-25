@@ -15,6 +15,7 @@ function tone(freq,delay,length,volume=.1,type='sine'){
  o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+length+.03);
 }
 // Short tick for the last three seconds of a timer.
+export function bonkSound(){tone(220,0,.12,.12,'triangle');tone(530,.03,.30,.08,'sine');tone(780,.055,.18,.035,'sine')}
 export function beep(){tone(1040,0,.13,.09,'triangle')}
 // "Dın dın dın": a match was found.
 export function matchFoundSound(){[0,.24,.48].forEach(d=>tone(880,d,.17,.13,'sine'))}

@@ -19,7 +19,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Bu beş oyun tek oyunculu / botlu ve iki oyunculu çevrimiçi modlarda oynanır. Kelime Geçidi, Kelime Kulesi ve Kelime Dedektifi tek oyunculudur.
+- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Bunlar ve Bıng Düellosu tek oyunculu / botlu ve iki oyunculu çevrimiçi modlarda oynanır. Kelime Geçidi, Kelime Kulesi ve Kelime Dedektifi tek oyunculudur.
 - **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
 - **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
@@ -77,6 +77,12 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 - Kuyruklar yaklaşık 3 saniyede, maç durumu yaklaşık 1 saniyede güncellenir. Hareket animasyonları cihazda çalışır; cevap, süre, can ve sonuçlar Supabase tarafından belirlenir.
 - XP ve seviye rozetleri çalışma göstergesidir; resmî bir dil yeterlilik sonucu değildir.
 - Profil fotoğrafı ve kapak görseli düzenleme kayıtlı hesaplara açıktır.
+
+## Bıng Düellosu ve misafir erişimi
+
+Mevcut sosyal özellikleri olan Supabase projesinde bu sürümle verilen **Wordshift-Guncelleme.sql** dosyasının tamamını SQL Editor’da bir kez çalıştır. Ardından ön yüzü yayınla. Tek tek kurmak için aynı değişiklikler sırasıyla `supabase/admin-badge.sql` ve `supabase/pvp.sql` içinde bulunur.
+
+Bot maçı için bir setten veya Oyunlar bölümünden **Bıng Düellosu** seç. İki kayıtlı oyuncu **Çevrimiçi PvP → Bıng Düellosu** ile eşleşebilir veya oda kodu kullanabilir. Oyuncular üçer canla başlar. Doğru cevap rakibin bir canını götürür. İlk basan on saniye içinde cevaplayamazsa veya yanlış cevaplarsa aynı soru rakibe geçer. İki oyuncu da bilemezse yeni soru gelir. Kelime, cümle ve boşluk doldurma soruları seçilen setin içeriğinden gelir.
 
 ## Misafir erişimi ve admin rozeti güncellemesi
 

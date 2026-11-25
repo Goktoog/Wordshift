@@ -6,6 +6,8 @@ export function socialError(error) {
 async function rpc(name, args) {
   const c = await client();
   const {data, error} = await c.rpc(name, args);
+  if (error?.code==='42501'&&['wordshift_user_profile','wordshift_leaderboard'].includes(name))
+    throw Error('Herkese açık okuma izni eksik. Site yöneticisi Supabase SQL Editor’da güncel supabase/admin-badge.sql dosyasını çalıştırmalı.');
   if (error) throw Error(socialError(error));
   return data;
 }
