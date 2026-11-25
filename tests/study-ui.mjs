@@ -23,15 +23,39 @@ go('detail','own');assertModes();
 document.querySelector('[data-action="sentences"]').click();
 assert.ok(state.session.pool.length&&state.session.pool.every(x=>x.level==='B1'&&x.back.includes(' ')));
 document.querySelector('#exit').click();assert.equal(state.current(),own);
-document.querySelector('[data-action="crossing"]').click();
+const originalFrame=window.requestAnimationFrame;
+let frame,clock=0;
+window.requestAnimationFrame=callback=>{frame=callback;return 1};
+const tick=()=>{clock+=1000/60;const callback=frame;frame=null;callback?.(clock)};
+const waitFrames=predicate=>{for(let i=0;i<750&&!predicate();i++)tick();assert.ok(predicate())};
+document.querySelector('[data-action="crossing"]').click();tick();
 for (const correct of [false,true]) {
  const item=state.session.pool[state.session.i];
  const button=[...document.querySelectorAll('[data-answer]')].find(b=>(b.textContent===item.back)===correct);
  button.click();button.click();assert.equal(state.session.score,correct?1:0);
+ if(correct){
+  const goButton=document.querySelector('#crossingGo'),signal=document.querySelector('#crossingSignal');
+  waitFrames(()=>signal.dataset.safe==='false');goButton.click();
+  waitFrames(()=>document.querySelector('#crossingFeedback').textContent.includes('çarptın'));
+  waitFrames(()=>!goButton.hidden&&signal.dataset.safe==='true');goButton.click();
+  waitFrames(()=>!document.querySelector('#crossingNext').hidden);
+  assert.match(document.querySelector('#crossingProgress').textContent,/Şerit 1\/3 · Çarpışma 1/);
+  assert.equal(state.session.score,1);
+ }
  document.querySelector('#crossingNext').click();
 }
 assert.ok(document.querySelector('#again'));document.querySelector('#exit').click();
-assert.equal(state.current(),own);
+assert.equal(state.current(),own);window.requestAnimationFrame=originalFrame;
+document.querySelector('[data-action="detective"]').click();
+for(const solved of [false,true]){
+ const word=state.session.pool[state.session.i].front;
+ const keys=[...document.querySelectorAll('[data-letter]')];
+ const guesses=keys.filter(b=>solved===word.includes(b.dataset.letter));
+ for(const b of (solved?guesses:guesses.slice(0,5)))b.click();
+ assert.equal(document.querySelector('#detectiveWord').textContent,word);
+ assert.equal(state.session.score,solved?1:0);document.querySelector('#detectiveNext').click();
+}
+assert.ok(document.querySelector('#again'));document.querySelector('#exit').click();
 document.querySelector('[data-action="tower"]').click();
 for (const correct of [true,false]) {
  const item=state.session.pool[state.session.i];

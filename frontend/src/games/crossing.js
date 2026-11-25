@@ -1,51 +1,92 @@
 import { $, escape } from '../core/utils.js';
 import { page, session } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
-
-const lanes = 4;
-
-function road(position) {
-  const chicken = '<span class="crossing-chicken">🐔</span>';
-  const strip = (className, occupied, contents = '') =>
-    `<div class="crossing-strip ${className}">${contents}${occupied ? chicken : ''}</div>`;
-  const traffic = ['🚙', '🚕', '🚗', '🚚'].map((car, index) =>
-    strip('crossing-lane', position < lanes && position === lanes - index, `<span class="crossing-car">${car}</span>`)
-  ).join('');
-  return strip('crossing-bank', position === lanes) + traffic + strip('crossing-bank', position === 0);
-}
+import { roadRenderer } from './crossing-scene.js';
+import { traffic, hopTime, safeToGo, crossingHit } from './crossing-traffic.js';
 
 export function crossing() {
-  const s = session;
-  if (s.i >= s.pool.length) { finish(); return; }
-  const item = s.pool[s.i], position = s.score % lanes;
-  $('view').innerHTML = topStudy('Kelime Geçidi') + `<div class="card crossing-game">
-    <div class="top"><strong id="crossingProgress"></strong><span>${s.i + 1} / ${s.pool.length}</span></div>
-    <div class="crossing-road" aria-hidden="true"></div>
-    <p class="muted">Her doğru cevapla bir şerit geç. Dört doğru cevap tavuğu karşı kıyıya ulaştırır.</p>
-    <h2>${escape(item.front)}</h2><div id="crossingAnswers">${answerMarkup(item)}</div>
-    <p id="crossingFeedback" role="status"></p><button class="primary" id="crossingNext" hidden></button></div>`;
+  const s=session;
+  if(s.i>=s.pool.length){finish();return}
+  $('view').innerHTML=topStudy('Kelime Geçidi')+`<section class="card crossing-game">
+    <div class="top"><strong id="crossingProgress"></strong><span id="crossingRound"></span></div>
+    <canvas id="crossingRoad" role="img" aria-label="Tavuğun arkasından görülen üç şeritli yol ve aradaki güvenli refüjler"></canvas>
+    <p class="muted">Kelimeyi bil, trafiği izle. Yol açıldığında “Şeridi geç” düğmesine bas. Çarpışırsan kaldırıma dönersin.</p>
+    <div id="crossingQuestion"></div><p id="crossingFeedback" role="status"></p>
+    <div class="actions"><button id="crossingGo" class="primary" hidden>Şeridi geç</button>
+    <span id="crossingSignal" hidden></span><button id="crossingNext" class="primary" hidden></button></div></section>`;
   exitBind();
-  const scene = document.querySelector('.crossing-road');
-  const draw = lane => {
-    scene.innerHTML = road(lane);
-    $('crossingProgress').textContent = `Geçilen yol: ${Math.floor(s.score / lanes)} · Şerit: ${lane} / ${lanes}`;
+  const canvas=$('crossingRoad'),draw=roadRenderer(canvas),step=$('crossingGo'),next=$('crossingNext');
+  const signal=$('crossingSignal'),feedback=$('crossingFeedback');
+  const active=()=>session===s&&page==='play'&&canvas.isConnected;
+  let lane=0,roads=0,hits=0,time=0,last=null,started=0,impact=0,phase='question';
+  const progress=()=>{$('crossingProgress').textContent=`Tamamlanan yol: ${roads} · Şerit ${lane}/${traffic.length} · Çarpışma ${hits}`};
+  function updateSignal(){
+    const safe=safeToGo(lane,time),label=safe?'Geçiş aralığı açık':'Araç yaklaşıyor';
+    if(signal.textContent!==label)signal.textContent=label;
+    signal.dataset.safe=String(safe);
+  }
+  function ready(){
+    phase='ready';step.hidden=false;signal.hidden=false;step.disabled=false;
+    updateSignal();
+    step.focus();
+  }
+  function resolved(){
+    phase='result';next.textContent=s.i+1===s.pool.length?'Sonucu gör':'Sıradaki kelime';
+    next.hidden=false;next.focus();
+  }
+  function question(){
+    phase='question';next.hidden=true;feedback.textContent='';
+    if(lane===traffic.length)lane=0;
+    progress();$('crossingRound').textContent=`${s.i+1} / ${s.pool.length}`;
+    const item=s.pool[s.i];
+    $('crossingQuestion').innerHTML=`<h2>${escape(item.front)}</h2><div id="crossingAnswers">${answerMarkup(item)}</div>`;
+    bindAnswer(item,(value,button)=>{
+      if(!active()||phase!=='question')return;
+      const ok=matchesAnswer(value,item,!button);
+      $('crossingAnswers').querySelectorAll('button,input').forEach(el=>el.disabled=true);
+      record(item,ok);
+      if(!ok){feedback.textContent='Doğru cevap: '+item.back;resolved();return}
+      s.score++;feedback.textContent='Geçiş hakkı kazandın. Güvenli anı seç.';ready();
+    });
+  }
+  next.onclick=()=>{
+    if(!active()||phase!=='result')return;
+    s.i++;
+    if(s.i===s.pool.length){
+      finish();
+      $('view').querySelector('.hero').insertAdjacentHTML('beforeend',`<p>${roads} yol tamamlandı · ${hits} çarpışma</p>`);
+    }else question();
   };
-  draw(position);
-  let answered = false;
-  bindAnswer(item, value => {
-    if (answered || session !== s || page !== 'play') return;
-    answered = true;
-    const correct = matchesAnswer(value, item, !!$('typed'));
-    record(item, correct);
-    if (correct) s.score++;
-    const lane = correct ? position + 1 : position;
-    draw(lane);
-    $('crossingFeedback').textContent = correct ? (lane === lanes ? 'Karşıya geçtin!' : 'Doğru! Bir şerit ilerledin.') : 'Bu şeritte bekle. Doğru cevap: ' + item.back;
-    $('crossingAnswers').querySelectorAll('button,input').forEach(control => control.disabled = true);
-    const next = $('crossingNext');
-    next.textContent = s.i + 1 === s.pool.length ? 'Sonucu gör' : 'Sıradaki kelime';
-    next.hidden = false;
-    next.focus();
-    next.onclick = () => { if (session === s && next.isConnected) { s.i++; crossing(); } };
-  });
+  step.onclick=()=>{
+    if(!active()||phase!=='ready')return;
+    phase='moving';started=time;step.hidden=true;signal.hidden=true;feedback.textContent='Geçiyorsun…';
+  };
+  function advance(dt){
+    time+=dt;
+    if(phase==='impact'&&time-impact>=.6){
+      lane=0;progress();feedback.textContent='Kaldırıma döndün. Aynı hakla yeniden geçebilirsin.';ready();
+    }
+    if(phase!=='moving')return;
+    const t=Math.min(1,(time-started)/hopTime);
+    if(crossingHit(lane,started,time-dt,time)){
+      phase='impact';impact=time;hits++;progress();feedback.textContent='Araca çarptın!';return;
+    }
+    if(t>=1){
+      lane++;if(lane===traffic.length)roads++;
+      progress();feedback.textContent=lane===traffic.length?'Karşı kıyıya ulaştın!':'Refüje ulaştın. Burada güvendesin.';
+      resolved();
+    }
+  }
+  function frame(now){
+    if(!active())return;
+    // Small steps keep impacts consistent across display refresh rates. Hidden tabs do not fast-forward.
+    let dt=last===null||document.hidden?0:Math.min(.08,(now-last)/1000);last=now;
+    while(dt>0){const slice=Math.min(dt,1/120);advance(slice);dt-=slice}
+    const moving=phase==='moving'||phase==='impact';
+    const t=moving?Math.min(1,((phase==='impact'?impact:time)-started)/hopTime):0;
+    draw(time,lane+t,Math.sin(Math.PI*t),phase==='impact');
+    if(phase==='ready')updateSignal();
+    window.requestAnimationFrame(frame);
+  }
+  question();draw(time,lane,0,false);window.requestAnimationFrame(frame);
 }

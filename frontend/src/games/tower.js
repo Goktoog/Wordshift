@@ -2,6 +2,20 @@ import { $, escape } from '../core/utils.js';
 import { session, page } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
 
+function kickSnow(player) {
+  const base = player.parentElement, puff = document.createElement('span');
+  puff.className = 'tower-powder';
+  puff.setAttribute('aria-hidden','true');
+  puff.style.left = '50%';
+  for (let i = 0; i < 12; i++) {
+    const fleck = document.createElement('i'), angle = Math.PI * (i + .5) / 12;
+    fleck.style.setProperty('--dx', Math.round(Math.cos(angle) * (24 + i % 3 * 8)) + 'px');
+    fleck.style.setProperty('--dy', -Math.round(Math.sin(angle) * (8 + i % 4 * 4)) + 'px');
+    puff.append(fleck);
+  }
+  base.append(puff);
+  puff.addEventListener('animationend', () => puff.remove(), {once:true});
+}
 function jump(player, target, landed) {
   const start = player.getBoundingClientRect();
   const end = target.getBoundingClientRect();
@@ -10,6 +24,7 @@ function jump(player, target, landed) {
   const destination = landed ? `translate(${dx}px,${dy}px)` : 'translate(0,0)';
   player.style.transform = destination;
   if (!player.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  kickSnow(player);
   const arc = [
     {transform:'translate(0,0)'},
     {transform:`translate(${dx * .65}px,${dy - 34}px)`, offset:.45},

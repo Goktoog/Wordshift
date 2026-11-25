@@ -19,7 +19,7 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Bu beş oyun tek oyunculu / botlu ve iki oyunculu çevrimiçi modlarda oynanır. Kelime Geçidi ve Kelime Kulesi tek oyunculudur.
+- **Oyunlar:** Word Runner, Amiral Battı, Kelime Blokları, Meteor Avı ve Cümle Düellosu. Bu beş oyun tek oyunculu / botlu ve iki oyunculu çevrimiçi modlarda oynanır. Kelime Geçidi, Kelime Kulesi ve Kelime Dedektifi tek oyunculudur.
 - **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
 - **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
@@ -82,7 +82,7 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 
 Sosyal özellikleri kurulu projelerde, bu sürümü yayınlamadan önce Supabase SQL Editor içinde güncel `supabase/admin-badge.sql` dosyasını çalıştır. İlk kurulumda sıra `setup.sql`, `community.sql`, `social.sql`, `admin-badge.sql` şeklindedir. Adminler **Profilim → Profili düzenle → Admin rozeti rengi** alanından renk seçebilir.
 
-Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde her doğru cevap bir şerit ilerletir. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın.
+Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde doğru cevap geçiş hakkı verir. “Şeridi geç” ile güvenli anı seçersin. Üç şeritlik yolu tamamlarsan karşı kıyıya ulaşırsın. Çarpışmada kaldırıma dönüp aynı hakkı yeniden kullanırsın. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın. Kelime Dedektifi’nde Türkçe ipucunun İngilizcesini beş yanlış tahmin hakkıyla harf harf çözersin.
 
 ## 0.9 çevrimiçi oyun kurulumu
 
