@@ -33,36 +33,44 @@ const tick=()=>{clock+=1000/60;const callback=frame;frame=null;callback?.(clock)
 const waitFrames=predicate=>{for(let i=0;i<750&&!predicate();i++)tick();assert.ok(predicate())};
 document.querySelector('[data-action="crossing"]').click();tick();
 for (const correct of [false,true]) {
- const item=state.session.pool[state.session.i];
+ const item=state.session.pool[state.session.i%state.session.pool.length];
  const button=[...document.querySelectorAll('[data-answer]')].find(b=>(b.textContent===item.back)===correct);
  button.click();button.click();assert.equal(state.session.score,0);assert.equal(state.session.lives,2);
  if(correct){
-  const goButton=document.querySelector('#crossingGo'),signal=document.querySelector('#crossingSignal');
-  waitFrames(()=>signal.dataset.safe==='false');goButton.click();
+  const goButton=document.querySelector('#crossingGo');
+  assert.equal(document.querySelector('#crossingSignal'),null);
+  const {trafficFor,crossingHit,hopTime}=await import('../frontend/src/games/crossing-traffic.js');
+  const traffic=trafficFor(state.session.trafficSeed);
+  function collision(){const time=(clock-1000/60)/1000;return crossingHit(traffic,0,time,time,time+hopTime)}
+  waitFrames(collision);goButton.click();
   waitFrames(()=>document.querySelector('#crossingFeedback').textContent.includes('çarptın'));
   assert.equal(state.session.lives,1);
-  waitFrames(()=>!goButton.hidden&&signal.dataset.safe==='true');goButton.click();
+  waitFrames(()=>!goButton.hidden&&!collision());goButton.click();
   waitFrames(()=>!document.querySelector('#crossingNext').hidden);
   assert.match(document.querySelector('#crossingProgress').textContent,/Şerit 1\/3 · Çarpışma 1/);
   assert.equal(state.session.score,1);
  }
  document.querySelector('#crossingNext').click();
 }
-assert.ok(document.querySelector('#again'));document.querySelector('#exit').click();
+assert.ok(document.querySelector('#crossingQuestion'));document.querySelector('#exit').click();
 assert.equal(state.current(),own);window.requestAnimationFrame=originalFrame;
 document.querySelector('[data-action="detective"]').click();
-for(const solved of [false,true]){
- const word=state.session.pool[state.session.i].front;
- const keys=[...document.querySelectorAll('[data-letter]')];
- const guesses=keys.filter(b=>solved===word.includes(b.dataset.letter));
- for(const b of (solved?guesses:guesses.slice(0,5)))b.click();
- assert.equal(document.querySelector('#detectiveWord').textContent,word);
- assert.equal(state.session.score,solved?1:0);document.querySelector('#detectiveNext').click();
+for(let n=0;n<4;n++){
+ const word=state.session.pool[state.session.i%state.session.pool.length].front;
+ const input=document.querySelector('.detective-input');assert.equal(document.activeElement,input);
+ if(!n){const miss=[...document.querySelectorAll('[data-letter]')].find(b=>!word.includes(b.dataset.letter));miss.click()}
+ input.dispatchEvent(new window.Event('compositionstart'));input.value=word;
+ input.dispatchEvent(new window.Event('input'));assert.equal(state.session.score,n);
+ input.dispatchEvent(new window.Event('compositionend'));assert.equal(state.session.lives,6);
+ document.querySelector('#detectiveNext').click();
 }
+const currentWord=state.session.pool[state.session.i%state.session.pool.length].front;
+for(const b of [...document.querySelectorAll('[data-letter]')].filter(b=>!currentWord.includes(b.dataset.letter)).slice(0,6))b.click();
+assert.equal(state.session.lives,0);document.querySelector('#detectiveNext').click();
 assert.ok(document.querySelector('#again'));document.querySelector('#exit').click();
 document.querySelector('[data-action="tower"]').click();
-for (const correct of [true,false]) {
- const item=state.session.pool[state.session.i];
+for (const correct of [true,false,false,false]) {
+ const item=state.session.pool[state.session.i%state.session.pool.length];
  const button=[...document.querySelectorAll('#towerAnswers [data-answer]')].find(b=>(b.textContent===item.back)===correct);
  button.click();button.click();assert.equal(state.session.score,1);
  assert.ok(button.classList.contains(correct?'landed':'cracked'));

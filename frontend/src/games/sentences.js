@@ -2,6 +2,7 @@ import {$,escape,shuffle} from '../core/utils.js';
 import {session,timer,setTimer,page} from '../core/state.js';
 import {record,finish,topStudy,exitBind} from '../features/session.js';
 import {countdownBeep} from '../ui/feedback.js';
+import {sentenceSeconds} from './sentence-time.js';
 export function mountSentence(host,options,onSubmit){
  let order=[],locked=false;
  host.innerHTML='<p>Türkçe cümlenin İngilizcesini kur. Kelimelere sırayla dokun; seçilen kelimeye tekrar dokunarak geri al.</p><div class="sentence-line" aria-label="Kurduğun cümle"></div><div class="sentence-tokens"></div><button class="primary sentence-submit">Cümleyi gönder</button><button class="sentence-reset">Temizle</button>';
@@ -11,8 +12,8 @@ export function mountSentence(host,options,onSubmit){
  return {lock(value){if(locked!==value){locked=value;draw()}},stop(){locked=true}};
 }
 export function sentences(){
- const s=session;clearInterval(timer);if(s.i>=s.pool.length){finish();return}const x=s.pool[s.i],options=shuffle(x.back.split(' ')),deadline=Date.now()+90000;let done=false;
- $('view').innerHTML=topStudy('Cümle Düellosu')+`<div class="card"><div class="top"><h2>${escape(x.front)}</h2><span class="timer" id="sentenceClock">90 sn</span></div><div id="sentenceSolo"></div><p id="sentenceFeedback" role="status"></p></div>`;exitBind();
+ const s=session;clearInterval(timer);if(s.i>=s.pool.length){finish();return}const x=s.pool[s.i],options=shuffle(x.back.split(' ')),seconds=sentenceSeconds(x.back),deadline=Date.now()+seconds*1000;let done=false;
+ $('view').innerHTML=topStudy('Cümle Düellosu')+`<div class="card"><div class="top"><h2>${escape(x.front)}</h2><span class="timer" id="sentenceClock">${seconds} sn</span></div><div id="sentenceSolo"></div><p id="sentenceFeedback" role="status"></p></div>`;exitBind();
  const controls=mountSentence($('sentenceSolo'),options,order=>{
   if(order.map(i=>options[i]).join(' ')===x.back){resolve(true);return}
   // A wrong try does not end the sentence: fix it until the time is up.

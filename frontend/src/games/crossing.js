@@ -3,43 +3,38 @@ import { $, escape } from '../core/utils.js';
 import { page, session } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
 import { roadRenderer } from './crossing-scene.js';
-import { traffic, hopTime, safeToGo, crossingHit } from './crossing-traffic.js';
+import { trafficFor, roadCount, hopTime, crossingHit } from './crossing-traffic.js';
 
 export function crossing() {
   const s=session;
   if(runOver(s)){finish();return}
   $('view').innerHTML=topStudy('Kelime Geçidi')+`<section class="card crossing-game">
     <div class="top"><strong id="crossingProgress"></strong><span id="crossingRound"></span></div>
-    <canvas id="crossingRoad" role="img" aria-label="Tavuğun arkasından görülen üç şeritli yol ve aradaki güvenli refüjler"></canvas>
+    <canvas id="crossingRoad" role="img" aria-label="Tavuğun arkasından görülen ikişer şeritli yollar ve aradaki refüjler"></canvas>
     <p class="muted">Kelimeyi bil, trafiği izle. Yol açıldığında “Şeridi geç” düğmesine bas. Çarpışırsan kaldırıma dönersin.</p>
     <div id="crossingQuestion"></div><p id="crossingFeedback" role="status"></p>
     <div class="actions"><button id="crossingGo" class="primary" hidden>Şeridi geç</button>
-    <span id="crossingSignal" hidden></span><button id="crossingNext" class="primary" hidden></button></div></section>`;
+    <button id="crossingNext" class="primary" hidden></button></div></section>`;
   exitBind();
-  const canvas=$('crossingRoad'),draw=roadRenderer(canvas),step=$('crossingGo'),next=$('crossingNext');
-  const signal=$('crossingSignal'),feedback=$('crossingFeedback');
+  const streams=trafficFor(s.trafficSeed??=Math.floor(Math.random()*1000000));
+  const canvas=$('crossingRoad'),draw=roadRenderer(canvas,streams),step=$('crossingGo'),next=$('crossingNext');
+  const feedback=$('crossingFeedback');
   const active=()=>session===s&&page==='play'&&canvas.isConnected;
   let lane=0,roads=0,hits=0,time=0,last=null,started=0,impact=0,phase='question';
-  const progress=()=>{$('crossingProgress').textContent=`${livesLabel(s)} · Tamamlanan yol: ${roads} · Şerit ${lane}/${traffic.length} · Çarpışma ${hits}`};
-  function updateSignal(){
-    const safe=safeToGo(lane,time),label=safe?'Geçiş aralığı açık':'Araç yaklaşıyor';
-    if(signal.textContent!==label)signal.textContent=label;
-    signal.dataset.safe=String(safe);
-  }
+  const progress=()=>{$('crossingProgress').textContent=`${livesLabel(s)} · Tamamlanan yol: ${roads} · Şerit ${lane}/${roadCount} · Çarpışma ${hits}`};
   function ready(){
-    phase='ready';step.hidden=false;signal.hidden=false;step.disabled=false;
-    updateSignal();
+    phase='ready';step.hidden=false;step.disabled=false;
     step.focus();
   }
   function resolved(){
-    phase='result';next.textContent=runOver(s)||s.i+1===s.pool.length?'Sonucu gör':'Sıradaki kelime';
+    phase='result';next.textContent=runOver(s)?'Sonucu gör':'Sıradaki kelime';
     next.hidden=false;next.focus();
   }
   function question(){
     phase='question';next.hidden=true;feedback.textContent='';
-    if(lane===traffic.length)lane=0;
-    progress();$('crossingRound').textContent=`${s.i+1} / ${s.pool.length}`;
-    const item=s.pool[s.i];
+    if(lane===roadCount)lane=0;
+    progress();$('crossingRound').textContent=`Soru ${s.i+1}`;
+    const item=s.pool[s.i%s.pool.length];
     $('crossingQuestion').innerHTML=`<h2>${escape(item.front)}</h2><div id="crossingAnswers">${answerMarkup(item)}</div>`;
     bindAnswer(item,(value,button)=>{
       if(!active()||phase!=='question')return;
@@ -60,7 +55,7 @@ export function crossing() {
   };
   step.onclick=()=>{
     if(!active()||phase!=='ready')return;
-    phase='moving';started=time;step.hidden=true;signal.hidden=true;feedback.textContent='Geçiyorsun…';
+    phase='moving';started=time;step.hidden=true;feedback.textContent='Geçiyorsun…';
   };
   function advance(dt){
     time+=dt;
@@ -69,12 +64,12 @@ export function crossing() {
     }
     if(phase!=='moving')return;
     const t=Math.min(1,(time-started)/hopTime);
-    if(crossingHit(lane,started,time-dt,time)){
+    if(crossingHit(streams,lane,started,time-dt,time)){
       phase='impact';impact=time;hits++;s.lives--;progress();feedback.textContent='Araca çarptın!';return;
     }
     if(t>=1){
-      s.score++;lane++;if(lane===traffic.length)roads++;
-      progress();feedback.textContent=lane===traffic.length?'Karşı kıyıya ulaştın!':'Refüje ulaştın. Burada güvendesin.';
+      s.score++;lane++;if(lane===roadCount)roads++;
+      progress();feedback.textContent=lane===roadCount?'Karşı kıyıya ulaştın!':'Refüje ulaştın. Burada güvendesin.';
       resolved();
     }
   }
@@ -86,7 +81,7 @@ export function crossing() {
     const moving=phase==='moving'||phase==='impact';
     const t=moving?Math.min(1,((phase==='impact'?impact:time)-started)/hopTime):0;
     draw(time,lane+t,Math.sin(Math.PI*t),phase==='impact');
-    if(phase==='ready')updateSignal();
+
     window.requestAnimationFrame(frame);
   }
   question();draw(time,lane,0,false);window.requestAnimationFrame(frame);

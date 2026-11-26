@@ -21,11 +21,19 @@ create table if not exists wordshift_private.rooms (
  finish_times bigint[] not null default array[null::bigint,null::bigint],
  event jsonb, winner integer, reason text
 );
+do $$
+begin
+ if exists(select 1 from information_schema.columns where table_schema='wordshift_private' and table_name='rooms' and column_name='lives')
+ and not exists(select 1 from information_schema.columns where table_schema='wordshift_private' and table_name='rooms' and column_name='traffic_seed') then
+  update wordshift_private.rooms set lives=array[4+lives[1],4+lives[2]] where mode='detective' and status='active';
+ end if;
+end $$;
 alter table wordshift_private.rooms
  add column if not exists race_rounds integer[] not null default '{0,0}',
  add column if not exists race_starts timestamptz[],
  add column if not exists race_ends timestamptz[],
  add column if not exists race_feedback boolean[] not null default '{false,false}',
+ add column if not exists traffic_seed integer not null default floor(random()*1000000)::integer,
  add column if not exists race_moves jsonb not null default '[null,null]';
 alter table wordshift_private.rooms add column if not exists guests boolean[] not null default array[false,false];
 alter table wordshift_private.rooms add column if not exists guesses jsonb not null default '[[],[]]';
@@ -111,6 +119,20 @@ revoke all on function wordshift_private.expire_rooms() from public,anon,authent
 
 drop function if exists public.wordshift_pvp_lobby(text,text,jsonb,text,text);
 -- Match the solo clock. Both the first claimant and a player taking over get an answer budget.
+create or replace function wordshift_private.sentence_time(sentence text)
+returns interval language sql immutable set search_path='' as $$
+ with tokens as (
+  select parts[1] word,ord from regexp_matches(lower(sentence), '([a-z]+(?:''[a-z]+)*)', 'g') with ordinality as matched(parts,ord)
+ ), counted as (
+  select count(*) word_count, count(*) filter (where word in ('if','unless','when','while','although','though','because','since','that','which','who','whose','until','whether')) clauses,
+   string_agg(word,' ' order by ord) phrase from tokens
+ )
+ select make_interval(secs=>least(150,greatest(20,12+3*word_count+7*clauses+
+  case when phrase ~ '^(only later|under no circumstances|by no means|had i|had we|had they|the more)( |$)' then 9 else 0 end+
+  case when phrase ~ '(^| )(would have|could have|should have|have been|has been|had been|must be|should be|can be)( |$)' then 6 else 0 end))::integer) from counted
+$$;
+revoke all on function wordshift_private.sentence_time(text) from public,anon,authenticated;
+
 create or replace function wordshift_private.buzzer_time(q jsonb, answering boolean)
 returns interval language sql immutable set search_path='' as $$
  with counts as (select cardinality(regexp_split_to_array(trim(q->>'front'),'[[:space:]]+')) words,
@@ -157,8 +179,9 @@ begin
  end if;
  if r.id is not null and r.status='waiting' then
   update wordshift_private.rooms set guests=array[guests[1],local_level is not null],players=array_append(players,who),names=array_append(names,nick),seen=array_append(seen,now()),
-   status=case when mode='battle' then 'placing' else 'active' end, started_at=now(),starts_at=now()+interval '3 seconds',
-   deadline=now()+case when mode='buzzer' then interval '3 seconds'+wordshift_private.buzzer_time(deck->0,false) when mode='battle' then interval '120 seconds' when mode='blocks' then interval '63 seconds' when mode='detective' then interval '38 seconds' when mode='crossing' then interval '23 seconds' when mode='sentences' then interval '93 seconds' else interval '13 seconds' end
+   lives=case when mode='detective' then array[7,7] else lives end,
+   status=case when mode in ('battle','buzzer') then 'placing' else 'active' end, started_at=now(),starts_at=now()+interval '3 seconds',
+   deadline=now()+case when mode='buzzer' then interval '15 seconds' when mode='battle' then interval '120 seconds' when mode='blocks' then interval '63 seconds' when mode='detective' then interval '38 seconds' when mode='crossing' then interval '23 seconds' when mode='sentences' then interval '3 seconds'+wordshift_private.sentence_time(deck->0->>'back') else interval '13 seconds' end
    where id=r.id;
   return r.id;
  end if;
@@ -189,7 +212,7 @@ begin
   select distinct on (lower(trim(w->>'back'))) left(trim(w->>'front'),200) front,left(trim(w->>'back'),300) back
   from jsonb_array_elements(words) w where jsonb_typeof(w->'front')='string' and jsonb_typeof(w->'back')='string' and length(trim(w->>'front'))>0 and length(trim(w->>'back'))>0
  ), unique_words as (select distinct on (lower(front)) front,back from clean), chosen as (
-  select * from unique_words order by random() limit case when game_mode='blocks' then 8 when game_mode in ('tower','crossing','detective') then 5 else 20 end
+  select * from unique_words order by random() limit case when game_mode='blocks' then 8 when game_mode in ('tower','crossing','detective') then 100 else 20 end
  ), prepared as (
   select c.front,c.back,(select jsonb_agg(v order by random()) from (select c.back v union select back from (select back from chosen where back<>c.back order by random() limit 3) others) opts) options from chosen c
  ) select jsonb_agg(to_jsonb(prepared) order by random()) into deck_data from prepared;
@@ -221,11 +244,27 @@ begin
 end $$;
 revoke all on function wordshift_private.buzzer_answer(wordshift_private.rooms,boolean,timestamptz) from public,anon,authenticated;
 
+-- Two distinct traffic streams in each road, mirrored in crossing-traffic.js.
+create or replace function wordshift_private.traffic_hit(seed integer,road integer,travel numeric,x integer)
+returns boolean language sql immutable set search_path='' as $$
+ with streams as (
+  select k,road*2+k idx,case when k=0 then 1 else -1 end dir,
+   (case when k=0 then 102 else 205 end)+(seed/(road+1)+47*(road*2+k))%67 speed,
+   525+(seed/7+77*(road*2+k))%235 gap,
+   (seed/11+193*(road*2+k))%481 base_phase,45+(seed/13+29*(road*2+k))%100 stagger,
+   (array[82,60,70,96,58,78])[1+road*2+k]/2+9 clearance
+  from generate_series(0,1) k), cars as (
+  select streams.*,base_phase+n*gap+case n when 1 then stagger when 2 then -stagger else 0 end phase from streams cross join generate_series(0,2) n)
+ select bool_or(ceil((phase-x*dir+speed*(travel+(0.14+k*.45)*.95)-clearance)/(3*gap))
+   <=floor((phase-x*dir+speed*(travel+(.42+k*.45)*.95)+clearance)/(3*gap))) from cars
+$$;
+revoke all on function wordshift_private.traffic_hit(integer,integer,numeric,integer) from public,anon,authenticated;
+
 create or replace function wordshift_private.race_step(r wordshift_private.rooms, me integer, action text, token integer, value integer, extra jsonb, t timestamptz)
 returns wordshift_private.rooms language plpgsql set search_path='' as $$
 declare
  j integer; q jsonb; a jsonb; ok boolean; letter text; word text; missed integer;
- lane integer; travel numeric; speed integer; spacing integer; offset_x integer; clearance integer; collision boolean;
+ lane integer; travel numeric; collision boolean;
  duration interval:=case r.mode when 'detective' then interval '35 seconds' when 'crossing' then interval '20 seconds' else interval '10 seconds' end;
 begin
  if r.race_starts is null then
@@ -247,6 +286,7 @@ begin
    r.race_feedback[j]:=false;r.race_starts[j]:=t;r.race_ends[j]:=t+duration;
   else
    a:=r.answers->(j-1);
+   if r.mode='tower' then r.race_moves:=jsonb_set(r.race_moves,array[(j-1)::text],jsonb_build_object('hurtAt',t));end if;
    if a='null'::jsonb then a:=jsonb_build_object('ok',false);r.wrong_counts[j]:=r.wrong_counts[j]+1;end if;
    r.answers:=jsonb_set(r.answers,array[(j-1)::text],a||jsonb_build_object('timeout',true));
    r.lives[j]:=greatest(0,r.lives[j]-1);r.race_feedback[j]:=true;r.race_ends[j]:=t+interval '1.3 seconds';
@@ -263,23 +303,27 @@ begin
     if r.mode='tower' then r.scores[me]:=r.scores[me]+100;
      r.race_moves:=jsonb_set(r.race_moves,array[(me-1)::text],jsonb_build_object('jumpAt',t));
     end if;
-   else r.wrong_counts[me]:=r.wrong_counts[me]+1;end if;
+   else
+    r.wrong_counts[me]:=r.wrong_counts[me]+1;
+    if r.mode='tower' then r.race_moves:=jsonb_set(r.race_moves,array[(me-1)::text],jsonb_build_object('hurtAt',t));end if;
+   end if;
   elsif action='letter' and r.mode='detective' and r.answers->(me-1)='null'::jsonb then
    letter:=lower(extra#>>'{}');word:=lower(q->>'front');
    if jsonb_typeof(extra)='string' and char_length(letter)=1 and letter~'[[:alnum:]]' and not (r.guesses->(me-1) ? letter) then
     r.guesses:=jsonb_set(r.guesses,array[(me-1)::text],(r.guesses->(me-1))||jsonb_build_array(letter));
     select count(*) into missed from jsonb_array_elements_text(r.guesses->(me-1)) g where strpos(word,g)=0;
     ok:=not exists(select 1 from regexp_split_to_table(word,'') ch where ch~'[[:alnum:]]' and not (r.guesses->(me-1) ? ch));
-    if ok or missed>=5 then
+    if strpos(word,letter)=0 then
+     r.lives[me]:=greatest(0,r.lives[me]-1);r.wrong_counts[me]:=r.wrong_counts[me]+1;
+    end if;
+    if ok or r.lives[me]=0 then
      r.answers:=jsonb_set(r.answers,array[(me-1)::text],jsonb_build_object('ok',ok));
-     if ok then r.scores[me]:=r.scores[me]+100;r.correct_counts[me]:=r.correct_counts[me]+1;else r.wrong_counts[me]:=r.wrong_counts[me]+1;end if;
+     if ok then r.scores[me]:=r.scores[me]+100;r.correct_counts[me]:=r.correct_counts[me]+1;end if;
     end if;
    end if;
   elsif action='hop' and r.mode='crossing' and r.answers->(me-1)->>'ok'='true' and not (r.answers->(me-1) ? 'hopAt') then
    lane:=r.lanes[me]%3+1;travel:=extract(epoch from(t-r.starts_at));
-   speed:=(array[148,183,159])[lane];spacing:=(array[490,550,455])[lane];offset_x:=(array[125,331,88])[lane];clearance:=(array[47,43,50])[lane];
-   offset_x:=offset_x-(case when me=1 then -20 else 20 end)*(case when lane=3 then -1 else 1 end);
-   collision:=ceil((offset_x+speed*(travel+.27*.95)-clearance)/spacing)<=floor((offset_x+speed*(travel+.73*.95)+clearance)/spacing);
+   collision:=wordshift_private.traffic_hit(r.traffic_seed,lane-1,travel,case when me=1 then -20 else 20 end);
    r.answers:=jsonb_set(r.answers,array[(me-1)::text],(r.answers->(me-1))||jsonb_build_object('hopAt',t,'collision',collision,'fromLane',lane-1));
    r.race_moves:=jsonb_set(r.race_moves,array[(me-1)::text],jsonb_build_object('hopAt',t,'fromLane',lane-1,'collision',collision));
    if collision then r.lanes[me]:=0;else r.lanes[me]:=lane;r.scores[me]:=r.scores[me]+100;end if;
@@ -287,14 +331,12 @@ begin
   a:=r.answers->(me-1);
   if a<>'null'::jsonb and (r.mode<>'crossing' or a->>'ok'='false' or a ? 'hopAt') then
    r.race_feedback[me]:=true;r.race_ends[me]:=t+interval '1.3 seconds';
-   if a->>'ok'='false' or a->>'collision'='true' then r.lives[me]:=greatest(0,r.lives[me]-1);end if;
+   if r.mode<>'detective' and (a->>'ok'='false' or a->>'collision'='true') then r.lives[me]:=greatest(0,r.lives[me]-1);end if;
   end if;
  end if;
  if 0=any(r.lives) then
-  r.status:='finished';r.reason:='Üç can tükendi.';
+  r.status:='finished';r.reason:=case when r.mode='detective' then 'Çöp adam tamamlandı.' else 'Üç can tükendi.' end;
   r.winner:=case when r.lives[1]=r.lives[2] then null when r.lives[1]=0 then 2 else 1 end;
- elsif greatest(r.scores[1],r.scores[2])>=300 then
-  r.status:='finished';r.winner:=case when r.scores[1]=r.scores[2] then null when r.scores[1]>r.scores[2] then 1 else 2 end;r.reason:='Üç başarıya ilk ulaşan yarışı kazandı.';
  end if;
  r.round_no:=greatest(r.race_rounds[1],r.race_rounds[2]);
  return r;
@@ -304,7 +346,7 @@ revoke all on function wordshift_private.race_step(wordshift_private.rooms,integ
 create or replace function wordshift_private.play_room(who uuid, local_level text, room_id uuid, action text default 'poll', token integer default 0, value integer default -1, extra jsonb default 'null')
 returns jsonb language plpgsql security definer set search_path='' as $$
 declare r wordshift_private.rooms;  me integer; other integer; t timestamptz:=clock_timestamp(); q jsonb; ok boolean; allcells integer[]:='{}'; groupcells integer[]; ship jsonb; cell integer; n integer; j integer; ending boolean:=false; next_turn boolean:=false; slow_turn boolean:=false; mine jsonb; theirs jsonb; result jsonb; prev_start timestamptz; buzzer_expired boolean:=false;
- letter text; word text; masked text; missed integer; lane integer; travel numeric; speed integer; spacing integer; offset_x integer; clearance integer; collision boolean;
+ letter text; word text; masked text; missed integer; lane integer; travel numeric; collision boolean;
 begin
  if who is null then raise exception 'Giriş yapmalısın.'; end if;
  select * into r from wordshift_private.rooms where id=room_id for update;
@@ -318,10 +360,16 @@ begin
  end if;
  r.seen[me]:=t;
  if r.status='waiting' and r.created_at<t-interval '10 minutes' then r.status:='finished';r.reason:='Bekleme süresi doldu.';end if;
- if r.status in ('active','placing') and r.started_at<t-interval '15 minutes' then r.status:='finished';r.reason:='Maçın azami süresi doldu.';ending:=true;end if;
+ if r.status in ('active','placing') and r.mode not in ('tower','crossing','detective') and r.started_at<t-interval '15 minutes' then r.status:='finished';r.reason:='Maçın azami süresi doldu.';ending:=true;end if;
  if action='leave' and r.status<>'finished' then r.status:='finished';r.winner:=case when cardinality(r.players)=2 then other else null end;r.reason:='Oyuncu odadan ayrıldı.';end if;
- if r.status='placing' and t>=r.deadline then r.status:='finished';r.reason:='Filo yerleştirme süresi doldu.';r.winner:=case when r.ready[1] and not r.ready[2] then 1 when r.ready[2] and not r.ready[1] then 2 else null end;end if;
- if r.mode='buzzer' and action='avatar' and value between 0 and 6 and (r.status='waiting' or (r.status='active' and r.phase='question')) then r.avatars[me]:=value;end if;
+ if r.status='placing' and t>=r.deadline then r.status:='finished';r.reason:=case when r.mode='buzzer' then 'Maskot seçim süresi doldu.' else 'Filo yerleştirme süresi doldu.' end;r.winner:=case when r.ready[1] and not r.ready[2] then 1 when r.ready[2] and not r.ready[1] then 2 else null end;end if;
+ if r.status='placing' and r.mode='buzzer' and action='avatar' and value between 0 and 6 and not r.ready[me] then
+  r.avatars[me]:=value;r.ready[me]:=true;
+  if r.ready[1] and r.ready[2] then
+   r.status:='active';r.phase:='question';r.starts_at:=t+interval '1 second';
+   r.deadline:=r.starts_at+wordshift_private.buzzer_time(r.deck->0,false);
+  end if;
+ end if;
  if r.status='active' and r.mode='buzzer' and t>=r.deadline then
   buzzer_expired:=true;
   if r.phase='claimed' then r:=wordshift_private.buzzer_answer(r,false,t);
@@ -337,7 +385,7 @@ begin
   elsif r.phase='feedback' and t>=r.deadline then
    r.round_no:=r.round_no+1;
    if r.mode='sentences' and r.round_no>=jsonb_array_length(r.deck) then r.status:='finished';r.reason:='Tüm kelimeler tamamlandı.';ending:=true;
-   else r.phase:='question';r.answers:='[null,null]';r.guesses:='[[],[]]';r.starts_at:=t+case when r.mode='runner' then interval '2400 milliseconds' else interval '600 milliseconds' end;r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
+   else r.phase:='question';r.answers:='[null,null]';r.guesses:='[[],[]]';r.starts_at:=t+case when r.mode='runner' then interval '2400 milliseconds' else interval '600 milliseconds' end;r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then wordshift_private.sentence_time(r.deck->(r.round_no%jsonb_array_length(r.deck))->>'back') else interval '10 seconds' end;end if;
   end if;
  elsif r.status='active' and r.mode='blocks' and t>=r.deadline then r.status:='finished';r.reason:='Süre doldu.';ending:=true;
  elsif r.status='active' and r.mode='battle' and t>=r.deadline then
@@ -347,7 +395,7 @@ begin
  if next_turn then
   r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1 second' end;r.deadline:=r.starts_at+interval '10 seconds';next_turn:=false;slow_turn:=false;
  end if;
- if r.status='placing' and action='fleet' and not r.ready[me] then
+ if r.mode='battle' and r.status='placing' and action='fleet' and not r.ready[me] then
   if jsonb_typeof(extra) is distinct from 'array' or jsonb_array_length(extra)<>3 then raise exception 'Üç gemi yerleştirmelisin.';end if;
   for j in 0..2 loop
    ship:=extra->j;n:=3-j;
@@ -357,7 +405,7 @@ begin
    if n>1 and not ((groupcells[n]-groupcells[1]=n-1 and groupcells[1]/5=groupcells[n]/5) or (groupcells[n]-groupcells[1]=(n-1)*5 and (n<>3 or groupcells[2]-groupcells[1]=5))) then raise exception 'Gemi düz ve bitişik olmalı.';end if;
   end loop;
   r.fleets:=jsonb_set(r.fleets,array[(me-1)::text],to_jsonb(allcells));r.ready[me]:=true;
-  if r.ready[1] and r.ready[2] then r.status:='active';r.starts_at:=t+interval '3 seconds';r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
+  if r.ready[1] and r.ready[2] then r.status:='active';r.starts_at:=t+interval '3 seconds';r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then wordshift_private.sentence_time(r.deck->(r.round_no%jsonb_array_length(r.deck))->>'back') else interval '10 seconds' end;end if;
  end if;
  q:=r.deck->(r.round_no%jsonb_array_length(r.deck));
  if r.status='active' and t>=r.starts_at and t<r.deadline and token=r.round_no then
@@ -424,7 +472,7 @@ begin
   r:=wordshift_private.race_step(r,me,action,token,value,extra,t);
  end if;
  if r.status='active' and r.mode in ('runner','meteor') and r.phase='feedback' and (r.lives[1]=0 or r.lives[2]=0) then r.status:='finished';r.reason:='Üç can tükendi.';r.winner:=case when r.lives[1]=0 and r.lives[2]=0 then null when r.lives[1]=0 then 2 else 1 end;end if;
- if next_turn then r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1600 milliseconds' end;slow_turn:=false;r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then interval '90 seconds' else interval '10 seconds' end;end if;
+ if next_turn then r.turn_no:=3-r.turn_no;r.round_no:=r.round_no+1;r.phase:='question';r.answers:='[null,null]';r.starts_at:=t+case when slow_turn then interval '3500 milliseconds' else interval '1600 milliseconds' end;slow_turn:=false;r.deadline:=r.starts_at+case when r.mode='detective' then interval '35 seconds' when r.mode='crossing' then interval '20 seconds' when r.mode='sentences' then wordshift_private.sentence_time(r.deck->(r.round_no%jsonb_array_length(r.deck))->>'back') else interval '10 seconds' end;end if;
  if ending then
   r.winner:=case when r.mode in ('runner','meteor') and r.lives[1]>r.lives[2] then 1 when r.mode in ('runner','meteor') and r.lives[2]>r.lives[1] then 2 when r.scores[1]>r.scores[2] then 1 when r.scores[2]>r.scores[1] then 2 when r.mode='blocks' and coalesce(r.finish_times[1],9999999)<coalesce(r.finish_times[2],9999999) then 1 when r.mode='blocks' and coalesce(r.finish_times[2],9999999)<coalesce(r.finish_times[1],9999999) then 2 else null end;
  end if;
@@ -455,7 +503,7 @@ begin
   if r.answers->(me-1)<>'null'::jsonb or r.phase='feedback' then result:=result||jsonb_build_object('correct',word);end if;
  end if;
  if r.mode in ('crossing','tower','detective') then
-  result:=result||jsonb_build_object('moves',r.race_moves,'trackStart',prev_start,'goal',3);
+  result:=result||jsonb_build_object('moves',r.race_moves,'trackStart',prev_start,'trafficSeed',r.traffic_seed);
  end if;
  if r.mode='crossing' then result:=result||jsonb_build_object('lanes',r.lanes);end if;
  if r.mode='battle' then

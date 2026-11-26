@@ -25,6 +25,9 @@ reply=base('blocks');openOnline();await settle();assert.deepEqual([...document.q
 reply=base('battle','placing');openOnline();await settle();assert.equal($('fleetReady').disabled,true);document.querySelector('[data-fleet-cell="0"]').click();document.querySelector('[data-fleet-rotate="0"]').click();assert.equal(document.querySelectorAll('.ship-part.vertical').length,3);document.querySelector('[data-fleet-select="1"]').click();document.querySelector('[data-fleet-cell="3"]').click();document.querySelector('[data-fleet-select="2"]').click();document.querySelector('[data-fleet-cell="24"]').click();assert.equal($('fleetReady').disabled,false);
 // Sentence tokens can be selected and undone; final submission sends token indices.
 reply=base('sentences');reply.question={front:'Ben bir öğrenciyim.',options:['am','I','a','student.']};openOnline(null,'sentences');await settle();await new Promise(r=>setTimeout(r,150));document.querySelector('[data-token="1"]').click();assert.equal(document.querySelectorAll('[data-undo]').length,1);document.querySelector('[data-undo="1"]').click();assert.equal(document.querySelectorAll('[data-undo]').length,0);for(const i of [1,0,2,3])document.querySelector(`[data-token="${i}"]`).click();document.querySelector('.sentence-submit').click();await settle();const sent=roomCalls.findLast(x=>x.action==='sentence');assert.deepEqual(sent.extra,[1,0,2,3]);
+reply={...base('buzzer','placing'),avatars:[0,1]};openOnline(null,'buzzer');await settle();
+assert.equal(document.querySelectorAll('[data-mascot] img').length,7);assert.equal($('bngBuzz'),null);
+document.querySelector('[data-mascot="6"]').click();await settle();assert.equal(roomCalls.at(-1).action,'avatar');
 reply={...base('buzzer'),avatars:[0,6]};openOnline(null,'buzzer');await settle();
 assert.equal(document.querySelectorAll('.bng-head').length,2);
 $('bngBuzz').click();await settle();assert.equal(roomCalls.at(-1).action,'buzz');
@@ -39,6 +42,10 @@ document.querySelector('[data-choice="0"]').click();await settle();assert.equal(
 reply={...base('detective'),mask:'______',letters:[],missed:0,extraLetters:[]};openOnline(null,'detective');await settle();
 assert.equal($('detectiveWord').textContent,'______');document.querySelector('#detectiveKeys button').click();await settle();
 assert.equal(roomCalls.at(-1).action,'letter');assert.equal(roomCalls.at(-1).extra,'a');
+const detectiveField=$('detectiveEntry').querySelector('input');
+assert.equal(document.activeElement,detectiveField);
+const startLetters=roomCalls.length;detectiveField.value='bc';detectiveField.dispatchEvent(new win.Event('input'));await settle();
+assert.deepEqual(roomCalls.slice(startLetters).filter(x=>x.action==='letter').map(x=>x.extra),['b','c']);
 reply={...base('crossing'),lanes:[1,0],answer:{ok:true}};openOnline(null,'crossing');await settle();
 assert.equal($('crossingGo').hidden,false);$('crossingGo').click();await settle();assert.equal(roomCalls.at(-1).action,'hop');
 // Private history safely renders details and links opponents through the existing people route.

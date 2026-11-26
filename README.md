@@ -88,7 +88,7 @@ Bot maçı için bir setten veya Oyunlar bölümünden **Kafanı Kırarım** se�
 
 Sosyal özellikleri kurulu projelerde, bu sürümü yayınlamadan önce Supabase SQL Editor içinde güncel `supabase/admin-badge.sql` dosyasını çalıştır. İlk kurulumda sıra `setup.sql`, `community.sql`, `social.sql`, `admin-badge.sql` şeklindedir. Adminler **Profilim → Profili düzenle → Admin rozeti rengi** alanından renk seçebilir.
 
-Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde doğru cevap geçiş hakkı verir. “Şeridi geç” ile güvenli anı seçersin. Üç güvenli geçişte hedefe ulaşırsın. Çarpışmada kaldırıma dönüp aynı hakkı yeniden kullanırsın. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın. Kelime Dedektifi’nde Türkçe ipucunun İngilizcesini beş yanlış tahmin hakkıyla harf harf çözersin.
+Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde doğru cevap geçiş hakkı verir. “Şeridi geç” ile güvenli anı seçersin. Her refüjün arasında farklı hızlarda iki trafik akışı vardır. Çarpışmada kaldırıma dönüp aynı hakkı yeniden kullanırsın. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın. Kelime Dedektifi’nde Türkçe ipucunun İngilizcesini harf harf çözersin. Yanlış harfler yedi parçalık çöp adamı tamamlar.
 
 ## 0.9 çevrimiçi oyun kurulumu
 
@@ -110,11 +110,11 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 | Meteor Avı | 3 can. Her hedef için 10 saniye. Yanlış hedef / sürede ateş etmemek bir can götürür. Roket sabittir; hedefe döner ve füze atar. |
 | Amiral Battı | 3, 2 ve 1 hücrelik gemiyi yerleştir/döndür. Filo hazırlığı 120 saniye. Cevap için 10 saniye, doğru cevaptan sonra atış için ayrıca 10 saniye. Sıralı oynanır; rakibin tüm gemilerini batıran kazanır. |
 | Kelime Blokları | Solda İngilizce, sağda Türkçe. En fazla 8 çift, 60 saniye. Doğru +100, yanlış −15 (puan sıfırın altına inmez). Yüksek puan; eşitse daha erken bitiren kazanır. |
-| Kelime Kulesi | İki oyuncu yan yana başlar. Doğru platform bir kat kazandırır. Üç kata ilk çıkan kazanır. |
-| Kelime Geçidi | Doğru cevap geçiş hakkı verir. İki oyuncu yan yana başlar. Üç güvenli geçiş yapan kazanır. Çarpışmada bir can kaybedip kaldırıma dönersin. |
-| Kelime Dedektifi | Türkçe ipucunun İngilizcesini 35 saniyede ve en fazla beş yanlış harf tahminiyle çöz. Üç kelimeyi ilk çözen kazanır. |
+| Kelime Kulesi | İki oyuncu yan yana başlar. Doğru platform bir kat kazandırır. Üç canı tükenen elenir. |
+| Kelime Geçidi | Doğru cevap geçiş hakkı verir. İki oyuncu yan yana başlar. Skor sınırı yoktur. Çarpışmada bir can kaybedip kaldırıma dönersin. |
+| Kelime Dedektifi | Her yanlış harf veya süresi dolan kelime çizime bir parça ekler. İki oyuncunun çizimi de görünür. Yedinci parçada oyuncu elenir. |
 | Kafanı Kırarım | Soru uzunluğu ve türü okuma süresini belirler. Düğmeye basıldığında seçenekleri okumak veya yanıtı yazmak için ayrı bir süre başlar. Yanlışta soru rakibe geçer. Üç isabet kazanır. |
-| Cümle Düellosu | Seviyeye göre 6 hazır cümle, cümle başına 90 saniye. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur; yanlış gönderim cümleyi bitirmez, süre dolana kadar düzeltebilirsin. Çevrimiçi maçta cümleyi ilk doğru tamamlayan +100 alır ve hemen sonraki cümleye geçilir; 90 saniyede kimse tamamlayamazsa kimse puan almaz. |
+| Cümle Düellosu | Seviyeye göre 6 hazır cümle, kelime sayısı, yan cümleler, devrik yapılar ve birleşik fiil yapıları süreyi belirler. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur; yanlış gönderim cümleyi bitirmez, süre dolana kadar düzeltebilirsin. Çevrimiçi maçta cümleyi ilk doğru tamamlayan +100 alır ve hemen sonraki cümleye geçilir; süre dolana kadar kimse tamamlayamazsa kimse puan almaz. |
 
 - Runner ve Meteor'da iki oyuncu aynı turu tamamladıktan sonra canlar karşılaştırılır; ikisi de aynı turda son canını kaybederse berabere olur. Kelime havuzu bittiğinde yaşam mücadelesi devam eder. Maçın üst sınırı 15 dakikadır; bu sınıra ulaşılırsa önce kalan can, sonra puan karşılaştırılır.
 - Bağlantı kesilince **30 saniye** yeniden bağlanma süresi vardır. **Oyunlar → Oda oluştur / Koda katıl** devam eden odayı açar. Süre geçerse bağlı oyuncu kazanır; ikisi de kopmuşsa beraberlik kaydedilir. **Odadan ayrıl** düğmesi maç başladıktan sonra yenilgi sayılır.
@@ -138,4 +138,4 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 - Süreli sorularda son 3 saniyede saniyede bir kısa bip çalar. Çevrimiçi eşleşme bulunduğunda üç kısa "dın" sesi çalar; sekme arka plandayken de rakip aranmaya ve ses çalmaya devam eder (tarayıcı sesi engellemiyorsa).
 - Yanlış, boş veya süresi dolan sorularda doğru cevap ekranda kalır: tek oyunculu oyunlarda yaklaşık 4 saniye, çevrimiçi maçlarda 3,5 saniye. Çalışma modunda "Boş bırak" doğru cevabı gösterir ve "Sonraki" ile devam edilir.
 
-Kelime Kulesi, Kelime Geçidi ve Kelime Dedektifi üç canla başlar. Çevrimiçi yarışta herkes kendi sorusunda ilerler. Yanlış platform veya geçiş cevabı, çarpışma, çözülemeyen kelime ya da çevrimiçi sürenin dolması bir can götürür.
+Kelime Kulesi ve Kelime Geçidi üç canla başlar. Oyuncular kendi sorularında ilerler ve kelime havuzu bitince başa döner. Kafanı Kırarım’da eşleşmenin ardından iki oyuncu da 15 saniye içinde bir maskot seçer. İkisi de hazır olunca ilk soru açılır.

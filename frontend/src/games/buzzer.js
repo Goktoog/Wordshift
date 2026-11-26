@@ -6,13 +6,20 @@ import { botProfile, answerChance } from './bot-skill.js';
 import { buzzerOptions,buzzerSeconds } from './buzzer-deck.js';
 
 export const animals=['Panda','Goril','Şempanze','Kedi','Köpek','Eşek','T-Rex'];
-export const avatarPicker=(value=0)=>`<label class="bng-picker">Avatarın <select id="bngAvatar">${animals.map((name,i)=>`<option value="${i}" ${i===value?'selected':''}>${name}</option>`).join('')}</select></label>`;
+const portrait=i=>`<img class="mascot-portrait" src="./assets/mascots/${i}.webp" alt="" draggable="false">`;
+export function avatarPicker(){
+  return '<div class="mascot-grid" aria-label="Maskot seç">'+animals.map((name,i)=>
+    `<button type="button" data-mascot="${i}">${portrait(i)}<span>${name}</span></button>`).join('')+'</div>';
+}
+export function bindMascots(host,onPick){
+  for(const button of host.querySelectorAll('[data-mascot]'))button.onclick=()=>onPick(Number(button.dataset.mascot));
+}
 function player(index,avatar,lives,name,hitBy) {
   const id=Number.isInteger(avatar)&&animals[avatar]?avatar:0;
   return `<div class="bng-seat seat-${index}" data-animal="${id}">
     <div class="bng-tag">${escape(name)} <span aria-label="${lives} can">${'♥'.repeat(lives)}${'♡'.repeat(3-lives)}</span></div>
     <div class="bng-puppet ${hitBy===index?'swing':''} ${hitBy===1-index?'bonked':''}">
-      <div class="bng-head" style="--bruise:${(3-lives)*.10};--swelling:${1+(3-lives)*.026}" aria-label="${animals[id]}" role="img"><i class="ear e1"></i><i class="ear e2"></i><i class="face"></i><i class="eye a"></i><i class="eye b"></i><i class="snout"></i><i class="bump" style="opacity:${(3-lives)/3}"></i></div>
+      <div class="bng-head" aria-label="${animals[id]}" role="img">${portrait(id)}${hitBy===1-index?'<span class="bonk-stars" aria-hidden="true"><b>★</b><b>★</b><b>★</b></span>':''}</div>
       <div class="bng-reach"><i></i></div><div class="bng-mallet"><i class="grip"></i><i class="handle"></i><i class="pad"></i></div>
     </div></div>`;
 }
@@ -51,12 +58,26 @@ export function buzzer(){
   $('view').innerHTML=topStudy('Kafanı Kırarım')+`<div class="card" id="bngSolo">
     <p>İlk basan cevaplar. Yanlış cevapta aynı soru rakibe geçer. Üç isabet maçı kazandırır.</p>
     <p>Bot seviyesi: <strong>${botProfile(s.difficulty).label}</strong></p>
-    ${avatarPicker()}<button class="primary" id="bngStart">Botla başla</button></div>`;
+    <p>Maskotunu seç · <strong id="pickClock" role="timer">15 sn</strong></p><div id="soloPicker">${avatarPicker()}</div></div>`;
   exitBind();
   const host=$('bngSolo'),alive=()=>session===s&&page==='play'&&host.isConnected;
-  $('bngStart').onclick=()=>{
+  const expires=Date.now()+15000;
+  function expireSelection(){
+    clearInterval(picking);
+    $('pickClock').textContent='Süre doldu';
+    $('soloPicker').innerHTML='<button id="retryMascot">Yeniden seç</button>';
+    $('retryMascot').onclick=buzzer;
+  }
+  const picking=setInterval(()=>{
+    if(!alive()){clearInterval(picking);return}
+    const left=Math.ceil((expires-Date.now())/1000);
+    if(left<=0)expireSelection();else $('pickClock').textContent=left+' sn';
+  },150);setTimer(picking);
+  bindMascots(host,avatar=>{
     if(!alive())return;
-    const avatar=Number($('bngAvatar').value),avatars=[avatar,(avatar+1+Math.floor(Math.random()*6))%7];
+    if(Date.now()>=expires){expireSelection();return}
+    clearInterval(picking);
+    const avatars=[avatar,(avatar+1+Math.floor(Math.random()*6))%7];
     const names=[user.name,'Bot'],lives=[3,3],difficulty=s.difficulty;
     const profile=botProfile(difficulty);
     let chance,botKnows;
@@ -117,5 +138,5 @@ export function buzzer(){
       if(alive())showClock();
     }
     clearInterval(timer);const clock=setInterval(tick,100);setTimer(clock);startRound();
-  };
+  });
 }

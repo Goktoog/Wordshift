@@ -93,8 +93,14 @@ await as(null,'anon');await assert.rejects(()=>db.query('select public.wordshift
 // First buzz wins under the room lock, wrong answers transfer the same prompt, and three hits end the match.
 const prompts=[{front:'I have lived here ____ 2020.',back:'since',options:['since','for','until']}];
 await as(a);const duel=await lobby('create','buzzer','',prompts);
-s=await rpc(duel,'avatar',0,6);assert.equal(s.avatars[0],6);
-await as(b);await lobby('join','buzzer',s.code);await startClock(duel);
+s=await rpc(duel);await as(b);await lobby('join','buzzer',s.code);
+s=await rpc(duel,'buzz');assert.equal(s.status,'placing');assert.equal(s.question,undefined);
+assert.ok(Date.parse(s.deadline)-Date.parse(s.serverNow)>14000);
+await as(a);s=await rpc(duel,'avatar',0,6);assert.deepEqual(s.ready,[true,false]);
+s=await rpc(duel,'avatar',0,2);assert.equal(s.avatars[0],6);
+await as(b);s=await rpc(duel,'fleet',0,-1,[[0,1,2],[5,6],[9]]);assert.equal(s.status,'placing');
+s=await rpc(duel,'avatar',0,4);assert.equal(s.status,'active');assert.deepEqual(s.avatars,[6,4]);
+await startClock(duel);
 const expire=async()=>{await admin("update wordshift_private.rooms set deadline=now()-interval '1 second' where id=$1",[duel]);await as(a);return rpc(duel)};
 await as(b);s=await rpc(duel,'buzz',0);assert.equal(s.turn,2);
 await as(a);s=await rpc(duel,'buzz',0);assert.equal(s.turn,2);assert.deepEqual(s.question.options,[]);
@@ -122,6 +128,12 @@ await assert.rejects(()=>guestLobby('invalid','create','tower'));
 const guestPools=(await db.query("select public.wordshift_guest_pools($1,'B1') r",[keys[0]])).rows[0].r;
 const {gameModes}=await import('../frontend/src/games/catalog.js');
 assert.deepEqual(guestPools.pools.map(p=>p.mode).sort(),[...gameModes].sort());
+const {crossingHit,trafficFor,hopTime}=await import('../frontend/src/games/crossing-traffic.js');
+function hopAt(seed,road,x,hit){
+ const streams=trafficFor(seed);
+ for(let t=.1;t<80;t+=.05){if([0,.05,.1,.15].every(dt=>crossingHit(streams,road,t+dt,t+dt,t+dt+hopTime,x)===hit))return t}
+ throw Error('No crossing window found');
+}
 for(const mode of gameModes){
  const id=await guestLobby(keys[0],'create',mode);
  const waiting=await guestRoom(keys[0],id);
@@ -137,12 +149,12 @@ for(const mode of gameModes){
   if(mode==='tower')assert.equal(s.scores[1],100);
   else{
    assert.equal(s.scores[1],0);
-   // At 0.1 seconds lane 0 is clear, near 2.05 seconds the car crosses the path.
-   await admin("update wordshift_private.rooms set starts_at=now()-interval '0.1 seconds' where id=$1",[id]);await as(null,'anon');
+   // Drive both server hops to a known time in this room’s traffic.
+   await admin("update wordshift_private.rooms set starts_at=now()-$2::float8*interval '1 second' where id=$1",[id,hopAt(s.trafficSeed,0,20,false)]);await as(null,'anon');
    s=await guestRoom(keys[1],id,'hop');assert.equal(s.answer.collision,false);assert.equal(s.scores[1],100);
    assert.equal((await guestRoom(keys[1],id,'hop')).scores[1],100);
    s=await guestRoom(keys[0],id,'answer',0,choice);
-   await admin("update wordshift_private.rooms set starts_at=now()-interval '2.05 seconds' where id=$1",[id]);await as(null,'anon');
+   await admin("update wordshift_private.rooms set starts_at=now()-$2::float8*interval '1 second' where id=$1",[id,hopAt(s.trafficSeed,0,-20,true)]);await as(null,'anon');
    s=await guestRoom(keys[0],id,'hop');assert.equal(s.answer.collision,true);assert.deepEqual(s.lanes,[0,1]);assert.equal(s.phase,'feedback');
   }
  }else if(mode==='detective'){
@@ -152,7 +164,11 @@ for(const mode of gameModes){
   assert.equal(s.scores[1],100);assert.equal(s.correct,word);
   s=await guestRoom(keys[0],id);assert.deepEqual(s.letters,[]);assert.equal(s.correct,undefined);
   for(const ch of 'zqjxv')s=await guestRoom(keys[0],id,'letter',0,-1,ch);
-  assert.equal(s.missed,5);assert.equal(s.answer.ok,false);assert.equal(s.phase,'feedback');
+  assert.equal(s.missed,5);assert.equal(s.answer,null);assert.deepEqual(s.lives,[2,7]);
+  assert.deepEqual((await guestRoom(keys[1],id)).lives,[2,7]);
+  const more=[...'abcdefghijklmnopqrstuvwxyz'].filter(c=>!word.includes(c)&&!'zqjxv'.includes(c));
+  for(const ch of more.slice(0,2))s=await guestRoom(keys[0],id,'letter',0,-1,ch);
+  assert.equal(s.status,'finished');assert.equal(s.winner,2);assert.equal(s.lives[0],0);
  }
  await guestRoom(keys[0],id,'leave');assert.equal((await guestRoom(keys[1],id)).status,'finished');
  assert.equal((await admin('select count(*) n from wordshift_private.match_history where id=$1',[id])).rows[0].n,0);await as(null,'anon');
@@ -164,7 +180,7 @@ assert.deepEqual(mixedHistory.players,[null,a]);assert.equal(mixedHistory.names[
 assert.equal((await admin('select count(*) n from public.wordshift_workspaces')).rows[0].n,3);
 
 // One guest completes the whole race while the other stays on the first question.
-const {safeToGo}=await import('../frontend/src/games/crossing-traffic.js');
+
 for(const mode of ['tower','detective','crossing']){
  await as(null,'anon');
  const room=await guestLobby(keys[0],'create',mode);
@@ -172,9 +188,9 @@ for(const mode of ['tower','detective','crossing']){
  await guestLobby(keys[1],'join',mode,lobbyState.code);
  await startClock(room);await as(null,'anon');
  const stationary=await guestRoom(keys[0],room);
- for(let turn=0;turn<3;turn++){
+ for(let turn=0;turn<7;turn++){
   let racing=await guestRoom(keys[1],room);
-  assert.equal(racing.round,turn);assert.equal(racing.goal,3);
+  assert.equal(racing.round,turn);assert.equal(racing.status,'active');
   if(mode==='detective'){
    const solution=words.find(w=>w.back===racing.question.front).front;
    for(const letter of new Set(solution))racing=await guestRoom(keys[1],room,'letter',turn,-1,letter);
@@ -183,22 +199,22 @@ for(const mode of ['tower','detective','crossing']){
    const button=racing.question.options.indexOf(solution);
    racing=await guestRoom(keys[1],room,'answer',turn,button);
    if(mode==='crossing'){
-    let elapsed=.1;
-    while(!safeToGo(turn,elapsed,20)||!safeToGo(turn,elapsed+.15,20))elapsed+=.1;
+    const elapsed=hopAt(racing.trafficSeed,turn%3,20,false);
     await admin("update wordshift_private.rooms set starts_at=now()-$2::float8*interval '1 second' where id=$1",[room,elapsed]);
     await as(null,'anon');racing=await guestRoom(keys[1],room,'hop',turn);
    }
    assert.ok(racing.moves[1][mode==='crossing'?'hopAt':'jumpAt']);
   }
   assert.equal(racing.scores[1],100*(turn+1));
-  if(turn===2){assert.equal(racing.status,'finished');assert.equal(racing.winner,2);break}
+  assert.equal(racing.status,'active');
   const still=await guestRoom(keys[0],room);
   assert.equal(still.round,0);assert.deepEqual(still.question,stationary.question);
-  assert.deepEqual(still.lives,[3,3]);
+  assert.deepEqual(still.lives,mode==='detective'?[7,7]:[3,3]);
   await admin("update wordshift_private.rooms set race_ends[2]=now()-interval '1 second' where id=$1",[room]);
   await as(null,'anon');const replay=await guestRoom(keys[1],room,'answer',turn,0);
   assert.equal(replay.round,turn+1);assert.equal(replay.answer,null);assert.deepEqual(replay.scores,racing.scores);
  }
+ await guestRoom(keys[0],room,'leave');
 }
 const [lifeRoom,firstLife]=await make('tower');let life=firstLife;
 for(let turn=0;turn<3;turn++){
@@ -225,4 +241,32 @@ for(const type of ['word','blank','translate','paragraph','mc']){
 }
 assert.equal(buzzerSeconds({front:'garden',back:'bahçe',type:'word'},[]),10);
 assert.ok(buzzerSeconds({front:'long prompt '.repeat(15),back:'answer',type:'paragraph'},[])>35);
+const {sentenceSeconds}=await import('../frontend/src/games/sentence-time.js');
+assert.equal(sentenceSeconds('I have a cat.'),24);
+assert.ok(sentenceSeconds('Only later did he notice the mistake.')>sentenceSeconds('He saw the mistake later that day.'));
+for(const {back} of sentenceBank){
+ const out=await admin('select extract(epoch from wordshift_private.sentence_time($1))::int sec',[back]);
+ assert.equal(out.rows[0].sec,sentenceSeconds(back),back);
+}
+await as(a);const timedId=await lobby('create','sentences');const codeTimed=(await rpc(timedId)).code;
+await as(b);await lobby('join','sentences',codeTimed);
+for(let index=0;index<2;index++){
+ await as(a);const timed=await rpc(timedId);
+ const back=sentenceBank.find(x=>x.front===timed.question.front).back;
+ assert.equal((Date.parse(timed.deadline)-Date.parse(timed.startsAt))/1000,sentenceSeconds(back));
+ if(index===0){
+  await admin("update wordshift_private.rooms set deadline=now()-interval '1 second' where id=$1",[timedId]);
+  await as(a);await rpc(timedId);
+  await admin("update wordshift_private.rooms set deadline=now()-interval '1 second' where id=$1",[timedId]);
+ }
+}
+await as(a);await rpc(timedId,'leave');const unpicked=await lobby('create','buzzer','',prompts);const waiting=await rpc(unpicked);
+await as(b);await lobby('join','buzzer',waiting.code);await rpc(unpicked,'avatar',0,3);
+await admin("update wordshift_private.rooms set deadline=now()-interval '1 second' where id=$1",[unpicked]);
+await as(a);const late=await rpc(unpicked,'avatar',0,0);assert.equal(late.status,'finished');assert.equal(late.winner,2);
+for(const seed of [0,44,920721]){
+ const rows=(await admin('select r,x,t/10.0 as time,wordshift_private.traffic_hit($1,r,t/10.0,x) hit from generate_series(0,2) r,unnest(array[-20,20]) x,generate_series(0,80) t',[seed])).rows;
+ const streams=trafficFor(seed);
+ for(const row of rows){const t=Number(row.time);assert.equal(crossingHit(streams,row.r,t,t,t+hopTime,row.x),row.hit)}
+}
 await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, nine game modes, guest seats, hidden letters, timed traffic and local-only guest history, buzzer ownership/steals/lives, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');

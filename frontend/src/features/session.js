@@ -17,7 +17,11 @@ import { gameModes } from '../games/catalog.js';
 export { gameModes };
 export function chooseSet(m){
  if(m==='sentences'){begin(m,sentenceSet(user.level||'A1'));return}
- modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle','buzzer'].includes(m)?'<label>Zorluk</label><select name="difficulty">'+(m==='runner'?'<option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option>':botOptions())+'</select>':''),d=>begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20}));
+ modal('<h2>Çalışma setini seç</h2><select name="set">'+[...user.sets,...starterSets].map(s=>'<option value="'+escape(s.id)+'">'+escape(s.name)+(s.starterSource?' · Başlangıç':'')+'</option>').join('')+'</select>'+(['runner','battle','buzzer'].includes(m)?'<label>Zorluk</label><select name="difficulty">'+(m==='runner'?'<option value="easy">Kolay</option><option value="normal" selected>Normal</option><option value="hard">Zor</option>':botOptions())+'</select>':''),d=>{
+  // The modal makes the game inert until it closes; focus the mobile input during this tap.
+  if(m==='detective')$('dialog').close();
+  begin(m,[...user.sets,...starterSets].find(s=>s.id===d.get('set')),d.get('difficulty')||'normal',false,{limit:20});
+ });
 }
 export function record(x,ok,withSound=true){
  const set=current();if(!set)return;
@@ -61,7 +65,7 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  history.pushState(settings.origin|| (set.mistakes?{page:'mistakes'}:gameModes.includes(m)?{page:'games'}:{page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id}),'');
  setSession({m,pool,i:0,score:0,skipped:0,flip:false,difficulty,deadline:Date.now()+(filter==='source-exam'?10800000:1800000),reviewOnly:onlyReview,settings});
  setPage(gameModes.includes(m)?'play':'study');
- if(arcadeModes.includes(m)){session.lives=3;session.pool=pool.slice(0,5)}
+ if(arcadeModes.includes(m)){session.lives=m==='detective'?7:3;session.pool=ordered}
  if(m==='blocks'){
   session.pool=pool.slice(0,8);
   const L=session.pool.map(x=>({x,side:'a'}));let R;
@@ -85,7 +89,7 @@ export function exitBind(){$('exit').onclick=()=>{
 }}
 export function finish(){
  clearInterval(timer);const s=session,set=current(),remaining=reviewItems(user,set);
- $('view').innerHTML=topStudy(arcadeModes.includes(s.m)?(s.lives===0?'Canların tükendi':s.score>=3?'Hedefe ulaştın!':'Koşu tamamlandı'):'Tamamlandı!')+`<div class="hero"><span class="ico">🏆</span><h1>${s.score} ${s.m==='crossing'?'güvenli geçiş':'doğru'}</h1><p class="muted">${arcadeModes.includes(s.m)?Math.min(s.i,s.pool.length):s.pool.length} içerik · ${s.skipped||0} boş · ${user.xp} toplam XP</p><div class="actions"><button class="primary" id="again">Tekrar başla</button>${remaining.length?`<button id="reviewAgain">Bilmediklerim / boşlar (${remaining.length})</button>`:''}</div></div>`;
+ $('view').innerHTML=topStudy(arcadeModes.includes(s.m)?(s.m==='detective'?'Çöp adam tamamlandı':'Canların tükendi'):'Tamamlandı!')+`<div class="hero"><span class="ico">🏆</span><h1>${s.score} ${s.m==='crossing'?'güvenli geçiş':'doğru'}</h1><p class="muted">${arcadeModes.includes(s.m)?s.i:s.pool.length} içerik · ${s.skipped||0} boş · ${user.xp} toplam XP</p><div class="actions"><button class="primary" id="again">Tekrar başla</button>${remaining.length?`<button id="reviewAgain">Bilmediklerim / boşlar (${remaining.length})</button>`:''}</div></div>`;
  exitBind();$('again').onclick=()=>begin(s.m,set,s.difficulty,false,s.settings);
  if($('reviewAgain'))$('reviewAgain').onclick=()=>begin('learn',set,s.difficulty,true,{origin:s.settings?.origin});
 }

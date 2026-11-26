@@ -17,3 +17,13 @@ export function questionMedia(item) {
  const valid=p=>typeof p==='string'&&/^\.\/assets\/starter\/yds-2026-(q\d{2}|passage-\d+)\.png$/.test(p);
  return [item.passageImage,item.questionImage].filter(valid).map((p,i)=>`<figure class="source-question"><img src="${escape(p)}" alt="${escape(item.passageImage&&i===0?'Bu soru grubunun kaynak okuma parçası':item.front+' — soru ve A–E seçenekleri')}" loading="lazy"><figcaption><a href="${escape(p)}" target="_blank" rel="noopener">Görseli büyük aç ↗</a></figcaption></figure>`).join('');
 }
+
+// Older personal copies have different item IDs but retain the source image and answer.
+const examSolutions=new Map(starterSets.flatMap(s=>s.items).filter(x=>x.sourceQuestion).map(x=>[x.questionImage,x]));
+export function answerExplanation(item){
+ if(item.sourceQuestion && /^Yüklenen PDF cevap anahtarına göre doğru seçenek:/i.test(item.extra||'')){
+  const original=examSolutions.get(item.questionImage);
+  if(original?.back===item.back)return original.extra;
+ }
+ return item.extra||'';
+}

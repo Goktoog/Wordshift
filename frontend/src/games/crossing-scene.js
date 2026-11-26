@@ -1,4 +1,4 @@
-import { traffic, nearestCar } from './crossing-traffic.js';
+import { roadCount, nearestCar } from './crossing-traffic.js';
 
 const groundY = z => 325 - 94*z + 9*z*z;
 const scaleAt = z => 1 - .15*z;
@@ -36,7 +36,7 @@ function backdrop(c,w) {
     box(c,x-1.5,y-19,3,19,1,'#605d53');
     oval(c,x,y-18,8,13,i%2?'#568b7b':'#699884');
   }
-  for(let i=traffic.length-1;i>=0;i--){
+  for(let i=roadCount-1;i>=0;i--){
     const far=groundY(i+.91), near=groundY(i+.09), mid=groundY(i+.5);
     c.fillStyle='#dfd8be';c.fillRect(0,far-3,w,near-far+7);
     const asphalt=c.createLinearGradient(0,far,0,near);
@@ -69,6 +69,11 @@ function car(c,x,y,s,lane) {
   shape(c,[[-l+9,-11],[-l+16,-25],[l-11,-25],[l-2,-12]],lane.color);
   shape(c,[[-l+15,-13],[-l+20,-22],[-1,-22],[-1,-13]],'#334f64');
   shape(c,[[3,-22],[l-13,-22],[l-6,-13],[3,-13]],'#52748a');
+  if(lane.kind==='truck'||lane.kind==='van'){
+    const tall=lane.kind==='truck'?32:27;
+    box(c,-l,-tall,l*1.45,tall-9,4,lane.kind==='truck'?'#e0e6ea':lane.color);
+    if(lane.kind==='van')for(let col=0;col<3;col++)box(c,-l+5+col*13,-tall+3,10,9,2,'#365668');
+  }
   box(c,-l,-14,l*2,13,4,lane.color);
   box(c,-l+3,-6,l*2-6,4,2,'#34445155');
   box(c,l-5,-12,5,4,1,'#fff2be');box(c,-l,-11,4,4,1,'#bb474a');
@@ -88,7 +93,8 @@ function chicken(c,x,y,s,hop,hit) {
   c.restore();
 }
 
-export function roadRenderer(canvas) {
+export function roadRenderer(canvas,streams) {
+  const farToNear=streams.map(road=>[...road].reverse());
   let ctx, scenery, width=0, height=0;
   try{ctx=canvas.getContext('2d')}catch{return ()=>{}}
   if(!ctx)return ()=>{};
@@ -113,12 +119,14 @@ export function roadRenderer(canvas) {
         chicken(ctx,w/2+p.x*s,groundY(p.depth),s,p.hop,p.hit);
       }
     }
-    for(let i=traffic.length-1;i>=0;i--){
-      const z=i+.5,s=scaleAt(z),lane=traffic[i];
-      drawUntil(z);
-      const gap=lane.spacing*s,center=w/2+nearestCar(lane,time)*s;
-      const first=center-Math.ceil((center+lane.length)/gap)*gap;
-      for(let x=first;x<w+lane.length;x+=gap)car(ctx,x,groundY(z),s,lane);
+    for(let i=roadCount-1;i>=0;i--){
+      for(const lane of farToNear[i]){
+        const z=lane.depth,s=scaleAt(z);
+        drawUntil(z);
+        const gap=lane.spacing*s,center=w/2+nearestCar(lane,time)*s;
+        const first=center-Math.ceil((center+lane.length)/gap)*gap;
+        for(let x=first;x<w+lane.length;x+=gap)car(ctx,x,groundY(z),s,lane);
+      }
     }
     drawUntil(-1);
     for(const p of players){

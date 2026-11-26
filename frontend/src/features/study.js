@@ -1,4 +1,4 @@
-import { questionMedia } from './starters.js';
+import { questionMedia, answerExplanation } from './starters.js';
 import { $, escape } from '../core/utils.js';
 import { session, timer, setTimer, page, user } from '../core/state.js';
 import { noteMistake } from './mistakes.js';
@@ -20,7 +20,7 @@ export function study(){
  function next(){if(!alive())return;s.i++;s.flip=false;study()}
  if(mode==='cards'){
   q.innerHTML=`<p class="muted">Karta dokun ve çevir · ${escape(x.level)} · Sol: bilmiyorum / Sağ: biliyorum</p>
-  <div class="flash-stage" id="swipeCard"><button id="flip" class="flip-card" aria-label="Kartı çevir" aria-pressed="false"><span class="flip-inner"><span class="flip-face flip-front"><small>İNGİLİZCE</small>${escape(x.front)}</span><span class="flip-face flip-back" aria-hidden="true"><small>TÜRKÇE</small>${escape(x.back)}<small>${escape(x.extra)}</small></span></span></button></div>
+  <div class="flash-stage" id="swipeCard"><button id="flip" class="flip-card" aria-label="Kartı çevir" aria-pressed="false"><span class="flip-inner"><span class="flip-face flip-front"><small>İNGİLİZCE</small>${escape(x.front)}</span><span class="flip-face flip-back" aria-hidden="true"><small>TÜRKÇE</small>${escape(x.back)}<small>${escape(answerExplanation(x))}</small></span></span></button></div>
   <div class="actions"><button id="hard">← Bilmiyorum</button><button class="primary" id="know">Biliyorum →</button></div>`;
   const flip=$('flip'),card=$('swipeCard');let dragged=false;
   flip.onclick=()=>{if(locked||dragged){dragged=false;return}s.flip=!s.flip;flip.classList.toggle('is-flipped',s.flip);flip.setAttribute('aria-pressed',String(s.flip));flip.querySelector('.flip-front').setAttribute('aria-hidden',String(s.flip));flip.querySelector('.flip-back').setAttribute('aria-hidden',String(!s.flip))};
@@ -36,7 +36,7 @@ export function study(){
   if(locked||!alive())return;locked=true;skipItem(x);noteMistake(user,x,null);
   // Show the right answer first; the learner moves on with "Sonraki".
   $('skip').disabled=true;$('answers').querySelectorAll('button,input').forEach(el=>el.disabled=true);
-  $('answers').insertAdjacentHTML('beforeend',`<div class="feedback bad">↷ Boş bıraktın · Doğru cevap: ${escape(x.back)}<p>${escape(x.extra)}</p></div><button class="primary" id="next">Sonraki</button>`);
+  $('answers').insertAdjacentHTML('beforeend',`<div class="feedback bad">↷ Boş bıraktın · Doğru cevap: ${escape(x.back)}<p>${escape(answerExplanation(x))}</p></div><button class="primary" id="next">Sonraki</button>`);
   $('next').onclick=next;
  };
  bindAnswer(x,(value,button)=>{
@@ -45,7 +45,7 @@ export function study(){
   locked=true;const ok=matchesAnswer(value,x,!button);record(x,ok);if(ok)s.score++;
   if(button)button.classList.add(ok?'good':'bad');$('skip').disabled=true;
   $('answers').querySelectorAll('button,input').forEach(el=>el.disabled=true);
-  $('answers').insertAdjacentHTML('beforeend',`<div class="feedback ${ok?'good':'bad'}">${ok?'✓ Doğru!':'✗ Doğru cevap: '+escape(x.back)}<p>${escape(x.extra)}</p></div><button class="primary" id="next">Sonraki</button>`);
+  $('answers').insertAdjacentHTML('beforeend',`<div class="feedback ${ok?'good':'bad'}">${ok?'✓ Doğru!':'✗ Doğru cevap: '+escape(x.back)}<p>${escape(answerExplanation(x))}</p></div><button class="primary" id="next">Sonraki</button>`);
   $('next').onclick=next;
  });
 }

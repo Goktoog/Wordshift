@@ -1,26 +1,28 @@
-// Positions are in road coordinates. The chicken crosses at x=0 and rests on integer medians.
-export const traffic = [
-  {direction:1, speed:148, spacing:490, phase:125, length:76, color:'#f48162'},
-  {direction:1, speed:183, spacing:550, phase:331, length:68, color:'#6abcc6'},
-  {direction:-1, speed:159, spacing:455, phase:88, length:82, color:'#f6cd64'}
+// Both clients and PostgreSQL use the room seed. Each road has two independent lanes.
+export const roadCount=3, hopTime=.95;
+const vehicles=[
+ ['van',82,'#da7659'],['coupe',60,'#ffb833'],['sedan',70,'#69a5bb'],
+ ['truck',96,'#788adb'],['coupe',58,'#dc5862'],['van',78,'#70b69a']
 ];
-export const hopTime = .95;
-export function nearestCar(lane, time) {
-  const distance = (lane.phase + lane.speed * time) % lane.spacing;
-  return lane.direction * (distance > lane.spacing / 2 ? distance - lane.spacing : distance);
+export function trafficFor(seed){
+ return Array.from({length:roadCount},(_,road)=>[0,1].map(k=>{
+  const i=road*2+k,[kind,length,color]=vehicles[i];
+  return {kind,length,color,direction:k?-1:1,band:k,depth:road+.28+k*.45,
+   speed:(k?205:102)+(Math.floor(seed/(road+1))+47*i)%67,
+   stagger:45+(Math.floor(seed/13)+29*i)%100,spacing:525+(Math.floor(seed/7)+77*i)%235,phase:(Math.floor(seed/11)+193*i)%481};
+ }).flatMap(lane=>[0,1,2].map(n=>({...lane,spacing:3*lane.spacing,
+  phase:lane.phase+n*lane.spacing+(n===1?lane.stagger:n===2?-lane.stagger:0)}))));
 }
-// A lane is dangerous from 27% to 73% of a hop. Sweep both moving footprints
-// over the frame interval so a car cannot pass through the chicken between frames.
-export function crossingHit(index, start, from, to, x=0) {
-  const lane = traffic[index];
-  const entry = Math.max(from, start + .27 * hopTime);
-  const exit = Math.min(to, start + .73 * hopTime);
-  if (entry > exit) return false;
-  const clearance = lane.length / 2 + 9;
-  const left = lane.phase - x*lane.direction + lane.speed * entry - clearance;
-  const right = lane.phase - x*lane.direction + lane.speed * exit + clearance;
-  return Math.ceil(left / lane.spacing) <= Math.floor(right / lane.spacing);
+export function nearestCar(lane,time){
+ const offset=(lane.phase+lane.speed*time)%lane.spacing;
+ return lane.direction*(offset>lane.spacing/2?offset-lane.spacing:offset);
 }
-export function safeToGo(index, time, x=0) {
-  return !crossingHit(index, time, time, time + hopTime, x);
+export function crossingHit(streams,road,start,from,to,x=0){
+ return streams[road].some(lane=>{
+  const k=lane.band;
+  const entry=Math.max(from,start+(.14+k*.45)*hopTime),exit=Math.min(to,start+(.42+k*.45)*hopTime);
+  if(entry>exit)return false;
+  const offset=lane.phase-lane.direction*x,clearance=lane.length/2+9;
+  return Math.ceil((offset+lane.speed*entry-clearance)/lane.spacing)<=Math.floor((offset+lane.speed*exit+clearance)/lane.spacing);
+ });
 }

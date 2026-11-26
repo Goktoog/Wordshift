@@ -3,11 +3,13 @@ import { $, escape } from '../core/utils.js';
 import { session, page } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
 
-function kickSnow(player) {
-  const base = player.parentElement, puff = document.createElement('span');
+export function kickSnow(player, base=player.parentElement) {
+  const puff = document.createElement('span');
   puff.className = 'tower-powder';
   puff.setAttribute('aria-hidden','true');
-  puff.style.left = '50%';
+  const origin=player.getBoundingClientRect(),bounds=base.getBoundingClientRect();
+  puff.style.left=origin.left-bounds.left+origin.width/2+'px';
+  puff.style.top=origin.bottom-bounds.top+'px';
   for (let i = 0; i < 12; i++) {
     const fleck = document.createElement('i'), angle = Math.PI * (i + .5) / 12;
     fleck.style.setProperty('--dx', Math.round(Math.cos(angle) * (24 + i % 3 * 8)) + 'px');
@@ -25,11 +27,11 @@ export function jump(player, target, landed) {
   const destination = landed ? `translate(${dx}px,${dy}px)` : 'translate(0,0)';
   player.style.transform = destination;
   if (!player.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  kickSnow(player);
+  if(landed)kickSnow(player);else player.classList.add('tower-hurt');
   const arc = [
     {transform:'translate(0,0)'},
-    {transform:`translate(${dx * .65}px,${dy - 34}px)`, offset:.45},
-    {transform:`translate(${dx}px,${dy}px)`, offset:landed ? 1 : .65}
+    {transform:`translate(${dx * .65}px,${dy - 34}px) rotate(${landed?185:0}deg)`, offset:.45},
+    {transform:`translate(${dx}px,${dy}px) rotate(${landed?360:0}deg)`, offset:landed ? 1 : .65}
   ];
   if (!landed) arc.push({transform:destination});
   player.animate(arc, {duration:landed ? 550 : 750, easing:'ease-in-out'});
@@ -38,9 +40,9 @@ export function jump(player, target, landed) {
 export function tower() {
   const s = session;
   if (runOver(s)) { finish(); return; }
-  const item = s.pool[s.i];
+  const item = s.pool[s.i%s.pool.length];
   $('view').innerHTML = topStudy('Kelime Kulesi') + `<section class="card tower-game">
-    <div class="top"><strong id="towerHeight">Kat ${s.score}/3 · ${livesLabel(s)}</strong><span>${s.i + 1} / ${s.pool.length}</span></div>
+    <div class="top"><strong id="towerHeight">Kat ${s.score} · ${livesLabel(s)}</strong><span>Soru ${s.i + 1}</span></div>
     <h2>${escape(item.front)}</h2><p class="muted">Doğru anlamın olduğu platforma zıpla.</p>
     <div class="tower-shaft" id="towerShaft">
       <div id="towerAnswers">${answerMarkup(item)}</div>
@@ -68,11 +70,11 @@ export function tower() {
       if (bounds.width) s.towerPosition = Math.max(12, Math.min(88, 100 * (ledge.left + ledge.width / 2 - bounds.left) / bounds.width));
     }
     if(!correct)s.lives--;
-    $('towerHeight').textContent = 'Kat ' + s.score+'/3 · '+livesLabel(s);
+    $('towerHeight').textContent = 'Kat ' + s.score+' · '+livesLabel(s);
     $('towerFeedback').textContent = correct ? 'Doğru! Bir kat yükseldin.' : 'Platform çatladı. Doğru cevap: ' + item.back;
     const next = $('towerNext');
     next.hidden = false;
-    next.textContent = runOver(s) || s.i + 1 === s.pool.length ? 'Sonucu gör' : 'Sıradaki kelime';
+    next.textContent = runOver(s) ? 'Sonucu gör' : 'Sıradaki kelime';
     next.focus();
     next.onclick = () => { if (session === s && next.isConnected) { s.i++; tower(); } };
   });

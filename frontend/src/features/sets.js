@@ -1,7 +1,7 @@
 import { gameTiles, onlineGamePicker } from '../games/catalog.js';
 import { openOnline } from '../games/online.js';
 import { poolForSet, poolLabel } from '../games/pvp-panels.js';
-import { questionMedia } from './starters.js';
+import { questionMedia, answerExplanation } from './starters.js';
 import { $, escape, uid, levels } from '../core/utils.js';
 import { user, save, current } from '../core/state.js';
 import { go } from '../core/router.js';
@@ -74,7 +74,7 @@ export function contentList(){
  const found=set.items.filter(x=>(x.front+' '+x.back).toLocaleLowerCase('tr').includes(q));
  const container=$('contentList');let visible=50;
  function renderList(){
-  container.innerHTML=found.slice(0,visible).map(x=>`<div class="row"><div><strong>${escape(x.front)}</strong><p class="muted">${x.sourceQuestion?'':escape(x.back)+' · '}${escape(typeNames[x.type])} · ${escape(x.level)}</p>${x.questionImage?`<details><summary>Kaynak soruyu göster</summary>${questionMedia(x)}<details><summary>Cevap anahtarı</summary>${escape(x.back)}</details></details>`:''}</div>${user.guest||set.publicSource?'':`<div class="row-actions">${x.sourceQuestion?'':`<button data-edit="${escape(x.id)}" aria-label="Düzenle">✎</button>`}<button data-del="${escape(x.id)}" aria-label="Sil">×</button></div>`}</div>`).join('')||'<p class="muted">İçerik bulunamadı.</p>';
+  container.innerHTML=found.slice(0,visible).map(x=>`<div class="row"><div><strong>${escape(x.front)}</strong><p class="muted">${x.sourceQuestion?'':escape(x.back)+' · '}${escape(typeNames[x.type])} · ${escape(x.level)}</p>${x.questionImage?`<details><summary>Kaynak soruyu göster</summary>${questionMedia(x)}<details><summary>Cevap ve açıklama</summary>${escape(x.back)}<p>${escape(answerExplanation(x))}</p></details></details>`:''}</div>${user.guest||set.publicSource?'':`<div class="row-actions">${x.sourceQuestion?'':`<button data-edit="${escape(x.id)}" aria-label="Düzenle">✎</button>`}<button data-del="${escape(x.id)}" aria-label="Sil">×</button></div>`}</div>`).join('')||'<p class="muted">İçerik bulunamadı.</p>';
   if(found.length>visible){const more=document.createElement('button');more.textContent=`Daha fazla göster (${Math.min(visible,found.length)} / ${found.length})`;more.onclick=()=>{visible+=50;renderList()};container.append(more)}
   if(user.guest||set.publicSource)return;
   container.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editor(set.items.find(x=>x.id===b.dataset.edit)));
