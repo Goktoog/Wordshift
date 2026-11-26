@@ -82,13 +82,13 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 
 Mevcut sosyal özellikleri olan Supabase projesinde bu sürümle verilen **Wordshift-Guncelleme.sql** dosyasının tamamını SQL Editor’da bir kez çalıştır. Ardından ön yüzü yayınla. Tek tek kurmak için aynı değişiklikler sırasıyla `supabase/admin-badge.sql` ve `supabase/pvp.sql` içinde bulunur.
 
-Bot maçı için bir setten veya Oyunlar bölümünden **Kafanı Kırarım** seç. İki oyuncu **Çevrimiçi PvP → Kafanı Kırarım** ile eşleşebilir veya oda kodu kullanabilir. Oyuncular üçer canla başlar. Doğru cevap rakibin bir canını götürür. İlk basan on saniye içinde cevaplayamazsa veya yanlış cevaplarsa aynı soru rakibe geçer. İki oyuncu da bilemezse yeni soru gelir. Kelime, cümle ve boşluk doldurma soruları seçilen setin içeriğinden gelir.
+Bot maçı için bir setten veya Oyunlar bölümünden **Kafanı Kırarım** seç. İki oyuncu **Çevrimiçi PvP → Kafanı Kırarım** ile eşleşebilir veya oda kodu kullanabilir. Oyuncular üçer canla başlar. Doğru cevap rakibin bir canını götürür. İlk basan kendisine ayrılan sürede cevaplayamazsa veya yanlış cevaplarsa aynı soru rakibe geçer. İki oyuncu da bilemezse yeni soru gelir. Kelime, cümle ve boşluk doldurma soruları seçilen setin içeriğinden gelir.
 
 ## Misafir erişimi ve admin rozeti güncellemesi
 
 Sosyal özellikleri kurulu projelerde, bu sürümü yayınlamadan önce Supabase SQL Editor içinde güncel `supabase/admin-badge.sql` dosyasını çalıştır. İlk kurulumda sıra `setup.sql`, `community.sql`, `social.sql`, `admin-badge.sql` şeklindedir. Adminler **Profilim → Profili düzenle → Admin rozeti rengi** alanından renk seçebilir.
 
-Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde doğru cevap geçiş hakkı verir. “Şeridi geç” ile güvenli anı seçersin. Üç şeritlik yolu tamamlarsan karşı kıyıya ulaşırsın. Çarpışmada kaldırıma dönüp aynı hakkı yeniden kullanırsın. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın. Kelime Dedektifi’nde Türkçe ipucunun İngilizcesini beş yanlış tahmin hakkıyla harf harf çözersin.
+Oyun salonu, kişisel setler, hazır setler ve topluluk setleri aynı tek oyunculu oyun listesini kullanır. Cümle Düellosu sette belirtilen seviyenin hazır cümlelerini kullanır. Set adında seviye yoksa içeriklerde en sık görülen seviye, içeriklerde de yoksa oyuncunun seviyesi kullanılır. Kelime Geçidi’nde doğru cevap geçiş hakkı verir. “Şeridi geç” ile güvenli anı seçersin. Üç güvenli geçişte hedefe ulaşırsın. Çarpışmada kaldırıma dönüp aynı hakkı yeniden kullanırsın. Kelime Kulesi’nde doğru anlamı taşıyan platforma zıplayarak kat çıkarsın. Kelime Dedektifi’nde Türkçe ipucunun İngilizcesini beş yanlış tahmin hakkıyla harf harf çözersin.
 
 ## 0.9 çevrimiçi oyun kurulumu
 
@@ -110,10 +110,10 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 | Meteor Avı | 3 can. Her hedef için 10 saniye. Yanlış hedef / sürede ateş etmemek bir can götürür. Roket sabittir; hedefe döner ve füze atar. |
 | Amiral Battı | 3, 2 ve 1 hücrelik gemiyi yerleştir/döndür. Filo hazırlığı 120 saniye. Cevap için 10 saniye, doğru cevaptan sonra atış için ayrıca 10 saniye. Sıralı oynanır; rakibin tüm gemilerini batıran kazanır. |
 | Kelime Blokları | Solda İngilizce, sağda Türkçe. En fazla 8 çift, 60 saniye. Doğru +100, yanlış −15 (puan sıfırın altına inmez). Yüksek puan; eşitse daha erken bitiren kazanır. |
-| Kelime Kulesi | Her doğru platform bir kat ve 100 puan kazandırır. |
-| Kelime Geçidi | Doğru cevap geçiş hakkı verir. Güvenli geçiş 100 puan kazandırır. Çarpışmada kaldırıma dönersin. |
-| Kelime Dedektifi | Türkçe ipucunun İngilizcesini 35 saniyede ve en fazla beş yanlış harf tahminiyle çöz. |
-| Kafanı Kırarım | Düğmeye ilk basan on saniye içinde cevap verir. Yanlışta soru rakibe geçer. Üç isabet kazanır. |
+| Kelime Kulesi | İki oyuncu yan yana başlar. Doğru platform bir kat kazandırır. Üç kata ilk çıkan kazanır. |
+| Kelime Geçidi | Doğru cevap geçiş hakkı verir. İki oyuncu yan yana başlar. Üç güvenli geçiş yapan kazanır. Çarpışmada bir can kaybedip kaldırıma dönersin. |
+| Kelime Dedektifi | Türkçe ipucunun İngilizcesini 35 saniyede ve en fazla beş yanlış harf tahminiyle çöz. Üç kelimeyi ilk çözen kazanır. |
+| Kafanı Kırarım | Soru uzunluğu ve türü okuma süresini belirler. Düğmeye basıldığında seçenekleri okumak veya yanıtı yazmak için ayrı bir süre başlar. Yanlışta soru rakibe geçer. Üç isabet kazanır. |
 | Cümle Düellosu | Seviyeye göre 6 hazır cümle, cümle başına 90 saniye. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur; yanlış gönderim cümleyi bitirmez, süre dolana kadar düzeltebilirsin. Çevrimiçi maçta cümleyi ilk doğru tamamlayan +100 alır ve hemen sonraki cümleye geçilir; 90 saniyede kimse tamamlayamazsa kimse puan almaz. |
 
 - Runner ve Meteor'da iki oyuncu aynı turu tamamladıktan sonra canlar karşılaştırılır; ikisi de aynı turda son canını kaybederse berabere olur. Kelime havuzu bittiğinde yaşam mücadelesi devam eder. Maçın üst sınırı 15 dakikadır; bu sınıra ulaşılırsa önce kalan can, sonra puan karşılaştırılır.
@@ -137,3 +137,5 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 
 - Süreli sorularda son 3 saniyede saniyede bir kısa bip çalar. Çevrimiçi eşleşme bulunduğunda üç kısa "dın" sesi çalar; sekme arka plandayken de rakip aranmaya ve ses çalmaya devam eder (tarayıcı sesi engellemiyorsa).
 - Yanlış, boş veya süresi dolan sorularda doğru cevap ekranda kalır: tek oyunculu oyunlarda yaklaşık 4 saniye, çevrimiçi maçlarda 3,5 saniye. Çalışma modunda "Boş bırak" doğru cevabı gösterir ve "Sonraki" ile devam edilir.
+
+Kelime Kulesi, Kelime Geçidi ve Kelime Dedektifi üç canla başlar. Çevrimiçi yarışta herkes kendi sorusunda ilerler. Yanlış platform veya geçiş cevabı, çarpışma, çözülemeyen kelime ya da çevrimiçi sürenin dolması bir can götürür.

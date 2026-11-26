@@ -92,7 +92,7 @@ export function roadRenderer(canvas) {
   let ctx, scenery, width=0, height=0;
   try{ctx=canvas.getContext('2d')}catch{return ()=>{}}
   if(!ctx)return ()=>{};
-  return (time,depth,hop,hit)=>{
+  return (time,depth,hop,hit,racers=null)=>{
     const cw=canvas.clientWidth, ch=canvas.clientHeight;
     if(!cw||!ch)return;
     const w=350*cw/ch;
@@ -105,15 +105,30 @@ export function roadRenderer(canvas) {
     }
     ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(scenery,0,0);
     ctx.scale(canvas.width/w,canvas.height/350);
-    const player=()=>chicken(ctx,w/2,groundY(depth),scaleAt(depth),hop,hit);
-    let drawn=false;
+    const players=(racers||[{depth,hop,hit,x:0}]).slice().sort((a,b)=>b.depth-a.depth);
+    let next=0;
+    function drawUntil(z){
+      while(next<players.length && players[next].depth>z){
+        const p=players[next++],s=scaleAt(p.depth);
+        chicken(ctx,w/2+p.x*s,groundY(p.depth),s,p.hop,p.hit);
+      }
+    }
     for(let i=traffic.length-1;i>=0;i--){
       const z=i+.5,s=scaleAt(z),lane=traffic[i];
-      if(!drawn&&depth>z){player();drawn=true}
+      drawUntil(z);
       const gap=lane.spacing*s,center=w/2+nearestCar(lane,time)*s;
       const first=center-Math.ceil((center+lane.length)/gap)*gap;
       for(let x=first;x<w+lane.length;x+=gap)car(ctx,x,groundY(z),s,lane);
     }
-    if(!drawn)player();
+    drawUntil(-1);
+    for(const p of players){
+      if(!p.rival)continue;
+      const scale=scaleAt(p.depth),x=w/2+p.x*scale,y=groundY(p.depth)-(49+15*p.hop)*scale;
+      ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+      const width=Math.min(w*.56,Math.max(42,ctx.measureText(p.name).width+18));
+      box(ctx,x-width/2,y-27,width,19,6,'#9e1938');
+      shape(ctx,[[x-5,y-8],[x+5,y-8],[x,y-1]],'#dc2547');
+      ctx.fillStyle='#fff';ctx.fillText(p.name,x,y-17,width-10);
+    }
   };
 }

@@ -163,4 +163,66 @@ const mixedHistory=(await db.query('select public.wordshift_pvp_history(0) r')).
 assert.deepEqual(mixedHistory.players,[null,a]);assert.equal(mixedHistory.names[0],'Misafir');
 assert.equal((await admin('select count(*) n from public.wordshift_workspaces')).rows[0].n,3);
 
+// One guest completes the whole race while the other stays on the first question.
+const {safeToGo}=await import('../frontend/src/games/crossing-traffic.js');
+for(const mode of ['tower','detective','crossing']){
+ await as(null,'anon');
+ const room=await guestLobby(keys[0],'create',mode);
+ const lobbyState=await guestRoom(keys[0],room);
+ await guestLobby(keys[1],'join',mode,lobbyState.code);
+ await startClock(room);await as(null,'anon');
+ const stationary=await guestRoom(keys[0],room);
+ for(let turn=0;turn<3;turn++){
+  let racing=await guestRoom(keys[1],room);
+  assert.equal(racing.round,turn);assert.equal(racing.goal,3);
+  if(mode==='detective'){
+   const solution=words.find(w=>w.back===racing.question.front).front;
+   for(const letter of new Set(solution))racing=await guestRoom(keys[1],room,'letter',turn,-1,letter);
+  }else{
+   const solution=words.find(w=>w.front===racing.question.front).back;
+   const button=racing.question.options.indexOf(solution);
+   racing=await guestRoom(keys[1],room,'answer',turn,button);
+   if(mode==='crossing'){
+    let elapsed=.1;
+    while(!safeToGo(turn,elapsed,20)||!safeToGo(turn,elapsed+.15,20))elapsed+=.1;
+    await admin("update wordshift_private.rooms set starts_at=now()-$2::float8*interval '1 second' where id=$1",[room,elapsed]);
+    await as(null,'anon');racing=await guestRoom(keys[1],room,'hop',turn);
+   }
+   assert.ok(racing.moves[1][mode==='crossing'?'hopAt':'jumpAt']);
+  }
+  assert.equal(racing.scores[1],100*(turn+1));
+  if(turn===2){assert.equal(racing.status,'finished');assert.equal(racing.winner,2);break}
+  const still=await guestRoom(keys[0],room);
+  assert.equal(still.round,0);assert.deepEqual(still.question,stationary.question);
+  assert.deepEqual(still.lives,[3,3]);
+  await admin("update wordshift_private.rooms set race_ends[2]=now()-interval '1 second' where id=$1",[room]);
+  await as(null,'anon');const replay=await guestRoom(keys[1],room,'answer',turn,0);
+  assert.equal(replay.round,turn+1);assert.equal(replay.answer,null);assert.deepEqual(replay.scores,racing.scores);
+ }
+}
+const [lifeRoom,firstLife]=await make('tower');let life=firstLife;
+for(let turn=0;turn<3;turn++){
+ const solution=words.find(w=>w.front===life.question.front).back;
+ life=await rpc(lifeRoom,'answer',turn,life.question.options.findIndex(x=>x!==solution));
+ assert.equal(life.lives[0],2-turn);
+ if(turn<2){
+  await admin("update wordshift_private.rooms set race_ends[1]=now()-interval '1 second' where id=$1",[lifeRoom]);
+  await as(a);life=await rpc(lifeRoom);
+ }
+}
+assert.equal(life.status,'finished');assert.equal(life.winner,2);
+const {buzzerSeconds}=await import('../frontend/src/games/buzzer-deck.js');
+for(const type of ['word','blank','translate','paragraph','mc']){
+ for(const options of [[],['a long proposed answer','another proposed answer']]){
+  for(const front of ['garden', 'long prompt '.repeat(15).trim(), 'length cap '.repeat(150).trim()]){
+   const q={front,back:'a long written response',options,type};
+   for(const answering of [false,true]){
+    const result=await admin('select extract(epoch from wordshift_private.buzzer_time($1::jsonb,$2))::int as sec',[JSON.stringify(q),answering]);
+    assert.equal(result.rows[0].sec,buzzerSeconds(q,options,answering));
+   }
+  }
+ }
+}
+assert.equal(buzzerSeconds({front:'garden',back:'bahçe',type:'word'},[]),10);
+assert.ok(buzzerSeconds({front:'long prompt '.repeat(15),back:'answer',type:'paragraph'},[])>35);
 await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, nine game modes, guest seats, hidden letters, timed traffic and local-only guest history, buzzer ownership/steals/lives, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');

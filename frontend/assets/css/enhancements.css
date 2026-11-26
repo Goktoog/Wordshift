@@ -246,3 +246,11 @@
 .follow-dialog{min-width:min(420px,80vw)}.follow-dialog .people-host{max-height:50vh;overflow:auto;margin:12px 0}
 @media(max-width:600px){.profile-info{flex-wrap:wrap}.follow-stats{margin-left:0;width:100%}.follow-stats button{flex:1}}
 #dialog:has(.follow-dialog) .dialog-actions{display:none}
+
+.race-tower{height:clamp(225px,34vh,350px);padding:0;background-color:#416883}
+.race-floor{position:absolute;left:10%;right:10%;height:6px;border-radius:8px;background:linear-gradient(#effffc,#84cfe0);box-shadow:0 4px 0 #51889d}
+.race-floor small{position:absolute;left:2%;bottom:5px;font-size:11px;color:#183d55;background:#e0f4fa;border-radius:4px;padding:0 4px}
+.race-climber{position:absolute;bottom:9%;transform:translateX(-50%);font-size:clamp(23px,4vw,35px);line-height:1;z-index:2}
+.race-tag{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#a31839;color:white;border-radius:6px;padding:4px 8px;font:700 12px/1.2 system-ui;white-space:nowrap;max-width:clamp(72px,23vw,180px);overflow:hidden;text-overflow:ellipsis}
+.race-climber:before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#a31839}
+.race-climber:has(.mine):before{border-top-color:#225d76}.race-tag.mine{background:#225d76}

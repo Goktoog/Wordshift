@@ -1,3 +1,4 @@
+import { arcadeModes } from '../games/short-run.js';
 import { botOptions } from '../games/bot-skill.js';
 import { sentenceSet } from '../data/sentences.js';
 import { starterSets } from './starters.js';
@@ -60,6 +61,7 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  history.pushState(settings.origin|| (set.mistakes?{page:'mistakes'}:gameModes.includes(m)?{page:'games'}:{page:set.starterSource?'starter':set.publicSource?'shared':'detail',arg:set.starterSource?set.id:set.publicSource?{owner:set.ownerId,id:set.id}:set.id}),'');
  setSession({m,pool,i:0,score:0,skipped:0,flip:false,difficulty,deadline:Date.now()+(filter==='source-exam'?10800000:1800000),reviewOnly:onlyReview,settings});
  setPage(gameModes.includes(m)?'play':'study');
+ if(arcadeModes.includes(m)){session.lives=3;session.pool=pool.slice(0,5)}
  if(m==='blocks'){
   session.pool=pool.slice(0,8);
   const L=session.pool.map(x=>({x,side:'a'}));let R;
@@ -83,7 +85,7 @@ export function exitBind(){$('exit').onclick=()=>{
 }}
 export function finish(){
  clearInterval(timer);const s=session,set=current(),remaining=reviewItems(user,set);
- $('view').innerHTML=topStudy('Tamamlandı!')+`<div class="hero"><span class="ico">🏆</span><h1>${s.score} doğru</h1><p class="muted">${s.pool.length} içerik · ${s.skipped||0} boş · ${user.xp} toplam XP</p><div class="actions"><button class="primary" id="again">Tekrar başla</button>${remaining.length?`<button id="reviewAgain">Bilmediklerim / boşlar (${remaining.length})</button>`:''}</div></div>`;
+ $('view').innerHTML=topStudy(arcadeModes.includes(s.m)?(s.lives===0?'Canların tükendi':s.score>=3?'Hedefe ulaştın!':'Koşu tamamlandı'):'Tamamlandı!')+`<div class="hero"><span class="ico">🏆</span><h1>${s.score} ${s.m==='crossing'?'güvenli geçiş':'doğru'}</h1><p class="muted">${arcadeModes.includes(s.m)?Math.min(s.i,s.pool.length):s.pool.length} içerik · ${s.skipped||0} boş · ${user.xp} toplam XP</p><div class="actions"><button class="primary" id="again">Tekrar başla</button>${remaining.length?`<button id="reviewAgain">Bilmediklerim / boşlar (${remaining.length})</button>`:''}</div></div>`;
  exitBind();$('again').onclick=()=>begin(s.m,set,s.difficulty,false,s.settings);
  if($('reviewAgain'))$('reviewAgain').onclick=()=>begin('learn',set,s.difficulty,true,{origin:s.settings?.origin});
 }

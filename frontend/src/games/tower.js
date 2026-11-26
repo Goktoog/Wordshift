@@ -1,3 +1,4 @@
+import {runOver,livesLabel} from './short-run.js';
 import { $, escape } from '../core/utils.js';
 import { session, page } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
@@ -36,10 +37,10 @@ export function jump(player, target, landed) {
 
 export function tower() {
   const s = session;
-  if (s.i >= s.pool.length) { finish(); return; }
+  if (runOver(s)) { finish(); return; }
   const item = s.pool[s.i];
   $('view').innerHTML = topStudy('Kelime Kulesi') + `<section class="card tower-game">
-    <div class="top"><strong id="towerHeight">Kat ${s.score}</strong><span>${s.i + 1} / ${s.pool.length}</span></div>
+    <div class="top"><strong id="towerHeight">Kat ${s.score}/3 · ${livesLabel(s)}</strong><span>${s.i + 1} / ${s.pool.length}</span></div>
     <h2>${escape(item.front)}</h2><p class="muted">Doğru anlamın olduğu platforma zıpla.</p>
     <div class="tower-shaft" id="towerShaft">
       <div id="towerAnswers">${answerMarkup(item)}</div>
@@ -66,11 +67,12 @@ export function tower() {
       const bounds = shaft.getBoundingClientRect(), ledge = target.getBoundingClientRect();
       if (bounds.width) s.towerPosition = Math.max(12, Math.min(88, 100 * (ledge.left + ledge.width / 2 - bounds.left) / bounds.width));
     }
-    $('towerHeight').textContent = 'Kat ' + s.score;
+    if(!correct)s.lives--;
+    $('towerHeight').textContent = 'Kat ' + s.score+'/3 · '+livesLabel(s);
     $('towerFeedback').textContent = correct ? 'Doğru! Bir kat yükseldin.' : 'Platform çatladı. Doğru cevap: ' + item.back;
     const next = $('towerNext');
     next.hidden = false;
-    next.textContent = s.i + 1 === s.pool.length ? 'Sonucu gör' : 'Sıradaki kelime';
+    next.textContent = runOver(s) || s.i + 1 === s.pool.length ? 'Sonucu gör' : 'Sıradaki kelime';
     next.focus();
     next.onclick = () => { if (session === s && next.isConnected) { s.i++; tower(); } };
   });

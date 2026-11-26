@@ -1,3 +1,4 @@
+import {runOver,livesLabel} from './short-run.js';
 import { $, escape } from '../core/utils.js';
 import { page, session } from '../core/state.js';
 import { exitBind, finish, record, topStudy } from '../features/session.js';
@@ -8,7 +9,7 @@ const isLetter = letter => /[\p{L}\p{N}]/u.test(letter);
 
 export function detective() {
   const s=session;
-  if(s.i>=s.pool.length){finish();return}
+  if(runOver(s)){finish();return}
   const item=s.pool[s.i],characters=Array.from(item.front.trim().normalize('NFC'));
   const playable=characters.some(isLetter)?isLetter:ch=>ch.trim()!=='';
   const solution=new Set(characters.filter(playable).map(normalize));
@@ -30,7 +31,7 @@ export function detective() {
     b.onclick=()=>guess(key,b);b.dataset.letter=key;keyboard.append(b);
   }
   function draw(reveal=false){
-    $('detectiveLives').textContent='Kalan yanlış hakkı: '+left;
+    $('detectiveLives').textContent=livesLabel(s)+' · Bu kelimede kalan yanlış harf hakkı: '+left;
     const display=characters.map(ch=>!playable(ch)||reveal||guessed.has(normalize(ch))?ch:'_');
     $('detectiveWord').textContent=display.join('');
     $('detectiveWord').setAttribute('aria-label',display.map(ch=>ch==='_'?'boş':ch).join(' '));
@@ -47,10 +48,10 @@ export function detective() {
     const note=$('detectiveFeedback');
     if(!ended){note.textContent=found?'Harf açıldı.':'Bu harf kelimede yok.';root.focus({preventScroll:true});return}
     record(item,solved);
-    if(solved)s.score++;
+    if(solved)s.score++;else s.lives--;draw(true);
     note.textContent=(solved?'Kelimeyi çözdün! ':'Doğru kelime: ')+item.front;
     keyboard.querySelectorAll('button').forEach(b=>b.disabled=true);
-    next.hidden=false;next.textContent=s.i+1===s.pool.length?'Sonucu gör':'Sıradaki kelime';next.focus();
+    next.hidden=false;next.textContent=runOver(s)||s.i+1===s.pool.length?'Sonucu gör':'Sıradaki kelime';next.focus();
   }
   root.onkeydown=e=>{
     if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1)return;

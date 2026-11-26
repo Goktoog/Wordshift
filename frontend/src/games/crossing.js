@@ -1,3 +1,4 @@
+import {runOver,livesLabel} from './short-run.js';
 import { $, escape } from '../core/utils.js';
 import { page, session } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
@@ -6,7 +7,7 @@ import { traffic, hopTime, safeToGo, crossingHit } from './crossing-traffic.js';
 
 export function crossing() {
   const s=session;
-  if(s.i>=s.pool.length){finish();return}
+  if(runOver(s)){finish();return}
   $('view').innerHTML=topStudy('Kelime Geçidi')+`<section class="card crossing-game">
     <div class="top"><strong id="crossingProgress"></strong><span id="crossingRound"></span></div>
     <canvas id="crossingRoad" role="img" aria-label="Tavuğun arkasından görülen üç şeritli yol ve aradaki güvenli refüjler"></canvas>
@@ -19,7 +20,7 @@ export function crossing() {
   const signal=$('crossingSignal'),feedback=$('crossingFeedback');
   const active=()=>session===s&&page==='play'&&canvas.isConnected;
   let lane=0,roads=0,hits=0,time=0,last=null,started=0,impact=0,phase='question';
-  const progress=()=>{$('crossingProgress').textContent=`Tamamlanan yol: ${roads} · Şerit ${lane}/${traffic.length} · Çarpışma ${hits}`};
+  const progress=()=>{$('crossingProgress').textContent=`${livesLabel(s)} · Tamamlanan yol: ${roads} · Şerit ${lane}/${traffic.length} · Çarpışma ${hits}`};
   function updateSignal(){
     const safe=safeToGo(lane,time),label=safe?'Geçiş aralığı açık':'Araç yaklaşıyor';
     if(signal.textContent!==label)signal.textContent=label;
@@ -31,7 +32,7 @@ export function crossing() {
     step.focus();
   }
   function resolved(){
-    phase='result';next.textContent=s.i+1===s.pool.length?'Sonucu gör':'Sıradaki kelime';
+    phase='result';next.textContent=runOver(s)||s.i+1===s.pool.length?'Sonucu gör':'Sıradaki kelime';
     next.hidden=false;next.focus();
   }
   function question(){
@@ -45,14 +46,14 @@ export function crossing() {
       const ok=matchesAnswer(value,item,!button);
       $('crossingAnswers').querySelectorAll('button,input').forEach(el=>el.disabled=true);
       record(item,ok);
-      if(!ok){feedback.textContent='Doğru cevap: '+item.back;resolved();return}
-      s.score++;feedback.textContent='Geçiş hakkı kazandın. Güvenli anı seç.';ready();
+      if(!ok){s.lives--;progress();feedback.textContent='Doğru cevap: '+item.back;resolved();return}
+      feedback.textContent='Geçiş hakkı kazandın. Güvenli anı seç.';ready();
     });
   }
   next.onclick=()=>{
     if(!active()||phase!=='result')return;
     s.i++;
-    if(s.i===s.pool.length){
+    if(runOver(s)){
       finish();
       $('view').querySelector('.hero').insertAdjacentHTML('beforeend',`<p>${roads} yol tamamlandı · ${hits} çarpışma</p>`);
     }else question();
@@ -64,15 +65,15 @@ export function crossing() {
   function advance(dt){
     time+=dt;
     if(phase==='impact'&&time-impact>=.6){
-      lane=0;progress();feedback.textContent='Kaldırıma döndün. Aynı hakla yeniden geçebilirsin.';ready();
+      lane=0;progress();if(s.lives===0){resolved();return}feedback.textContent='Kaldırıma döndün. Aynı hakla yeniden geçebilirsin.';ready();
     }
     if(phase!=='moving')return;
     const t=Math.min(1,(time-started)/hopTime);
     if(crossingHit(lane,started,time-dt,time)){
-      phase='impact';impact=time;hits++;progress();feedback.textContent='Araca çarptın!';return;
+      phase='impact';impact=time;hits++;s.lives--;progress();feedback.textContent='Araca çarptın!';return;
     }
     if(t>=1){
-      lane++;if(lane===traffic.length)roads++;
+      s.score++;lane++;if(lane===traffic.length)roads++;
       progress();feedback.textContent=lane===traffic.length?'Karşı kıyıya ulaştın!':'Refüje ulaştın. Burada güvendesin.';
       resolved();
     }

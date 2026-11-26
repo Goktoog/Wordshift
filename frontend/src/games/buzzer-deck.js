@@ -25,3 +25,13 @@ export function buzzerOptions(item,items){
   const others=[...new Set(choices.filter(x=>x&&x!==item.back))].slice(0,3);
   return others.length?shuffle([item.back,...others]):[];
 }
+
+// Keep this formula in sync with wordshift_private.buzzer_time for online rooms.
+export function buzzerSeconds(item,options,answering=false){
+  const count=text=>text.trim().split(/\s+/u).length;
+  const bonus={paragraph:12,translate:8,blank:5,mc:3}[item.type]||0;
+  const reading=Math.ceil(Math.max(0,count(item.front)-3)*.6);
+  const choiceWords=options.reduce((sum,choice)=>sum+count(choice),0);
+  const response=!answering?0:choiceWords?Math.ceil(Math.max(0,choiceWords-4)*.45):4+Math.ceil(count(item.back)*1.2);
+  return Math.min(120,10+bonus+reading+response);
+}

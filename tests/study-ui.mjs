@@ -35,11 +35,12 @@ document.querySelector('[data-action="crossing"]').click();tick();
 for (const correct of [false,true]) {
  const item=state.session.pool[state.session.i];
  const button=[...document.querySelectorAll('[data-answer]')].find(b=>(b.textContent===item.back)===correct);
- button.click();button.click();assert.equal(state.session.score,correct?1:0);
+ button.click();button.click();assert.equal(state.session.score,0);assert.equal(state.session.lives,2);
  if(correct){
   const goButton=document.querySelector('#crossingGo'),signal=document.querySelector('#crossingSignal');
   waitFrames(()=>signal.dataset.safe==='false');goButton.click();
   waitFrames(()=>document.querySelector('#crossingFeedback').textContent.includes('çarptın'));
+  assert.equal(state.session.lives,1);
   waitFrames(()=>!goButton.hidden&&signal.dataset.safe==='true');goButton.click();
   waitFrames(()=>!document.querySelector('#crossingNext').hidden);
   assert.match(document.querySelector('#crossingProgress').textContent,/Şerit 1\/3 · Çarpışma 1/);

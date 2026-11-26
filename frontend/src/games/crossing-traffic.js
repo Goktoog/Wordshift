@@ -11,16 +11,16 @@ export function nearestCar(lane, time) {
 }
 // A lane is dangerous from 27% to 73% of a hop. Sweep both moving footprints
 // over the frame interval so a car cannot pass through the chicken between frames.
-export function crossingHit(index, start, from, to) {
+export function crossingHit(index, start, from, to, x=0) {
   const lane = traffic[index];
   const entry = Math.max(from, start + .27 * hopTime);
   const exit = Math.min(to, start + .73 * hopTime);
   if (entry > exit) return false;
   const clearance = lane.length / 2 + 9;
-  const left = lane.phase + lane.speed * entry - clearance;
-  const right = lane.phase + lane.speed * exit + clearance;
+  const left = lane.phase - x*lane.direction + lane.speed * entry - clearance;
+  const right = lane.phase - x*lane.direction + lane.speed * exit + clearance;
   return Math.ceil(left / lane.spacing) <= Math.floor(right / lane.spacing);
 }
-export function safeToGo(index, time) {
-  return !crossingHit(index, time, time, time + hopTime);
+export function safeToGo(index, time, x=0) {
+  return !crossingHit(index, time, time, time + hopTime, x);
 }

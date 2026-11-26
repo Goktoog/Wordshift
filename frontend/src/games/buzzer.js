@@ -3,7 +3,7 @@ import { page, session, user, setTimer, timer } from '../core/state.js';
 import { record, exitBind, topStudy, finish } from '../features/session.js';
 import { bonkSound } from '../ui/feedback.js';
 import { botProfile, answerChance } from './bot-skill.js';
-import { buzzerOptions } from './buzzer-deck.js';
+import { buzzerOptions,buzzerSeconds } from './buzzer-deck.js';
 
 export const animals=['Panda','Goril','Şempanze','Kedi','Köpek','Eşek','T-Rex'];
 export const avatarPicker=(value=0)=>`<label class="bng-picker">Avatarın <select id="bngAvatar">${animals.map((name,i)=>`<option value="${i}" ${i===value?'selected':''}>${name}</option>`).join('')}</select></label>`;
@@ -76,17 +76,17 @@ export function buzzer(){
     }
     function startRound(){
       item=s.pool[round%s.pool.length];options=buzzerOptions(item,s.pool);
-      phase='buzz';attempted=[false,false];hitBy=-1;deadline=now()+10000;
+      phase='buzz';attempted=[false,false];hitBy=-1;const read=buzzerSeconds(item,options);deadline=now()+read*1000;
       chance=answerChance(profile,item);
       botKnows=Math.random()<chance;
       // A confident bot can still wait, and an unsure bot may risk a guess.
       const wait=profile.hesitate+(botKnows?-.10:.23);
-      botAt=Math.random()<wait?Infinity:now()+profile.read+Math.min(2200,item.front.length*13)+(botKnows?0:1100)+Math.random()*1200;
+      botAt=Math.random()<wait?Infinity:now()+profile.read+(read-10)*550+(botKnows?0:1100)+Math.random()*1200;
       message='Soruyu oku ve butona bas.';draw();
     }
     function claim(n,note){
       const pressed=phase==='buzz'?n:-1;
-      phase='answer';actor=n;deadline=now()+10000;botAt=now()+1100+Math.random()*900;
+      phase='answer';actor=n;const seconds=buzzerSeconds(item,options,true);deadline=now()+seconds*1000;botAt=now()+1100+(seconds-10)*280+Math.random()*900;
       message=note||(n?'Bot cevaplıyor…':'Cevap sırası sende.');draw(pressed);
     }
     function answer(ok){
