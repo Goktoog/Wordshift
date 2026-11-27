@@ -10,6 +10,8 @@ const games = [
   ['tower', '🧊', 'Kelime Kulesi', 'Doğru platformu seç, bir kat yukarı zıpla'],
   ['detective', '🔎', 'Kelime Dedektifi', 'Türkçe ipucundan İngilizce kelimeyi harf harf çöz'],
   ['crossing', '🐔', 'Kelime Geçidi', 'Doğru cevabı bul, tavuğu karşıya geçir'],
+  ['draw','🎨','Çiz ve Bil','Kelimeyi çiz, arkadaşının çizimini tahmin et'],
+  ['taboo','💥','Yasak Kelime','Dört yasak sözcüğü kullanmadan kelimeyi anlat'],
 ];
 
 export const gameTitles = Object.fromEntries(games.map(([id,,title])=>[id,title]));

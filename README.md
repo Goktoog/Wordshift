@@ -19,7 +19,11 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Öğrenme:** Çevrilebilir ve kaydırılabilir kartlar, yazılı cevaplar, "bilmediklerim ve boş bıraktıklarım" tekrar listesi.
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
-- **Oyunlar:** Dokuz oyunun tamamında tek oyunculu / botlu ve iki oyunculu çevrimiçi seçenekleri bulunur.
+- **Oyunlar:** On bir oyun, set ekranından veya oyun salonundan başlatılabilir. Çiz ve Bil ve Yasak Kelime çevrimiçi, aynı cihazda iki kişi veya tek kişilik tahmin alıştırması olarak oynanır.
+- **Çiz ve Bil:** Çizen, gizli kelimeyi renkler, fırça, çizgi, dikdörtgen, elips, üçgen ve alan doldurma araçlarıyla anlatır. Tek kişilik mod hazır çizimli kelimeleri kullanır.
+- **Yasak Kelime:** Anlatıcı her kartta dört yasağı görür. Gönderilen ipucunda hedef kelime veya yasak bir sözcük geçerse tur kapanır ve anlatıcı 25 puan kaybeder. Doğru tahmin +100, başarılı anlatım +50 puandır.
+- **Rövanş:** İki oyunculu maç sonunda aynı mod veya yeni bir mod teklif edilebilir. Rakip onayladığında aynı ikili yeni maça geçer.
+- **Öğrenme hedefi:** İlk girişte seçilen YDS, YÖKDİL, günlük İngilizce, seyahat veya kariyer hedefi genel bakıştaki günlük kartı belirler. Hedef kişisel profilden değiştirilebilir.
 - **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
 - **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.

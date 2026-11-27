@@ -271,3 +271,14 @@
 .bonk-stars b:nth-child(2){animation-delay:-.333s}.bonk-stars b:nth-child(3){animation-delay:-.667s}
 @keyframes bonk-orbit{0%,100%{transform:translate(-25px,-4px) scale(.85)}25%{transform:translate(-6px,-10px) scale(.68)}50%{transform:translate(18px,-4px) scale(.85)}75%{transform:translate(-6px,1px) scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.bonk-stars b{animation:none}.bonk-stars b:nth-child(1){left:-23px}.bonk-stars b:nth-child(2){top:-8px}.bonk-stars b:nth-child(3){left:19px}}
+
+/* Shared mobile drawing surface and learning preferences */
+.sketch-pad{display:block;width:100%;max-width:720px;height:auto;aspect-ratio:8/5;background:#fff;border:2px solid #737b8c;border-radius:12px;touch-action:none;cursor:crosshair;image-rendering:pixelated}
+.sketch-tools{display:flex;flex-wrap:wrap;align-items:end;gap:.65rem;margin:.7rem 0}
+.sketch-tools label{display:grid;gap:.2rem}.sketch-tools select{width:auto;min-height:44px}
+.ink-palette{display:flex;flex-wrap:wrap;gap:4px}.ink-palette button{background:var(--ink);border:2px solid #89919c;width:36px;height:36px;padding:0;border-radius:50%}.ink-palette [aria-pressed=true]{outline:3px solid currentColor;outline-offset:1px}
+.goal-option{display:flex;align-items:center;gap:.65rem;min-height:44px}.goal-option input{width:auto}
+.studio-secret{font-size:clamp(1.5rem,5vw,2.5rem);margin:.4rem 0}.ban-list{display:flex;flex-wrap:wrap;gap:.4rem;margin:.7rem 0}
+.studio-message{min-height:1.6em;font-weight:650}.studio-message.burst{color:#df4357;animation:studio-burst .35s ease-out}
+@keyframes studio-burst{40%{transform:translateX(4px)}70%{transform:translateX(-3px)}}
+@media(prefers-reduced-motion:reduce){.studio-message.burst{animation:none}}

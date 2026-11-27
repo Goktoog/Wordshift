@@ -1,3 +1,4 @@
+import { goalCard, bindGoal } from './goals.js';
 import { mountMatchHistory } from '../games/pvp-panels.js';
 import { uploadImage } from '../services/cloud.js';
 import { $, escape } from '../core/utils.js';
@@ -97,6 +98,7 @@ export function profile(u){
  $('view').insertAdjacentHTML('beforeend','<div class="section"><h2>Oluşturduğu çalışma setleri</h2>'+u.sets.map(s=>'<div class="card"><button data-profile-set="'+escape(s.id)+'"><strong>'+escape(s.name)+'</strong></button><p class="muted">'+s.items.length+' içerik</p></div>').join('')+'</div>');
  $('view').querySelectorAll('[data-profile-set]').forEach(b=>b.onclick=()=>go('detail',b.dataset.profileSet));
  if(!own){$('return').onclick=()=>go('leaderboard');return}
+ $('out').insertAdjacentHTML('afterend',goalCard(u,true));bindGoal(()=>profile(u));
  const slot=$('adminSlot');
  const refreshCounts=editable&&mountFollowStats($('followStats'),u.id);
  if(editable)void userProfile(u.id).then(p=>{if(!slot.isConnected||user!==u)return;if(p)refreshCounts(p);isAdminUser=!!p?.is_admin;if(isAdminUser)slot.innerHTML=adminBadge(u.badgeColor||p.badge_color)}).catch(()=>{});

@@ -1,3 +1,4 @@
+import { editGoal } from './goals.js';
 import { $, uid } from '../core/utils.js';
 import { db, user, save, setUser, timer, setSession, setSharedSet, setPage } from '../core/state.js';
 import { applyTheme } from './settings.js';
@@ -52,6 +53,7 @@ function show(u, initialPage='home') {
  setUser(u);
  if(!u.guest){db.users=db.users.filter(x=>x.id!==u.id);db.users.push(u);db.active=u.id;save()}
  $('auth').hidden=true; $('app').hidden=false; concealPasswords(true); go(initialPage);
+ if(!u.learningGoal && initialPage==='home')editGoal(()=>go('home',null,false));
 }
 async function login(account, epoch) {
  const valid=()=>epoch===authEpoch&&mode!=='reset';

@@ -1,3 +1,4 @@
+import { forbiddenWords } from '../games/taboo-cards.js';
 import { user, save } from '../core/state.js';
 import { mixedQuestions, buzzerOptions } from '../games/buzzer-deck.js';
 import { client, flushCloud } from './cloud.js';
@@ -9,10 +10,14 @@ async function playRpc(name,params){
  if(error)throw friendly(error);
  return data;
 }
+export function gameWords(mode,set){
+ const candidates=mode==='buzzer'?mixedQuestions(set?.items||[]):[];
+ const words=mode==='buzzer'?candidates.map(x=>({type:x.type,front:x.front,back:x.back,options:buzzerOptions(x,candidates)})):(set?.items||[]).filter(x=>x.type==='word').slice().sort(()=>Math.random()-.5).slice(0,100).map(x=>({front:x.front,back:x.back,...(mode==='taboo'?{banned:forbiddenWords(x)}:{})}));
+ return words;
+}
 export async function lobby(action,{mode='meteor',set=null,code='',pool=''}={}) {
  if(!user?.guest&&(action==='create'||action==='quick'))await flushCloud();
- const candidates=mode==='buzzer'&&['quick','create'].includes(action)?mixedQuestions(set?.items||[]):[];
- const words=mode==='buzzer'?candidates.map(x=>({type:x.type,front:x.front,back:x.back,options:buzzerOptions(x,candidates)})):(set?.items||[]).filter(x=>x.type==='word').slice().sort(()=>Math.random()-.5).slice(0,100).map(x=>({front:x.front,back:x.back}));
+ const words=['quick','create'].includes(action)?gameWords(mode,set):[];
  const owner=user;
  const id=await playRpc('lobby',{action,game_mode:mode,words,set_title:set?.name||'',room_code:code,...(pool?{pool_level:pool}:{})});
  if(owner?.guest&&user===owner&&owner.roomId!==id){owner.roomId=id;save()}

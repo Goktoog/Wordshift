@@ -5,7 +5,7 @@ if (!globalThis.crypto) globalThis.crypto=webcrypto;
 // This is not a substitute for real browser UI tests.
 const els = new Map();
 const elem = id => {
-  if (!els.has(id)) els.set(id, {id,hidden:false,style:{},dataset:{},value:'',innerHTML:'',classList:{add(){},remove(){},toggle(){}},querySelectorAll(){return []},querySelector(){return this},append(){},setAttribute(){},insertAdjacentHTML(){}});
+  if (!els.has(id)) els.set(id, {id,hidden:false,style:{},dataset:{},value:'',showModal(){this.open=true},close(){this.open=false},innerHTML:'',classList:{add(){},remove(){},toggle(){}},querySelectorAll(){return []},querySelector(){return this},append(){},setAttribute(){},insertAdjacentHTML(){}});
   return els.get(id);
 };
 globalThis.confirm=()=>true;globalThis.history={replaceState(){},pushState(){}};globalThis.window={location:{href:'http://localhost/'},setInterval(){return 0},clearInterval(){},addEventListener(){}};

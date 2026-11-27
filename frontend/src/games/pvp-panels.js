@@ -17,7 +17,7 @@ export function mountPools(host,onSelect,getPool=()=>''){
    host.innerHTML=`<h3>Canlı oyuncu havuzları</h3><p class="muted">Sayılar seni içermez. “Uygun” oyuncular ${escape(poolLabel(data.level))} ${['YDS','YOKDIL'].includes(data.level)?'havuzunda':'seviyesinde'}. Yaklaşık 3 saniyede bir güncellenir.</p><div class="pool-grid">${ordered.map(p=>`<div class="pool-card"><strong>${gameTitles[p.mode]}</strong><span class="pool-count">${p.waiting} kişi bekliyor</span><span>${p.compatible} uygun rakip</span><small>${p.compatible>0?'Uygun rakip var; eşleşme denenebilir.':p.waiting>0?'Bekleyen oyuncular farklı seviyede.':'Şu anda kuyrukta başka oyuncu yok.'}</small><small>${p.estimateSeconds!==null?`Son ${p.samples} eşleşmede ortalama bekleme: ${Math.max(1,Math.round(p.estimateSeconds))} sn. Yeni eşleşme için garanti değildir.`:'Tahmini süre: yeterli eşleşme verisi yok.'}</small><button data-pool="${p.mode}">Online rakip ara</button></div>`).join('')}</div>`;
    if(gameModes.some(mode=>!data.pools.some(p=>p.mode===mode))){
     const note=document.createElement('p');note.className='notice';note.setAttribute('role','status');
-    note.textContent='Sunucudaki oyun listesi eski. Dokuz oyunu etkinleştirmek için Supabase SQL Editor’da güncel Wordshift-Guncelleme.sql dosyasını çalıştır.';
+    note.textContent='Sunucudaki oyun listesi eski. Tüm oyunları etkinleştirmek için Supabase SQL Editor’da güncel Wordshift-Guncelleme.sql dosyasını çalıştır.';
     host.prepend(note);
    }
    host.querySelectorAll('[data-pool]').forEach(b=>b.onclick=()=>onSelect(b.dataset.pool));

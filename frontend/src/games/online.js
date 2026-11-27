@@ -1,3 +1,4 @@
+import { mountStudio } from './studio.js';
 import {detectiveInput} from './detective-input.js';
 import { arcadeModes, mountArcade } from './online-arcade.js';
 import { gameTitles, mountPools, poolLabel, poolForSet } from './pvp-panels.js';
@@ -8,7 +9,7 @@ import { $, escape } from '../core/utils.js';
 import { user,page,setTimer,timer,save } from '../core/state.js';
 import { go } from '../core/router.js';
 import { starterSets } from '../features/starters.js';
-import { lobby, room } from '../services/pvp.js';
+import { lobby, room, gameWords } from '../services/pvp.js';
 import { sound, bonkSound, matchFoundSound, countdownBeep } from '../ui/feedback.js';
 import { mountMeteor } from './online-meteor.js';
 import { shipCells, canPlace } from './fleet-layout.js';
@@ -38,9 +39,9 @@ export function online(autoQuick=false){
  if(selectionOwner!==user){selectionOwner=user;preferredSet=null;preferredPool='';preferredMode='runner'}
  if(preferredSet)preferredPool=poolForSet(preferredSet);
  const sets=[...user.sets,...starterSets],defaultSet=preferredSet||starterSets.find(s=>s.id==='starter-'+(user.level||'A1').toLowerCase())||starterSets[0];if(preferredSet&&!sets.some(s=>s.id===preferredSet.id))sets.unshift(preferredSet);
- root.innerHTML=`<div class="card"><div class="pvp-setup"><label>Oyun<select id="onlineMode">${Object.entries(titles).map(([id,title])=>`<option value="${id}" ${id===preferredMode?'selected':''}>${title}</option>`).join('')}</select></label><label>Çalışma seti<select id="onlineSet">${sets.map((s,i)=>`<option value="${i}" ${s.id===defaultSet?.id?'selected':''}>${escape(s.name)}</option>`).join('')}</select></label><label>Eşleşme havuzu<select id="onlinePool"><option value="">Seviyem · ${escape(user.level||'A1')}</option><option value="YDS">YDS</option><option value="YOKDIL">YÖKDİL</option></select></label></div><p>Hızlı eşleşme, seçtiğin havuzdaki oyuncuları aynı oyunda buluşturur: kendi seviyen (<strong>${escape(user.level||'A1')}</strong>), <strong>YDS</strong> veya <strong>YÖKDİL</strong>. YDS ve YÖKDİL havuzlarında kelimeler ilgili hazır setten gelir ve seviyeden bağımsız eşleşirsin. Oda koduyla farklı seviyelerdeki arkadaşlarınla da oynayabilirsin.</p><p class="muted">İki oyuncu da oda sahibinin setinden aynı kelimeleri görür. Seçilen en fazla 20 kelime rakiple paylaşılır; Kelime Blokları 8 çift kullanır. Cümle Düellosu seviyene uygun hazır cümleler kullanır.</p><div class="actions"><button class="primary" id="quickMatch">Hızlı eşleş</button><button id="createRoom">Arkadaş için oda oluştur</button></div><form id="joinRoom" class="pvp-join"><label>Oda kodu<input id="roomCode" maxlength="10" minlength="10" autocomplete="off" required placeholder="10 karakterlik kod"></label><button>Odaya katıl</button></form><p class="muted">Kule ve Geçit üç canla başlar. Kule’de ilk elenen kaybeder. Geçit’te canların bitince rakibini izlersin. İki oyuncunun da canı bittiğinde yüksek puan kazanır. Herkes kendi hızında ilerler. Kelime Kulesi: doğru platform bir kat kazandırır. Kelime Geçidi: kelimeyi bil, trafik açıldığında şeridi geç. Kelime Dedektifi: her yanlış harfte bir parça çizilir. Yedi parçada oyun biter. Kafanı Kırarım: Maskot seçimi için 15 saniyen var. İkiniz de seçince üç canla başlarsınız. Düğmeye ilk basan aynı soruyu önce cevaplar, yanlışta sıra rakibe geçer. Runner ve Meteor Avı: 3 can, her cevap için 10 saniye. Amiral Battı: cevap ve atış için ayrı ayrı 10 saniye. Kelime Blokları: 60 saniye. Cümle Düellosu: süre, kelime sayısı ve cümlenin yapısına göre belirlenir. İlk doğru tamamlayan cümleyi alır, kimse tamamlayamazsa kimse puan almaz. Bağlantı 30 saniye kesilirse rakibin kazanır; iki taraf da koparsa maç berabere kapanır. Doğru cevapların XP kazandırır ve seviye ilerlemene sayılır; yanlış bildiklerin “Yanlış bildiklerim” listene eklenir.</p><p id="lobbyStatus" role="status">Devam eden maçın kontrol ediliyor…</p></div>`;
+ root.innerHTML=`<div class="card"><div class="pvp-setup"><label>Oyun<select id="onlineMode">${Object.entries(titles).map(([id,title])=>`<option value="${id}" ${id===preferredMode?'selected':''}>${title}</option>`).join('')}</select></label><label>Çalışma seti<select id="onlineSet">${sets.map((s,i)=>`<option value="${i}" ${s.id===defaultSet?.id?'selected':''}>${escape(s.name)}</option>`).join('')}</select></label><label>Eşleşme havuzu<select id="onlinePool"><option value="">Seviyem · ${escape(user.level||'A1')}</option><option value="YDS">YDS</option><option value="YOKDIL">YÖKDİL</option></select></label></div><p>Hızlı eşleşme, seçtiğin havuzdaki oyuncuları aynı oyunda buluşturur: kendi seviyen (<strong>${escape(user.level||'A1')}</strong>), <strong>YDS</strong> veya <strong>YÖKDİL</strong>. YDS ve YÖKDİL havuzlarında kelimeler ilgili hazır setten gelir ve seviyeden bağımsız eşleşirsin. Oda koduyla farklı seviyelerdeki arkadaşlarınla da oynayabilirsin.</p><p class="muted">Çiz ve Bil ve Yasak Kelime’de oyuncular sırayla anlatır ve tahmin eder. Doğru tahmin +100, başarılı anlatım +50 puandır. İki oyuncu da oda sahibinin setinden aynı kelimeleri görür. Seçilen en fazla 20 kelime rakiple paylaşılır; Kelime Blokları 8 çift kullanır. Cümle Düellosu seviyene uygun hazır cümleler kullanır.</p><div class="actions"><button class="primary" id="quickMatch">Hızlı eşleş</button><button id="createRoom">Arkadaş için oda oluştur</button></div><form id="joinRoom" class="pvp-join"><label>Oda kodu<input id="roomCode" maxlength="10" minlength="10" autocomplete="off" required placeholder="10 karakterlik kod"></label><button>Odaya katıl</button></form><p class="muted">Kule ve Geçit üç canla başlar. Kule’de ilk elenen kaybeder. Geçit’te canların bitince rakibini izlersin. İki oyuncunun da canı bittiğinde yüksek puan kazanır. Herkes kendi hızında ilerler. Kelime Kulesi: doğru platform bir kat kazandırır. Kelime Geçidi: kelimeyi bil, trafik açıldığında şeridi geç. Kelime Dedektifi: her yanlış harfte bir parça çizilir. Yedi parçada oyun biter. Kafanı Kırarım: Maskot seçimi için 15 saniyen var. İkiniz de seçince üç canla başlarsınız. Düğmeye ilk basan aynı soruyu önce cevaplar, yanlışta sıra rakibe geçer. Runner ve Meteor Avı: 3 can, her cevap için 10 saniye. Amiral Battı: cevap ve atış için ayrı ayrı 10 saniye. Kelime Blokları: 60 saniye. Cümle Düellosu: süre, kelime sayısı ve cümlenin yapısına göre belirlenir. İlk doğru tamamlayan cümleyi alır, kimse tamamlayamazsa kimse puan almaz. Bağlantı 30 saniye kesilirse rakibin kazanır; iki taraf da koparsa maç berabere kapanır. Doğru cevapların XP kazandırır ve seviye ilerlemene sayılır; yanlış bildiklerin “Yanlış bildiklerim” listene eklenir.</p><p id="lobbyStatus" role="status">Devam eden maçın kontrol ediliyor…</p></div>`;
  $('onlineMode').value=preferredMode;$('onlineSet').value=String(Math.max(0,sets.indexOf(defaultSet)));
- let pending=false,changeMode=null;
+ let pending=false,changeMode=null,matchSet=defaultSet;
  mountPools($('onlinePools'),mode=>{if(changeMode){void changeMode(mode);return}$('onlineMode').value=mode;$('onlineMode').onchange();void enter('quick')},()=>$('onlinePool')?.value||'');
  const levelSet=()=>Math.max(0,sets.findIndex(s=>s.id==='starter-'+(user.level||'A1').toLowerCase()));
  let lastSet=poolForSet(sets[+$('onlineSet').value])?String(levelSet()):$('onlineSet').value;
@@ -52,6 +53,7 @@ export function online(autoQuick=false){
  const buttons=()=>[...root.querySelectorAll('button,select,input')];
  async function enter(action){if(pending||!active())return;pending=true;buttons().forEach(b=>b.disabled=true);const status=$('lobbyStatus');status.textContent=action==='resume'?'Devam eden maçın kontrol ediliyor…':'Odaya bağlanılıyor…';
   if(action!=='resume'&&$('onlineMode').value==='detective'){entry.hidden=false;letterInput.focus({preventScroll:true})}
+  matchSet=sets[+$('onlineSet').value]||defaultSet;
   try{const id=await lobby(action,{mode:$('onlineMode').value,set:sets[+$('onlineSet').value],code:$('roomCode').value,pool:$('onlineMode').value==='sentences'||!['quick','create'].includes(action)?'':$('onlinePool').value});if(!active()){if(id&&action!=='resume')void room(id,'leave').catch(()=>{});return}if(id){await connect(id);return}status.textContent='Hazır. Bir oyun seç veya oda kodunu gir.'}
   catch(e){if(active())status.textContent=e.message}
   finally{pending=false;if(active()&&$('lobbyStatus')){entry.hidden=true;buttons().forEach(b=>b.disabled=false);$('onlineMode').onchange()}}
@@ -59,7 +61,8 @@ export function online(autoQuick=false){
  $('quickMatch').onclick=()=>void enter('quick');$('createRoom').onclick=()=>void enter('create');$('joinRoom').onsubmit=e=>{e.preventDefault();void enter('join')};void enter(autoQuick?'quick':'resume');
  async function connect(id){
   let state=null,announced=false,stopBackground=null,busy=false,mutating=false,inFlight=null,ownTick=null,offset=0,lastPoll=0,key='',scene=null,pick=null,feedbackKey='',opponentFeedbackKey='',fleet=[3,2,1].map(length=>({length,vertical:false,cells:[]})),selected=0;
-  const cleanup=()=>{clearInterval(ownTick);stopBackground?.();scene?.stop()};
+  let closed=false;
+  const cleanup=()=>{closed=true;clearInterval(ownTick);stopBackground?.();scene?.stop()};
   closeRoom=cleanup;
   clearInterval(timer);root.innerHTML='<p>Maç yükleniyor…</p>';
   function leaveMessage(){
@@ -75,18 +78,22 @@ export function online(autoQuick=false){
    if(!active())return null;
    if(busy){if(action==='poll')return null;await inFlight;return send(action,value,extra,token)}
    busy=true;mutating=action!=='poll';let release;inFlight=new Promise(resolve=>{release=resolve});const start=Date.now();
-   try{const next=await room(id,action,token,value,extra);if(!active())return null;offset=Date.parse(next.serverNow)+(Date.now()-start)/2-Date.now();state=next;if(!announced&&['placing','active'].includes(next.status)){announced=true;matchFoundSound()}creditState(next);draw();const status=root.querySelector('#connectionStatus');if(status)status.textContent='Bağlı · '+(Math.round((Date.now()-start)))+' ms';return next}
+   try{
+    const cursor=action==='poll'&&['draw','taboo'].includes(state?.mode)&&Array.isArray(state.log)?state.log.length:value;
+    const next=await room(id,action,token,cursor,extra);
+    if(next.logFrom!==undefined)next.log=(state?.log||[]).slice(0,next.logFrom).concat(next.logDelta||[]);if(!active()||closed)return null;
+    if(next.nextRoom){cleanup();void connect(next.nextRoom);return next}offset=Date.parse(next.serverNow)+(Date.now()-start)/2-Date.now();state=next;if(!announced&&['placing','active'].includes(next.status)){announced=true;matchFoundSound()}creditState(next);draw();const status=root.querySelector('#connectionStatus');if(status)status.textContent='Bağlı · '+(Math.round((Date.now()-start)))+' ms';return next}
    catch(e){if(active()){let status=root.querySelector('#connectionStatus');if(!status){root.innerHTML='<p id="connectionStatus" role="status"></p><button id="retryRoom">Yeniden bağlan</button>';$('retryRoom').onclick=()=>void send()}status=root.querySelector('#connectionStatus');status.textContent='Bağlantı kurulamadı: '+e.message+' · Yeniden deneniyor.'}return null}
    finally{busy=false;mutating=false;release()}
   }
   function creditState(s){
    if(!s||!s.id||!s.question||!s.answer||s.answer.lost||s.status==='waiting')return;
-   const mine=arcadeModes.includes(s.mode)||['runner','meteor','sentences','buzzer'].includes(s.mode)||(s.mode==='battle'&&s.turn===s.me);
+   const mine=arcadeModes.includes(s.mode)||['runner','meteor','sentences','buzzer','draw','taboo'].includes(s.mode)||(s.mode==='battle'&&s.turn===s.me);
    if(s.mode==='buzzer'&&!s.answer.ok&&s.phase!=='feedback')return;
    if(mine)creditOnline({room:s.id,round:s.round,kind:'a',front:s.mode==='detective'?s.correct:s.question.front,back:s.mode==='detective'?s.question.front:s.correct||'',ok:!!s.answer.ok});
   }
-  function frame(){if(state?.status==='finished'){clearInterval(ownTick);stopBackground?.();scene?.stop();return}if(!active()){clearInterval(ownTick);stopBackground?.();scene?.stop();return}if(Date.now()-lastPoll>=((state?.mode==='buzzer'||arcadeModes.includes(state?.mode))&&state.status==='active'?350:1000)){lastPoll=Date.now();void send()}update()}
-  await send();if(!active())return;ownTick=setInterval(frame,100);setTimer(ownTick);stopBackground=backgroundTick(frame);
+  function frame(){if(closed)return;if(!active()){clearInterval(ownTick);stopBackground?.();scene?.stop();return}if(Date.now()-lastPoll>=((['buzzer','draw','taboo'].includes(state?.mode)||arcadeModes.includes(state?.mode))&&state.status==='active'?350:1000)){lastPoll=Date.now();void send()}update()}
+  await send();if(!active()||closed)return;ownTick=setInterval(frame,100);setTimer(ownTick);stopBackground=backgroundTick(frame);
   function draw(){
    const s=state;entry.hidden=s.mode!=='detective'||s.status==='finished';const newKey=s.status+':'+(s.mode==='tower'?'course':s.round)+':'+(['battle','buzzer'].includes(s.mode)?s.phase+':'+s.turn:'')+(s.mode==='buzzer'?':'+s.avatars.join(',')+':'+s.ready.join(','):'');
    if(newKey!==key||!$('pvpStage')){const previousKey=key;key=newKey;scene?.stop();scene=null;pick=null;
@@ -105,6 +112,14 @@ export function online(autoQuick=false){
       }
      }
      stage.innerHTML=`<div class="hero"><span class="ico">${s.winner===s.me?'🏆':'⚑'}</span><h2>${s.winner===null?'Berabere / maç sona erdi':s.winner===s.me?'Kazandın!':'Rakibin kazandı'}</h2><p>${escape(s.reason)}</p>${s.mode==='detective'&&s.names.length===2?'<div class="gallows-pair">'+duelGallows(s)+'</div>':''}<p>${user.guest?'İlerlemen bu tarayıcıda saklandı.':s.names.length===2?'Sonuç ve ayrıntılar profiline kaydedildi. Doğru cevapların XP kazandırdı.':'Bekleme sona erdi; maç oynanmadı.'}</p>${wrongWordsMarkup(s.id)}<button id="showMatchHistory">Maç geçmişim</button><button id="newOnline" class="primary">Yeni maç</button></div>`;$('showMatchHistory').onclick=()=>go('profile');$('newOnline').onclick=()=>{clearInterval(timer);online()};$('onlineBack').textContent='Oyunlara dön';
+     if(s.names.length===2){
+      stage.insertAdjacentHTML('beforeend','<section class="card"><h3>Aynı rakiple devam et</h3><div class="actions"><button id="replay">Rövanş teklif et</button><label>Oyun değiştir<select id="nextMode">'+Object.entries(titles).filter(([k])=>k!==s.mode).map(([k,v])=>'<option value="'+k+'">'+escape(v)+'</option>').join('')+'</select></label><button id="offerMode">Oyunu teklif et</button></div><p id="offerNote" role="status"></p><button id="acceptOffer" hidden>Kabul et</button><button id="cancelOffer" hidden>Vazgeç</button></section>');
+      const offer=mode=>send('offer',-1,{mode,words:mode===s.mode?[]:gameWords(mode,matchSet),title:matchSet.name});
+      $('replay').onclick=()=>void offer(s.mode);$('offerMode').onclick=()=>void offer($('nextMode').value);
+      $('acceptOffer').onclick=()=>void send('accept_offer',-1,state.offer?.mode);
+      $('cancelOffer').onclick=()=>void send('cancel_offer');
+      $('newOnline').onclick=async()=>{await send('cancel_offer');if(active()&&!closed)online()};
+     }
     }else if(s.status==='placing'&&s.mode==='buzzer'){
      const me=s.me-1,other=1-me;
      stage.innerHTML=`<div class="card"><div class="top"><h2>Maskotunu seç</h2><span class="timer" id="pvpClock"></span></div>
@@ -128,6 +143,8 @@ export function online(autoQuick=false){
     else if(s.mode==='blocks'){
      stage.innerHTML=`<div class="top"><h2>Kelime Blokları</h2><span class="timer" id="pvpClock"></span></div><p>Doğru eşleşme +100, yanlış eşleşme −15. Eşit puanda ilk tamamlayan kazanır.</p><p id="pairStatus" role="status"></p><div class="word-blocks">${['left','right'].map(side=>`<section><h3>${side==='left'?'İngilizce':'Türkçe'}</h3>${s[side].map(c=>`<button class="word-block" data-side="${side}" data-key="${c.key}">${escape(c.text)}</button>`).join('')}</section>`).join('')}</div>`;
      stage.querySelectorAll('[data-side]').forEach(b=>b.onclick=async()=>{if(mutating||now()<Date.parse(state.startsAt))return;const c={side:b.dataset.side,key:+b.dataset.key};if(!pick||pick.side===c.side){pick=c;update();return}const left=c.side==='left'?c.key:pick.key,right=c.side==='right'?c.key:pick.key;pick=null;const pairFront=state.left.find(c=>c.key===left)?.text,pairBack=state.right.find(c=>c.key===right)?.text;const result=await send('pair',left,right);if(result?.answer&&pairFront)creditOnline({room:result.id,round:Date.parse(result.answer.at)||0,kind:'p',front:pairFront,back:result.answer.ok?pairBack:'',ok:!!result.answer.ok});if(result?.answer&&$('pairStatus')){sound(result.answer.ok);$('pairStatus').textContent=result.answer.ok?'✓ Eşleşti!':'✕ Tekrar dene'}update()});
+    }else if(['draw','taboo'].includes(s.mode)){
+     scene=mountStudio(stage,s,send);
     }else if(arcadeModes.includes(s.mode)){
      scene=mountArcade(stage,s,send,now,letterInput);
     }else if(s.mode==='meteor'){
@@ -148,7 +165,14 @@ export function online(autoQuick=false){
   function update(){
    if(!state||!active())return;const s=state,t=now(),start=Date.parse(s.startsAt),end=Date.parse(s.deadline),left=Math.max(0,Math.ceil((end-t)/1000));
    if($('myLives'))$('myLives').textContent=['runner','meteor','buzzer','crossing','tower'].includes(s.mode)?'♥ '+s.lives[s.me-1]+' / 3 can':'';if($('theirLives'))$('theirLives').textContent=['runner','meteor','buzzer','crossing','tower'].includes(s.mode)?'♥ '+s.lives[2-s.me]+' / 3 can':'';
-   if($('myScore'))$('myScore').textContent=s.scores[s.me-1];if($('theirScore'))$('theirScore').textContent=s.scores[2-s.me];
+   if($('myScore'))$('myScore').textContent=String(s.scores[s.me-1]);if($('theirScore'))$('theirScore').textContent=String(s.scores[2-s.me]);
+   if($('offerNote')){
+    const offer=s.offer, mine=offer?.by===s.me;
+    $('offerNote').textContent=offer?(mine?'Rakibinin onayı bekleniyor · ':'Rakibin teklif etti · ')+titles[offer.mode]:'';
+    $('acceptOffer').hidden=!offer||mine;$('cancelOffer').hidden=!offer;
+    $('replay').disabled=$('offerMode').disabled=!!offer;
+   }
+   if(s.status==='active'&&['draw','taboo'].includes(s.mode))scene?.update(s);
    const spectating=s.mode==='crossing'&&s.lives[s.me-1]===0;
    const clock=$('pvpClock');if(clock){clock.hidden=spectating;if(s.mode==='buzzer'){clock.hidden=s.phase==='feedback';clock.textContent=String(s.status!=='placing'&&t<start?Math.ceil((start-t)/1000):left)}else clock.textContent=t<start?'Hazır ol…':left+' sn';clock.classList.toggle('urgent-text',left<=3)}
    // Last three seconds of the timer: beep once per second (only while it is this player's clock).

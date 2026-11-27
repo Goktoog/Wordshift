@@ -121,7 +121,7 @@ const log=(await db.query('select public.wordshift_pvp_history(0) r')).rows[0].r
 assert.deepEqual(log.lives,[3,0]);assert.equal(log.winner,1);
 // Guest keys identify only temporary room seats. Public player names and XP stay separate.
 const keys=Array.from({length:3},()=>crypto.randomUUID()+crypto.randomUUID());
-const guestLobby=async(key,action,mode,code='')=>(await db.query('select public.wordshift_guest_lobby($1,$2,$3,$4,$5,$6,$7) r',[key,'B1',action,mode,JSON.stringify(words),'Guest test',code])).rows[0].r;
+const guestLobby=async(key,action,mode,code='')=>(await db.query('select public.wordshift_guest_lobby($1,$2,$3,$4,$5,$6,$7) r',[key,'B1',action,mode,JSON.stringify(mode==='taboo'?words.map(w=>({...w,banned:['one','two','three','four']})):words),'Guest test',code])).rows[0].r;
 const guestRoom=async(key,id,action='poll',token=0,value=-1,extra=null)=>(await db.query('select public.wordshift_guest_room($1,$2,$3,$4,$5,$6,$7) r',[key,'B1',id,action,token,value,JSON.stringify(extra)])).rows[0].r;
 await as(null,'anon');
 await assert.rejects(()=>guestLobby('invalid','create','tower'));
@@ -143,6 +143,27 @@ for(const mode of gameModes){
  await startClock(id);await as(null,'anon');
  let s=await guestRoom(keys[1],id);
  assert.deepEqual(s.names,['Misafir','Misafir']);assert.equal(s.me,2);
+
+ if(mode==='draw'||mode==='taboo'){
+  const author=await guestRoom(keys[0],id);
+  assert.ok(author.secret);assert.equal(s.secret,undefined);assert.equal(s.question,undefined);assert.equal(s.banned,undefined);
+  if(mode==='draw'){
+   const ink={tool:'rect',color:3,size:6,points:[[20,20],[80,80]]};
+   await guestRoom(keys[1],id,'stroke',0,0,ink);assert.deepEqual((await guestRoom(keys[0],id)).log,[]);
+   await guestRoom(keys[0],id,'stroke',0,0,ink);await guestRoom(keys[0],id,'stroke',0,0,ink);
+   assert.deepEqual((await guestRoom(keys[1],id)).log,[ink]);
+   const won=await guestRoom(keys[1],id,'guess',0,-1,author.secret);assert.deepEqual(won.scores,[50,100]);
+  }else{
+   assert.equal(author.banned.length,4);
+   let clue=await guestRoom(keys[0],id,'clue',0,0,'Someone travels home.');assert.equal(clue.phase,'question');assert.equal(clue.log.length,1);
+   clue=await guestRoom(keys[0],id,'clue',0,1,'The word is ONE!');
+   assert.deepEqual(clue.scores,[-25,0]);assert.equal(clue.phase,'feedback');assert.equal(clue.log.length,1);
+   assert.deepEqual((await guestRoom(keys[0],id,'clue',0,1,'ONE')).scores,[-25,0]);
+   await admin("update wordshift_private.rooms set deadline=now()-interval '1 second' where id=$1",[id]);await as(null,'anon');
+   const second=await guestRoom(keys[1],id);assert.equal(second.turn,2);assert.ok(second.secret);assert.equal(second.round,1);
+   assert.equal((await guestRoom(keys[0],id)).secret,undefined);
+  }
+ }
  if(mode==='tower'||mode==='crossing'){
   const choice=s.question.options.indexOf(words.find(w=>w.front===s.question.front).back);
   s=await guestRoom(keys[1],id,'answer',0,choice);assert.ok(s.answer.ok);
@@ -173,6 +194,21 @@ for(const mode of gameModes){
  await guestRoom(keys[0],id,'leave');assert.equal((await guestRoom(keys[1],id)).status,'finished');
  assert.equal((await admin('select count(*) n from wordshift_private.match_history where id=$1',[id])).rows[0].n,0);await as(null,'anon');
 }
+
+const replayId=await guestLobby(keys[0],'create','draw');
+await guestLobby(keys[1],'join','draw',(await guestRoom(keys[0],replayId)).code);
+await guestRoom(keys[0],replayId,'leave');
+const proposed=await guestRoom(keys[0],replayId,'offer',0,-1,{mode:'draw',words:[]});
+assert.equal(proposed.offer.by,1);assert.equal(proposed.offer.words,undefined);
+assert.equal((await guestRoom(keys[0],replayId,'accept_offer',0,-1,'draw')).nextRoom,null);
+const replay=(await guestRoom(keys[1],replayId,'accept_offer',0,-1,'draw')).nextRoom;
+assert.ok(replay);assert.notEqual(replay,replayId);assert.equal((await guestRoom(keys[0],replayId)).nextRoom,replay);
+assert.equal((await guestRoom(keys[0],replay)).status,'active');
+await guestRoom(keys[0],replay,'leave');
+await guestRoom(keys[1],replay,'offer',0,-1,{mode:'battle',words,title:'Önerilen set'});
+const switched=(await guestRoom(keys[0],replay,'accept_offer',0,-1,'battle')).nextRoom;
+assert.equal((await guestRoom(keys[0],switched)).status,'placing');assert.equal((await guestRoom(keys[1],switched)).mode,'battle');
+await guestRoom(keys[1],switched,'leave');
 const mixedId=await guestLobby(keys[0],'quick','tower');
 await as(a);assert.equal(await lobby('quick','tower'),mixedId);await rpc(mixedId,'leave');
 const mixedHistory=(await db.query('select public.wordshift_pvp_history(0) r')).rows[0].r.find(x=>x.id===mixedId);
@@ -301,4 +337,4 @@ await admin('update wordshift_private.rooms set lives=array[0,1],scores=array[30
 await as(a);assert.equal((await rpc(detached,'leave')).status,'active');
 assert.equal(await lobby('resume','crossing'),null);
 await as(b);assert.equal((await rpc(detached,'leave')).winner,1);
-await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, nine game modes, guest seats, hidden letters, timed traffic and local-only guest history, buzzer ownership/steals/lives, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');
+await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, eleven game modes, guest seats, hidden letters, timed traffic and local-only guest history, buzzer ownership/steals/lives, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');
