@@ -20,10 +20,10 @@ Wordshift; kendi çalışma setlerini oluşturabildiğin, dil alıştırmaları 
 - **Soru çeşitleri:** Çoktan seçmeli, boşluk doldurma, çeviri ve paragraf.
 - **Çalışma seçenekleri:** Öğren, Test ve süreli Deneme; içerik türü ve 20 / 50 / tümü seçimi.
 - **Oyunlar:** On bir oyun, set ekranından veya oyun salonundan başlatılabilir. Çiz ve Bil ve Yasak Kelime çevrimiçi, aynı cihazda iki kişi veya tek kişilik tahmin alıştırması olarak oynanır.
-- **Çiz ve Bil:** Çizen, gizli kelimeyi renkler, fırça, çizgi, dikdörtgen, elips, üçgen ve alan doldurma araçlarıyla anlatır. Tek kişilik mod hazır çizimli kelimeleri kullanır.
+- **Çiz ve Bil:** Çizen, gizli kelimeyi renkler, fırça, çizgi, dikdörtgen, elips, üçgen ve alan doldurma araçlarıyla anlatır. Çok oyunculu modlar setteki çizilebilir kelimeleri seçer. Uygun kelime çıkmadığında 254 somut çizim konusundan seçim yapılır. Tek kişilik mod mevcut küçük hazır çizim destesini kullanır. Çiz ve Bil ve Yasak Kelime yakın yazımı veya doğru başlayan çok kelimeli bir tahmini bildirir.
 - **Yasak Kelime:** Anlatıcı her kartta dört yasağı görür. Gönderilen ipucunda hedef kelime veya yasak bir sözcük geçerse tur kapanır ve anlatıcı 25 puan kaybeder. Doğru tahmin +100, başarılı anlatım +50 puandır.
-- **Rövanş:** İki oyunculu maç sonunda aynı mod veya yeni bir mod teklif edilebilir. Rakip onayladığında aynı ikili yeni maça geçer.
-- **Öğrenme hedefi:** İlk girişte seçilen YDS, YÖKDİL, günlük İngilizce, seyahat veya kariyer hedefi genel bakıştaki günlük kartı belirler. Hedef kişisel profilden değiştirilebilir.
+- **Rövanş:** İki oyunculu maç sonunda aynı mod veya yeni bir mod teklif edilebilir. Rövanş düğmesi oyun kartlarını açar. Rakip kabul edebilir veya reddedip farklı oyun önerebilir. Takipçiler ve takip edilenler bekleme ekranından doğrudan odaya davet edilebilir. Kodla katılım da açıktır.
+- **Öğrenme hedefleri** — İlk girişte kartlardan genel İngilizce, seyahat, arkadaşlarla sohbet, iş veya sınav hazırlığı seçilebilir. Sınav kartı YDS ve YÖKDİL seçeneklerini açar. Birden fazla hedef seçildiğinde günün bilgisi bunlar arasında gün gün değişir. Profilde “Hedeflerimi düzenle” ile hedef eklenebilir veya tümü kaldırılabilir.
 - **Canlı oyuncu havuzları:** Her oyunda bekleyen oyuncu sayısı, seviyene uygun rakip sayısı ve yeterli veri varsa geçmiş eşleşmelere dayanan bekleme ortalaması.
 - **Maç geçmişi:** Profilinde rakip, sonuç, puanlar, doğru/yanlış sayıları, canlar, süre ve Amiral Battı atışları.
 - **Keşfet:** Diğer kullanıcıların herkese açık setlerini ara, çalış veya kendi kütüphanene bağımsız kopya olarak ekle.
@@ -79,6 +79,7 @@ Kaynak sınavı çözmek için **YDS → Çalışılacak içerik → PDF’deki 
 - Misafirler ve kayıtlı oyuncular aynı odalarda ve kuyruklarda eşleşebilir.
 - PvP’de doğru cevaplar XP kazandırır. Misafirlerin puanları ve seviye ilerlemesi yalnızca kendi tarayıcılarında tutulur.
 - Kuyruklar yaklaşık 3 saniyede, maç durumu yaklaşık 1 saniyede güncellenir. Hareket animasyonları cihazda çalışır; cevap, süre, can ve sonuçlar Supabase tarafından belirlenir.
+- Bir üst seviyeye geçmek için mevcut seviyenin hazır kelime listesindeki farklı kelimelerin en az %75’ini iki ayrı günde doğru hatırla. A1’de bu 852 kelimenin 639’udur. Kartlardaki “Biliyorum” da sayılır. Yanlış cevap kelimeyi yeniden çalışmaya alır. B2 ve üstünde öğrenilmiş kelimelerin en az altısının test, öğrenme veya oyunla doğrulanması gerekir. Eski tarih bilgisi olmayan olumlu kayıtlar bir ilk tekrar sayılır. Profildeki seviye tespit sınavı her basamakta altı sorudan beş doğru arar ve tamamlandığında seviyeyi yeniden belirler.
 - XP ve seviye rozetleri çalışma göstergesidir; resmî bir dil yeterlilik sonucu değildir.
 - Profil fotoğrafı ve kapak görseli düzenleme kayıtlı hesaplara açıktır.
 

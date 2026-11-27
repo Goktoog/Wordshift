@@ -25,3 +25,6 @@ export function countdownBeep(id,secondsLeft){
  if(!(secondsLeft>=1&&secondsLeft<=3))return;
  const key=id+':'+secondsLeft;if(key===lastBeep)return;lastBeep=key;beep();
 }
+
+export function inviteSound(){tone(587,0,.15,.07);tone(784,.16,.23,.08)}
+export function declineSound(){tone(392,0,.14,.06);tone(294,.13,.2,.06)}

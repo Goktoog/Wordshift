@@ -1,4 +1,4 @@
--- Sorgu adı: Wordshift | 2026-11-27 | Çiz ve Bil, Yasak Kelime ve rövanş
+-- Sorgu adı: Wordshift | 2026-11-27 | Arkadaş davetleri, rövanş ve çizim kelimeleri
 -- Wordshift: Misafir profil ve sıralama erişimi ve on bir çevrimiçi oyun
 -- Mevcut Wordshift Supabase projesinde SQL Editor > New query içinde tam dosyayı çalıştır.
 -- setup.sql, community.sql ve social.sql ile kurulan sosyal tabloları kullanır.
@@ -132,6 +132,7 @@ alter table wordshift_private.rooms
  add column if not exists race_ends timestamptz[],
  add column if not exists race_feedback boolean[] not null default '{false,false}',
  add column if not exists studio_log jsonb not null default '[]',
+ add column if not exists replay_notice jsonb,
  add column if not exists replay_offer jsonb,
  add column if not exists replay_until timestamptz,
  add column if not exists replay_next uuid,
@@ -148,6 +149,10 @@ alter table wordshift_private.rooms enable row level security;
 revoke all on wordshift_private.rooms from public,anon,authenticated;
 create index if not exists wordshift_queue on wordshift_private.rooms(mode,level,created_at) where status='waiting';
 
+
+create table if not exists wordshift_private.drawing_words(front text primary key,back text not null);
+revoke all on wordshift_private.drawing_words from public,anon,authenticated;
+insert into wordshift_private.drawing_words values ('deodorant','deodorant'),('computer','bilgisayar'),('glass','bardak'),('cup','fincan'),('mug','kupa'),('book','kitap'),('bottle','şişe'),('car','araba'),('microphone','mikrofon'),('monitor','monitör'),('bed','yatak'),('pillow','yastık'),('frame','çerçeve'),('picture frame','resim çerçevesi'),('wardrobe','gardırop'),('cupboard','dolap'),('sock','çorap'),('socks','çoraplar'),('guitar','gitar'),('hanger','askı'),('coat hanger','elbise askısı'),('curtain','perde'),('window','pencere'),('smoke','duman'),('table','masa'),('chair','sandalye'),('desk','çalışma masası'),('lamp','lamba'),('sofa','kanepe'),('shelf','raf'),('mirror','ayna'),('rug','kilim'),('carpet','halı'),('blanket','battaniye'),('clock','saat'),('door','kapı'),('key','anahtar'),('lock','kilit'),('fence','çit'),('ladder','merdiven'),('stairs','basamaklar'),('house','ev'),('tent','çadır'),('tower','kule'),('bridge','köprü'),('castle','kale'),('lighthouse','deniz feneri'),('windmill','yel değirmeni'),('roof','çatı'),('chimney','baca'),('bathtub','küvet'),('shower','duş'),('toilet','tuvalet'),('sink','lavabo'),('soap','sabun'),('toothbrush','diş fırçası'),('toothpaste','diş macunu'),('towel','havlu'),('comb','tarak'),('brush','fırça'),('broom','süpürge'),('bucket','kova'),('basket','sepet'),('box','kutu'),('bag','çanta'),('backpack','sırt çantası'),('suitcase','bavul'),('wallet','cüzdan'),('umbrella','şemsiye'),('hat','şapka'),('cap','kep'),('scarf','atkı'),('glove','eldiven'),('sweater','kazak'),('shirt','gömlek'),('coat','palto'),('jacket','ceket'),('skirt','etek'),('dress','elbise'),('belt','kemer'),('shoe','ayakkabı'),('boot','bot'),('glasses','gözlük'),('sunglasses','güneş gözlüğü'),('ring','yüzük'),('crown','taç'),('necklace','kolye'),('plate','tabak'),('bowl','kâse'),('fork','çatal'),('knife','bıçak'),('spoon','kaşık'),('pan','tava'),('pot','tencere'),('teapot','demlik'),('kettle','su ısıtıcısı'),('jar','kavanoz'),('fridge','buzdolabı'),('oven','fırın'),('toaster','ekmek kızartma makinesi'),('cake','pasta'),('bread','ekmek'),('sandwich','sandviç'),('pizza','pizza'),('cheese','peynir'),('egg','yumurta'),('apple','elma'),('banana','muz'),('lemon','limon'),('pear','armut'),('pineapple','ananas'),('watermelon','karpuz'),('cherry','kiraz'),('strawberry','çilek'),('grapes','üzüm'),('carrot','havuç'),('onion','soğan'),('tomato','domates'),('mushroom','mantar'),('ice cream','dondurma'),('popcorn','patlamış mısır'),('lollipop','lolipop'),('pencil','kurşun kalem'),('pen','kalem'),('notebook','defter'),('envelope','zarf'),('scissors','makas'),('ruler','cetvel'),('eraser','silgi'),('paper clip','ataş'),('paintbrush','boya fırçası'),('camera','kamera'),('laptop','dizüstü bilgisayar'),('keyboard','klavye'),('printer','yazıcı'),('phone','telefon'),('telephone','telefon'),('smartphone','akıllı telefon'),('headphones','kulaklık'),('radio','radyo'),('television','televizyon'),('battery','pil'),('plug','fiş'),('light bulb','ampul'),('piano','piyano'),('violin','keman'),('drum','davul'),('flute','flüt'),('trumpet','trompet'),('bell','çan'),('ball','top'),('kite','uçurtma'),('balloon','balon'),('teddy bear','oyuncak ayı'),('robot','robot'),('bicycle','bisiklet'),('bike','bisiklet'),('motorcycle','motosiklet'),('truck','kamyon'),('bus','otobüs'),('train','tren'),('boat','tekne'),('ship','gemi'),('airplane','uçak'),('plane','uçak'),('helicopter','helikopter'),('rocket','roket'),('tractor','traktör'),('ambulance','ambulans'),('fire engine','itfaiye aracı'),('traffic light','trafik lambası'),('wheel','tekerlek'),('anchor','çapa'),('hammer','çekiç'),('saw','testere'),('nail','çivi'),('screw','vida'),('shovel','kürek'),('rope','ip'),('flag','bayrak'),('candle','mum'),('lantern','fener'),('coin','madeni para'),('tree','ağaç'),('leaf','yaprak'),('flower','çiçek'),('cactus','kaktüs'),('mountain','dağ'),('volcano','yanardağ'),('island','ada'),('river','nehir'),('waterfall','şelale'),('cloud','bulut'),('rain','yağmur'),('rainbow','gökkuşağı'),('snowflake','kar tanesi'),('snowman','kardan adam'),('sun','güneş'),('moon','ay'),('star','yıldız'),('lightning','şimşek'),('cat','kedi'),('dog','köpek'),('mouse','fare'),('rabbit','tavşan'),('bear','ayı'),('panda','panda'),('monkey','maymun'),('gorilla','goril'),('elephant','fil'),('giraffe','zürafa'),('lion','aslan'),('tiger','kaplan'),('zebra','zebra'),('horse','at'),('donkey','eşek'),('cow','inek'),('sheep','koyun'),('goat','keçi'),('pig','domuz'),('bird','kuş'),('duck','ördek'),('penguin','penguen'),('owl','baykuş'),('chicken','tavuk'),('fish','balık'),('whale','balina'),('dolphin','yunus'),('shark','köpek balığı'),('octopus','ahtapot'),('crab','yengeç'),('frog','kurbağa'),('turtle','kaplumbağa'),('snake','yılan'),('snail','salyangoz'),('butterfly','kelebek'),('spider','örümcek'),('bee','arı'),('ant','karınca'),('dinosaur','dinozor'),('eye','göz'),('ear','kulak'),('nose','burun'),('hand','el'),('tooth','diş'),('foot','ayak'),('triangle','üçgen'),('circle','daire'),('square','kare'),('heart','kalp'),('road','yol'),('school','okul'),('garden','bahçe'),('water','su') on conflict(front) do update set back=excluded.back;
 
 create table if not exists wordshift_private.sentences(id text primary key,level text not null,front text not null,back text not null);
 revoke all on wordshift_private.sentences from public,anon,authenticated;
@@ -303,7 +308,14 @@ begin
  if game_mode='sentences' then
   select jsonb_agg(jsonb_build_object('front',front,'back',back,'options',(select jsonb_agg(token order by random()) from unnest(string_to_array(back,' ')) token)) order by random()) into deck_data from wordshift_private.sentences where level=lvl;
   set_title:='Cümle Düellosu · '||lvl;
- elsif game_mode in ('draw','taboo') then
+ elsif game_mode='draw' then
+  if jsonb_typeof(words) is distinct from 'array' or octet_length(words::text)>100000 or jsonb_array_length(words)>100 then raise exception 'Geçersiz çizim destesi.';end if;
+  select jsonb_agg(to_jsonb(chosen)) into deck_data from (
+   select d.front,d.back from wordshift_private.drawing_words d where d.front in (select lower(trim(w->>'front')) from jsonb_array_elements(words) w)
+   order by random() limit 6) chosen;
+  if deck_data is null then select jsonb_agg(to_jsonb(chosen)) into deck_data from (select front,back from wordshift_private.drawing_words order by random() limit 6) chosen;end if;
+  if jsonb_array_length(deck_data)%2=1 then deck_data:=case when jsonb_array_length(deck_data)=1 then deck_data||deck_data else deck_data-(-1) end;end if;
+ elsif game_mode='taboo' then
   if jsonb_typeof(words) is distinct from 'array' or octet_length(words::text)>100000 or jsonb_array_length(words)>100 then raise exception 'Geçersiz kart listesi.';end if;
   with cards as (
    select distinct on (lower(trim(w->>'front'))) left(trim(w->>'front'),150) front,left(trim(w->>'back'),200) back,
@@ -312,7 +324,7 @@ begin
       where length(trim(term)) between 1 and 40 and lower(trim(term))<>lower(trim(w->>'front')) group by lower(trim(term)) order by min(pos) limit 4
     ) terms) banned
    from jsonb_array_elements(words) w where jsonb_typeof(w->'front')='string' and trim(w->>'front')<>''
-  ), picked as (select * from cards where game_mode='draw' or jsonb_array_length(banned)=4 order by random() limit 6)
+  ), picked as (select * from cards where jsonb_array_length(banned)=4 order by random() limit 6)
   select jsonb_agg(to_jsonb(picked) order by random()) into deck_data from picked;
   if deck_data is null then raise exception 'En az bir uygun kelime kartı gerekli.';end if;
   -- An even number of turns gives each seat the same number of chances to guess.
@@ -479,6 +491,21 @@ language sql immutable set search_path='' as $$
  select trim(regexp_replace(lower(coalesce(input,'')),'[^[:alnum:]]+',' ','g'))
 $$;
 
+create or replace function wordshift_private.guess_hint(guess text,target text) returns text
+language plpgsql immutable set search_path='' as $$
+declare a text:=wordshift_private.clue_text(guess); b text:=wordshift_private.clue_text(target);
+ aw text[]:=string_to_array(a,' '); bw text[]:=string_to_array(b,' '); n int:=0; i int:=1; rest int;
+begin
+ while n<cardinality(aw) and aw[n+1]=bw[n+1] loop n:=n+1;end loop;
+ rest:=cardinality(bw)-n;
+ if n>0 and rest>0 then return (case when n=1 then 'First word is right!' else 'First '||n||' words are right!' end)||' '||rest||case when rest=1 then ' more word.' else ' more words.' end;end if;
+ if length(a)>=2 and length(b)>=3 and abs(length(a)-length(b))<=1 then
+  while i<=length(a) and substr(a,i,1)=substr(b,i,1) loop i:=i+1;end loop;
+  if (length(a)=length(b) and (substr(a,i+1)=substr(b,i+1) or (substr(a,i,1)=substr(b,i+1,1) and substr(a,i+1,1)=substr(b,i,1) and substr(a,i+2)=substr(b,i+2))))
+   or (length(a)<length(b) and substr(a,i)=substr(b,i+1)) or (length(a)>length(b) and substr(a,i+1)=substr(b,i)) then return 'You''re close! Check your spelling.';end if;
+ end if;return 'Try again!';
+end $$;
+
 create or replace function wordshift_private.studio_step(r wordshift_private.rooms, me integer, action text, token integer, value integer, extra jsonb, t timestamptz)
 returns wordshift_private.rooms language plpgsql set search_path='' as $$
 declare
@@ -527,7 +554,7 @@ begin
    r.scores[me]:=r.scores[me]+100;r.scores[r.turn_no]:=r.scores[r.turn_no]+50;
    r.answers:=jsonb_set(r.answers,array[(me-1)::text],jsonb_build_object('ok',true));
    r.correct_counts[me]:=r.correct_counts[me]+1;message:='Buldun! Tahmin +100 · anlatım +50.';
-  else r.event:=jsonb_build_object('text','Son tahmin: '||left(trim(extra#>>'{}'),100));end if;
+  else r.event:=jsonb_build_object('text',left(trim(extra#>>'{}'),100)||' · '||wordshift_private.guess_hint(extra#>>'{}',q->>'front'));end if;
  end if;
  if message is not null then
   r.phase:='feedback';r.deadline:=t+interval '3 seconds';r.event:=jsonb_build_object('text',message||' Kelime: '||(q->>'front'));
@@ -547,7 +574,7 @@ begin
  t:=clock_timestamp();
  if not found or not who=any(r.players) then raise exception 'Bu odaya erişimin yok veya odanın süresi dolmuş.'; end if;
  me:=array_position(r.players,who); other:=3-me;
- if action not in ('poll','leave','answer','pair','fleet','shot','sentence','buzz','avatar','letter','hop','stroke','clue','guess','offer','accept_offer','cancel_offer') then raise exception 'Geçersiz işlem.'; end if;
+ if action not in ('poll','leave','answer','pair','fleet','shot','sentence','buzz','avatar','letter','hop','stroke','clue','guess','offer','accept_offer','cancel_offer','decline_offer') then raise exception 'Geçersiz işlem.'; end if;
  if r.status='active' and r.mode='crossing' and 0=any(r.lives) then
   for j in 1..2 loop
    if r.lives[j]>0 and r.seen[j]<t-interval '30 seconds' then r.lives[j]:=0;end if;
@@ -681,25 +708,28 @@ begin
  end if;
  if r.status='finished' and cardinality(r.players)=2 then
   if r.replay_until<t then r.replay_offer:=null;end if;
-  if action in ('leave','cancel_offer') then r.replay_offer:=null;end if;
+  if action='leave' or (action='cancel_offer' and ((r.replay_offer->>'by')::int=me or extra is null or extra='null'::jsonb) and (jsonb_typeof(extra)<>'string' or extra#>>'{}'=r.replay_offer->>'id')) then r.replay_offer:=null;end if;
+  if action='decline_offer' and (r.replay_offer->>'by')::int=other and extra#>>'{}'=r.replay_offer->>'id' then
+   r.replay_notice:=jsonb_build_object('id',r.replay_offer->>'id','by',me,'mode',r.replay_offer->>'mode');r.replay_offer:=null;
+  end if;
   if action='offer' and r.replay_next is null then
    if coalesce(extra->>'mode','') not in ('runner','battle','blocks','meteor','sentences','buzzer','tower','crossing','detective','draw','taboo')
     or octet_length(extra::text)>185000 then raise exception 'Geçersiz oyun teklifi.';end if;
    if r.replay_offer is null or (r.replay_offer->>'by')::int=me then
-    r.replay_offer:=jsonb_build_object('by',me,'mode',extra->>'mode','words',extra->'words','title',left(extra->>'title',120));
+    r.replay_offer:=jsonb_build_object('id',gen_random_uuid(),'by',me,'mode',extra->>'mode','words',extra->'words','title',left(extra->>'title',120));
     r.replay_until:=t+interval '60 seconds';
    end if;
   elsif action='accept_offer' and r.replay_next is null and r.replay_offer is not null
-   and (r.replay_offer->>'by')::int=other and extra#>>'{}'=r.replay_offer->>'mode' then
+   and (r.replay_offer->>'by')::int=other and (extra#>>'{}'=r.replay_offer->>'mode' or extra#>>'{}'=r.replay_offer->>'id') then
    if r.seen[other]<t-interval '10 seconds' or exists(select 1 from wordshift_private.rooms live where live.id<>r.id and live.players && r.players and live.status in ('waiting','placing','active'))
     then r.replay_offer:=null;
    else
-    if r.replay_offer->>'mode'=r.mode then
+    if r.replay_offer->>'mode'=r.mode and r.mode<>'draw' then
      insert into wordshift_private.rooms(code,mode,level,title,players,names,seen,guests,deck,right_order)
       values(upper(substr(replace(gen_random_uuid()::text,'-',''),1,10)),r.mode,r.level,r.title,array[r.players[other]],array[r.names[other]],array[t],array[r.guests[other],false],
        (select jsonb_agg(v order by random()) from jsonb_array_elements(r.deck) v),r.right_order) returning id into r.replay_next;
     else
-     r.replay_next:=wordshift_private.play_lobby(r.players[other],case when r.guests[other] then r.level end,'create',r.replay_offer->>'mode',r.replay_offer->'words',r.replay_offer->>'title','',case when r.level in ('YDS','YOKDIL') then r.level else '' end);
+     r.replay_next:=wordshift_private.play_lobby(r.players[other],case when r.guests[other] then r.level end,'create',r.replay_offer->>'mode',case when r.mode='draw' and r.replay_offer->>'mode'='draw' then r.deck else r.replay_offer->'words' end,case when r.replay_offer->>'mode'=r.mode then r.title else r.replay_offer->>'title' end,'',case when r.level in ('YDS','YOKDIL') then r.level else '' end);
     end if;
     select code into replay_code from wordshift_private.rooms where id=r.replay_next;
     perform wordshift_private.play_lobby(who,local_level,'join',r.replay_offer->>'mode','[]','',replay_code,'');
@@ -707,7 +737,7 @@ begin
    end if;
   end if;
  end if;
- update wordshift_private.rooms set studio_log=r.studio_log,replay_offer=r.replay_offer,replay_until=r.replay_until,replay_next=r.replay_next,spectator_left=r.spectator_left,race_rounds=r.race_rounds,race_starts=r.race_starts,race_ends=r.race_ends,race_feedback=r.race_feedback,race_moves=r.race_moves,guesses=r.guesses,lanes=r.lanes,avatars=r.avatars,lives=r.lives,correct_counts=r.correct_counts,wrong_counts=r.wrong_counts,seen=r.seen,status=r.status,phase=r.phase,starts_at=r.starts_at,deadline=r.deadline,round_no=r.round_no,turn_no=r.turn_no,scores=r.scores,ready=r.ready,answers=r.answers,fleets=r.fleets,shots=r.shots,completed=r.completed,last_attempt=r.last_attempt,finish_times=r.finish_times,event=r.event,winner=r.winner,reason=r.reason where id=r.id;
+ update wordshift_private.rooms set studio_log=r.studio_log,replay_notice=r.replay_notice,replay_offer=r.replay_offer,replay_until=r.replay_until,replay_next=r.replay_next,spectator_left=r.spectator_left,race_rounds=r.race_rounds,race_starts=r.race_starts,race_ends=r.race_ends,race_feedback=r.race_feedback,race_moves=r.race_moves,guesses=r.guesses,lanes=r.lanes,avatars=r.avatars,lives=r.lives,correct_counts=r.correct_counts,wrong_counts=r.wrong_counts,seen=r.seen,status=r.status,phase=r.phase,starts_at=r.starts_at,deadline=r.deadline,round_no=r.round_no,turn_no=r.turn_no,scores=r.scores,ready=r.ready,answers=r.answers,fleets=r.fleets,shots=r.shots,completed=r.completed,last_attempt=r.last_attempt,finish_times=r.finish_times,event=r.event,winner=r.winner,reason=r.reason where id=r.id;
  -- Build a seat-specific view only after persisting the shared room.
  prev_start:=r.starts_at;
  if r.race_starts is not null then
@@ -746,7 +776,7 @@ begin
  if r.mode='battle' then
   result:=result||jsonb_build_object('fleet',r.fleets->(me-1),'shots',r.shots->(me-1),'incoming',r.shots->(other-1),'hits',(select coalesce(jsonb_agg(v),'[]') from jsonb_array_elements(r.shots->(me-1)) v where r.fleets->(other-1) @> jsonb_build_array(v)));
  end if;
- if r.status='finished' then result:=result||jsonb_build_object('nextRoom',r.replay_next,'offer',case when r.replay_offer is not null then r.replay_offer-'words'-'title' end);end if;
+ if r.status='finished' then result:=result||jsonb_build_object('nextRoom',r.replay_next,'replayNotice',r.replay_notice,'offer',case when r.replay_offer is not null then r.replay_offer-'words'-'title' end);end if;
  return result;
 end $$;
 
@@ -814,6 +844,55 @@ create or replace function public.wordshift_guest_pools(guest_key text, guest_le
 language sql security definer set search_path='' as $$select wordshift_private.play_pools(wordshift_private.guest_id(guest_key),case when guest_level in ('A1','A2','B1','B2','C1','C2') then guest_level else 'A1' end,pool_level)$$;
 revoke all on function public.wordshift_guest_pools(text,text,text) from public;
 grant execute on function public.wordshift_guest_pools(text,text,text) to anon,authenticated;
+
+create table if not exists wordshift_private.room_invites (
+ room_id uuid not null references wordshift_private.rooms(id) on delete cascade,
+ recipient uuid not null references auth.users(id) on delete cascade,
+ status text not null default 'pending',created_at timestamptz not null default now(),
+ primary key(room_id,recipient)
+);
+create index if not exists room_invite_inbox on wordshift_private.room_invites(recipient,created_at desc) where status='pending';
+alter table wordshift_private.room_invites enable row level security;
+revoke all on wordshift_private.room_invites from public,anon,authenticated;
+
+create or replace function public.wordshift_room_invites(action text, room_key uuid default null, peer uuid default null)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare who uuid:=auth.uid(); r wordshift_private.rooms; pending_id uuid; result jsonb;
+begin
+ if who is null then raise exception 'Oturum açmalısın.';end if;
+ if action='inbox' then
+  select coalesce(jsonb_agg(data order by created_at desc),'[]') into result from (
+   select jsonb_build_object('room',g.id,'name',g.names[1],'mode',g.mode) data,i.created_at
+   from wordshift_private.room_invites i join wordshift_private.rooms g on g.id=i.room_id
+   where i.recipient=who and i.status='pending' and g.status='waiting' and g.created_at>now()-interval '10 minutes'
+    and g.seen[1]>now()-interval '30 seconds'
+    and exists(select 1 from public.wordshift_follows f where (f.follower_id=g.players[1] and f.followee_id=who) or (f.followee_id=g.players[1] and f.follower_id=who))
+   order by i.created_at desc limit 25) recent;
+  return result;
+ end if;
+ if action='accept' then perform pg_advisory_xact_lock(763091);end if;
+ select * into r from wordshift_private.rooms where id=room_key for update;
+ if not found then raise exception 'Oda artık açık değil.';end if;
+ if action='send' then
+  if r.status<>'waiting' or r.players[1]<>who or r.guests[1] or peer=who or r.created_at<now()-interval '10 minutes' then raise exception 'Bu odadan davet gönderilemiyor.';end if;
+  if not exists(select 1 from public.wordshift_follows f where (f.follower_id=who and f.followee_id=peer) or (f.followee_id=who and f.follower_id=peer))
+   then raise exception 'Takip listenden bir kişi seç.';end if;
+  insert into wordshift_private.room_invites(room_id,recipient) values(room_key,peer) on conflict do nothing;
+  return (select to_jsonb(i.status) from wordshift_private.room_invites i where i.room_id=room_key and i.recipient=peer);
+ end if;
+ if not exists(select 1 from wordshift_private.room_invites i where i.room_id=room_key and i.recipient=who and i.status='pending') then raise exception 'Davet artık geçerli değil.';end if;
+ if action='decline' then update wordshift_private.room_invites set status='declined' where room_id=room_key and recipient=who;return 'true'::jsonb;end if;
+ if action<>'accept' then raise exception 'Geçersiz davet işlemi.';end if;
+ if r.status<>'waiting' or not exists(select 1 from public.wordshift_follows f where (f.follower_id=r.players[1] and f.followee_id=who) or (f.followee_id=r.players[1] and f.follower_id=who))
+ then raise exception 'Davet artık geçerli değil.';end if;
+ pending_id:=wordshift_private.play_lobby(who,null,'resume');
+ if pending_id is not null and pending_id<>room_key then raise exception 'Önce mevcut oyun odandan ayrıl.';end if;
+ if wordshift_private.play_lobby(who,null,'join',r.mode,'[]','',r.code) is distinct from room_key then raise exception 'Oda artık açık değil.';end if;
+ update wordshift_private.room_invites set status='accepted' where room_id=room_key and recipient=who;
+ return to_jsonb(room_key);
+end $$;
+revoke all on function public.wordshift_room_invites(text,uuid,uuid) from public,anon;
+grant execute on function public.wordshift_room_invites(text,uuid,uuid) to authenticated;
 
 notify pgrst, 'reload schema';
 create or replace function public.wordshift_follow_list(target uuid, kind text default 'followers', page_offset integer default 0)

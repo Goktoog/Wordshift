@@ -80,13 +80,8 @@ function levelCard(u,own){
  if(!own)return '';
  const p=levelProgress(u);
  const pl=u.placement?`Son sınav: ${escape(u.placement.level)} · ${escape(u.placement.date)}`:'Henüz seviye sınavına girmedin';
- let detail='';
- if(p.next){
-  const e=p.ev,rate=Math.round(e.rate*100);
-  detail=`<div class="progress" role="progressbar" aria-valuenow="${p.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p.pct}%"></i></div><p class="muted">${escape(p.next)} içeriğinde ${Math.min(e.n,p.needAnswers)}/${p.needAnswers} cevap · doğruluk %${rate} (hedef %${p.needRate})${e.n&&e.distinct<p.needDistinct?` · ${e.distinct}/${p.needDistinct} farklı içerik`:''}</p>`;
-  if(p.suggest)detail+=`<p class="notice">${escape(p.level)} içeriğini iyi biliyorsun (%${Math.round(p.here.rate*100)} doğru). ${escape(p.next)} sorularını dene; yeterince doğru yaparsan seviyen hemen yükselir.</p>`;
- }
- return `<div class="card section" id="levelCard"><p class="eyebrow">SEVİYE İLERLEMESİ</p><h2 style="margin:6px 0">${escape(p.level)}${p.next?` → ${escape(p.next)}`:' · en üst seviye'}</h2>${detail}<p class="notice">Öğrenme, test, deneme ve oyunlarda ${p.next?`${escape(p.next)} seviyesinden en az ${p.needAnswers} soruyu (en az ${p.needDistinct} farklı içerik) %${p.needRate}+ doğru cevaplarsan seviye atlarsın. `:''}Kartlar seviyeye sayılmaz. ${pl}.</p><button id="placementBtn" class="primary">Seviye sınavına gir</button></div>`;
+ const coverage=p.next?`<p><strong>${p.learned} / ${p.total}</strong> farklı ${escape(p.level)} kelimesi öğrenildi · %${p.coverage}</p><div class="progress" role="progressbar" aria-label="Öğrenilen kelime oranı" aria-valuenow="${p.coverage}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p.coverage}%"></i></div><p>${escape(p.next)} için hedef <strong>${p.required} kelime (%75)</strong>. Kalan ${Math.max(0,p.required-p.learned)} kelime.</p><p>İkinci bir günde tekrar bekleyen <strong>${p.pending}</strong> kelime var.</p><p class="muted">Bir kelimeyi iki farklı günde doğru hatırladığında öğrenilmiş sayılır. Karttaki “Biliyorum” da sayılır. Yanlış cevapladığın kelime tekrara döner.</p>${p.needVerified?`<p>Öğrenilenlerden alıştırma veya oyunda doğrulanan · ${Math.min(p.verified,p.needVerified)}/${p.needVerified}</p>`:''}`:'';
+ return `<div class="card section" id="levelCard"><p class="eyebrow">SEVİYE İLERLEMESİ</p><h2>${escape(p.level)}${p.next?` → ${escape(p.next)}`:' · en üst seviye'}</h2>${coverage}<p class="muted">${pl}.</p>${p.total?'<button id="studyLevel">'+escape(p.level)+' kelimelerini çalış</button> ':''}<button id="placementBtn">Seviye tespit sınavına gir</button></div>`;
 }
 
 export function profile(u){
@@ -102,6 +97,7 @@ export function profile(u){
  const slot=$('adminSlot');
  const refreshCounts=editable&&mountFollowStats($('followStats'),u.id);
  if(editable)void userProfile(u.id).then(p=>{if(!slot.isConnected||user!==u)return;if(p)refreshCounts(p);isAdminUser=!!p?.is_admin;if(isAdminUser)slot.innerHTML=adminBadge(u.badgeColor||p.badge_color)}).catch(()=>{});
+ if($('studyLevel'))$('studyLevel').onclick=()=>go('starter','starter-'+levelProgress(u).level.toLowerCase());
  $('placementBtn').onclick=()=>openPlacement(()=>profile(u));
  $('out').onclick=$('logout').onclick;
  if(!editable){$('view').insertAdjacentHTML('beforeend','<section class="section" id="matchHistory"></section>');mountMatchHistory($('matchHistory'));return}

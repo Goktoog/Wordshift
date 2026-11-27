@@ -14,6 +14,7 @@ const games = [
   ['taboo','💥','Yasak Kelime','Dört yasak sözcüğü kullanmadan kelimeyi anlat'],
 ];
 
+export const gameIcons=Object.fromEntries(games.map(([id,icon])=>[id,icon]));
 export const gameTitles = Object.fromEntries(games.map(([id,,title])=>[id,title]));
 export const gameModes = games.map(([mode]) => mode);
 export const gameTiles = () => games.map(([mode, icon, title, description]) =>

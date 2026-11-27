@@ -1,3 +1,4 @@
+import { drawingWords } from '../games/drawing-words.js';
 import { arcadeModes } from '../games/short-run.js';
 import { botOptions } from '../games/bot-skill.js';
 import { sentenceSet } from '../data/sentences.js';
@@ -28,8 +29,7 @@ export function record(x,ok,withSound=true){
  updateProgress(user,set,x,ok);
  user.stats.total++;user.stats.correct+=ok?1:0;if(ok)user.xp+=10;
  noteMistake(user,x,ok,session?.m!=='cards');
- // Kartlarda cevabı çevirip bakıldığı için kart cevapları seviye kanıtı sayılmaz.
- const up=session?.m==='cards'?null:logAnswer(user,x,ok);
+ const up=logAnswer(user,x,ok,session?.m==='cards'?'card':'checked');
  user.level=computeLevel(user);
  save();header();if(withSound)sound(ok);
  if(up)toast('🎉 Seviye atladın: '+up.from+' → '+up.to);
@@ -56,7 +56,7 @@ export function begin(m,set,difficulty='normal',onlyReview=false,settings={}){
  if(filter==='questions')source=source.filter(x=>x.type!=='word');
  else if(filter==='source-exam')source=source.filter(x=>x.sourceQuestion);
  else if(filter!=='all')source=source.filter(x=>x.type===filter);
- const suitable=m==='buzzer'?source.filter(buzzerEligible):['test','exam','learn'].includes(m)?source:source.filter(x=>x.type==='word');
+ const suitable=m==='draw'?drawingWords(source):m==='buzzer'?source.filter(buzzerEligible):['test','exam','learn'].includes(m)?source:source.filter(x=>x.type==='word');
  const ordered=m==='buzzer'?mixedQuestions(suitable,suitable.length):filter==='source-exam'?suitable.slice().sort((a,b)=>a.questionNumber-b.questionNumber):shuffle(suitable);
  const limit=Number(settings.limit)||0, pool=limit?ordered.slice(0,limit):ordered;
  if(!pool.length){toast(onlyReview?'Tekrar edilecek uygun içerik yok.':'Bu içerik seçimiyle bu modda çalışılacak öğe yok. Kelimeler veya Tüm içerikler seçimini dene.');return}

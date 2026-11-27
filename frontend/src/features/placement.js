@@ -3,7 +3,7 @@ import { user, save } from '../core/state.js';
 import { modal } from '../ui/modal.js';
 import { header } from '../ui/header.js';
 import { toast } from '../ui/feedback.js';
-import { buildPlacementQuestions, placementResult, computeLevel, PER_LEVEL, PASS } from './level.js';
+import { buildPlacementQuestions, placementResult, PER_LEVEL, PASS } from './level.js';
 
 export function openPlacement(onDone) {
   const qs = buildPlacementQuestions(), active = levels.filter(l => qs[l]);
@@ -16,7 +16,7 @@ export function openPlacement(onDone) {
   const body = h => { $('modalBody').innerHTML = h; };
 
   const intro = () => {
-    body(`<h2>Seviye belirleme sınavı</h2><p class="muted">A1'den başlayarak her seviyeden ${PER_LEVEL} kelime sorusu gelir. Bir seviyede en az ${PASS} doğru yaparsan bir üst seviyeye geçersin; yapamazsan sınav biter ve seviyen belirlenir. Bu resmi bir CEFR sonucu değil, yaklaşık bir tahmindir.</p><div class="actions"><button type="button" id="plStart" class="primary">Başla</button><button type="button" id="plCancel">Vazgeç</button></div>`);
+    body(`<h2>Seviye belirleme sınavı</h2><p class="muted">A1'den başlayarak her seviyeden ${PER_LEVEL} kelime sorusu gelir. Bir seviyede en az ${PASS} doğru yaparsan bir üst seviyeye geçersin; yapamazsan sınav biter ve seviyen belirlenir. Tamamladığında sonuç profil seviyeni yeniden belirler. Bu sınav kelime bilgini ölçer.</p><div class="actions"><button type="button" id="plStart" class="primary">Başla</button><button type="button" id="plCancel">Vazgeç</button></div>`);
     $('plStart').onclick = () => run(0, 0, {});
     $('plCancel').onclick = close;
   };
@@ -40,7 +40,7 @@ export function openPlacement(onDone) {
     const level = placementResult(results);
     const before = user.level;
     user.placement = { level, date: new Date().toISOString().slice(0, 10), scores: Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v.filter(Boolean).length])) };
-    user.level = computeLevel(user);
+    user.level=level;user.evidenceLevel=level;
     save(); header();
     const rows = Object.entries(results).map(([k, v]) => `<div class="row"><strong>${escape(k)}</strong><span>${v.filter(Boolean).length}/${PER_LEVEL}</span></div>`).join('');
     body(`<h2>Tahmini seviyen: ${escape(user.level)}</h2><p class="muted">${before !== user.level ? `Seviyen ${escape(before)} → ${escape(user.level)} olarak güncellendi.` : 'Seviyen değişmedi.'}</p>${rows}<div class="actions"><button type="button" id="plDone" class="primary">Tamam</button></div>`);

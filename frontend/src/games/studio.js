@@ -18,7 +18,7 @@ export function mountStudio(host, first, send){
  if(form)form.onsubmit=async e=>{
   e.preventDefault();const field=form.querySelector('input'),text=field.value.trim();if(!text||busy)return;
   busy=true;
-  try{const result=await send(narrator?'clue':'guess',state.log.length,text,token);if(result)field.value=''}finally{busy=false}
+  try{const result=await send(narrator?'clue':'guess',state.log.length,text,token);if(result&&(narrator||result.phase==='feedback'))field.value=''}finally{busy=false}
  };
  function update(next){
   state=next;const log=next.log||[];
@@ -27,7 +27,7 @@ export function mountStudio(host, first, send){
   const allowed=next.phase==='question'&&Date.parse(next.serverNow)>=Date.parse(next.startsAt);
   if(form){form.querySelector('button').disabled=busy||!allowed||(!narrator&&!log.length)||narrator&&log.length>=24;form.querySelector('input').disabled=next.phase!=='question'}
   if(pad)host.querySelector('canvas').style.pointerEvents=allowed?'auto':'none';
-  const msg=next.event?.text||'';if(note.textContent!==msg){note.textContent=msg;note.classList.toggle('burst',msg.includes('💥'))}
+  const msg=next.event?.text||'';if(note.textContent!==msg){note.textContent=msg;note.classList.toggle('burst',msg.includes('💥'));note.classList.toggle('near-guess',/You're close!|words? (?:is|are) right!/.test(msg))}
  }
  update(first);
  return {update,stop(){}};

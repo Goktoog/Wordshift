@@ -1,3 +1,4 @@
+import { drawingWords } from '../games/drawing-words.js';
 import { forbiddenWords } from '../games/taboo-cards.js';
 import { user, save } from '../core/state.js';
 import { mixedQuestions, buzzerOptions } from '../games/buzzer-deck.js';
@@ -12,7 +13,7 @@ async function playRpc(name,params){
 }
 export function gameWords(mode,set){
  const candidates=mode==='buzzer'?mixedQuestions(set?.items||[]):[];
- const words=mode==='buzzer'?candidates.map(x=>({type:x.type,front:x.front,back:x.back,options:buzzerOptions(x,candidates)})):(set?.items||[]).filter(x=>x.type==='word').slice().sort(()=>Math.random()-.5).slice(0,100).map(x=>({front:x.front,back:x.back,...(mode==='taboo'?{banned:forbiddenWords(x)}:{})}));
+ const words=mode==='buzzer'?candidates.map(x=>({type:x.type,front:x.front,back:x.back,options:buzzerOptions(x,candidates)})):(mode==='draw'?drawingWords(set?.items||[]):set?.items||[]).filter(x=>x.type==='word').slice().sort(()=>Math.random()-.5).slice(0,100).map(x=>({front:x.front,back:x.back,...(mode==='taboo'?{banned:forbiddenWords(x)}:{})}));
  return words;
 }
 export async function lobby(action,{mode='meteor',set=null,code='',pool=''}={}) {

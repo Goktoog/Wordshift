@@ -1,4 +1,6 @@
-import { editGoal } from './goals.js';
+import { watchInvites } from './room-invites.js';
+import { initializeMastery } from './level.js';
+import { editGoal, hasGoalPreferences } from './goals.js';
 import { $, uid } from '../core/utils.js';
 import { db, user, save, setUser, timer, setSession, setSharedSet, setPage } from '../core/state.js';
 import { applyTheme } from './settings.js';
@@ -51,9 +53,10 @@ function clearAuthUrl() {
 }
 function show(u, initialPage='home') {
  setUser(u);
- if(!u.guest){db.users=db.users.filter(x=>x.id!==u.id);db.users.push(u);db.active=u.id;save()}
- $('auth').hidden=true; $('app').hidden=false; concealPasswords(true); go(initialPage);
- if(!u.learningGoal && initialPage==='home')editGoal(()=>go('home',null,false));
+ const migrated=initializeMastery(u);
+ if(!u.guest){db.users=db.users.filter(x=>x.id!==u.id);db.users.push(u);db.active=u.id;save()}else if(migrated)save();
+ $('auth').hidden=true; $('app').hidden=false; concealPasswords(true); go(initialPage);watchInvites(u,()=>go('online'));
+ if(!hasGoalPreferences(u) && initialPage==='home')editGoal(()=>go('home',null,false));
 }
 async function login(account, epoch) {
  const valid=()=>epoch===authEpoch&&mode!=='reset';
@@ -61,7 +64,7 @@ async function login(account, epoch) {
  const u=await loadCloud(account,()=>makeUser(name,account.email),valid);
  if(u&&valid()) { clearGuest();clearAuthUrl(); show(u); }
 }
-function leaveWorkspace() { stopOnline();clearInterval(timer); setSession(null); setSharedSet(null); setPage('home'); }
+function leaveWorkspace() { if($('goalDialog')?.open)$('goalDialog').close();watchInvites(null); stopOnline();clearInterval(timer); setSession(null); setSharedSet(null); setPage('home'); }
 function showAuth() { const wasGuest=user?.guest;leaveWorkspace(); resetCloud(); setUser(null); db.active=null; if(wasGuest){clearGuest();applyTheme()}else save(); $('app').hidden=true; $('auth').hidden=false; }
 function enterRecovery(session) {
  authEpoch++; recoveryReady=!!session; showAuth(); setMode('reset');

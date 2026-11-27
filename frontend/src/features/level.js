@@ -1,74 +1,102 @@
-import { starterSets } from './starters.js';
+import { starterSets } from '../data/starter-sets.js';
 import { levels, shuffle } from '../core/utils.js';
+import { progressKey } from './progress.js';
 
-// ---- Seviye kanıtı: her seviyeden verilen cevaplar (kartlar hariç) ----
-// Bir seviyedeki son WINDOW cevabın içinde en az MIN_ANSWERS cevap, en az MIN_DISTINCT farklı içerik
-// ve en az PASS_RATE doğruluk varsa o seviye "geçilmiş" sayılır. Dört şıklı sorularda rastgele
-// tahminle 30 sorudan 20+ doğru yapma ihtimali ihmal edilebilir düzeydedir.
-export const EVIDENCE = { WINDOW: 100, MIN_ANSWERS: 30, MIN_DISTINCT: 15, PASS_RATE: 0.65, STRONG_RATE: 0.8 };
-export const levelIndex = l => Math.max(0, levels.indexOf(l));
-const higher = (a, b) => levelIndex(a) >= levelIndex(b) ? a : b;
+const COVERAGE = 0.75;
+export const levelIndex = level => Math.max(0, levels.indexOf(level));
+export const computeLevel = user => levels[Math.max(...[user.level, user.evidenceLevel, user.placement?.level].map(levelIndex))];
+const normalize = text => String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const localDay = date => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
+const catalogs = new Map();
 
-// Bir cevabı seviye kanıtı olarak kaydet. Seviye atlandıysa { from, to } döner.
-export function logAnswer(user, item, ok) {
-  if (!item || !levels.includes(item.level)) return null;
-  const from = computeLevel(user);
-  user.levelLog ||= {};
-  const log = user.levelLog[item.level] ||= [];
-  log.push([item.id, ok ? 1 : 0]);
-  if (log.length > EVIDENCE.WINDOW) log.splice(0, log.length - EVIDENCE.WINDOW);
-  const reached = passedLevel(user);
-  if (levelIndex(reached) > levelIndex(user.evidenceLevel || 'A1')) user.evidenceLevel = reached;
-  const to = computeLevel(user);
-  return levelIndex(to) > levelIndex(from) ? { from, to } : null;
+function catalog(level) {
+  if (catalogs.has(level)) return catalogs.get(level);
+  const set = starterSets.find(s => s.id === 'starter-' + level.toLowerCase());
+  const words = new Map(), ids = new Map();
+  for (const item of set?.items || []) {
+    if (item.type !== 'word') continue;
+    const key = normalize(item.front);
+    if (!words.has(key)) words.set(key, item.id);
+    ids.set(item.id, words.get(key));
+  }
+  const result = {set, words, ids};
+  catalogs.set(level, result);
+  return result;
 }
 
-export function levelEvidence(user, level) {
-  const log = user.levelLog?.[level] || [];
-  const correct = log.reduce((a, e) => a + e[1], 0);
-  const distinct = new Set(log.map(e => e[0])).size;
-  return { n: log.length, correct, distinct, rate: log.length ? correct / log.length : 0 };
+// Older progress contains counts but no dates. Import each eligible word as a
+// single exposure so a correct recall on a later day can complete it.
+function mastery(user, today) {
+  if (user.wordMastery) return user.wordMastery;
+  const all = user.wordMastery = {};
+  for (const level of levels) {
+    const {set, ids} = catalog(level);
+    if (!set) continue;
+    const prior = user.studyProgress?.[progressKey(set)] || {};
+    const log = user.promotion?.level === level ? user.promotion.attempts : user.levelLog?.[level];
+    const latest = new Map((log || []).filter(entry => ids.has(entry[0])).map(entry => [entry[0], entry]));
+    for (const [id, canonical] of ids) {
+      const entry = latest.get(id);
+      if (prior[id]?.needsReview || (entry && !entry[1])) continue;
+      if (!prior[id]?.correct && !entry?.[1]) continue;
+      const group = all[level] ||= {};
+      const row = group[canonical] ||= {day:today, known:false, checked:false};
+      if (entry?.[2] === 'checked') row.checked = true;
+    }
+  }
+  return all;
 }
-export const passes = ev => ev.n >= EVIDENCE.MIN_ANSWERS && ev.distinct >= EVIDENCE.MIN_DISTINCT && ev.rate >= EVIDENCE.PASS_RATE;
-
-// Kanıtı yeterli olan en yüksek seviye.
-function passedLevel(user) {
-  let best = 'A1';
-  for (const l of levels) if (passes(levelEvidence(user, l))) best = l;
-  return best;
-}
-
-// Seviye = sınavın verdiği taban, daha önce kazanılmış seviye ve güncel çalışma kanıtının yükseği.
-// Seviye bir kez kazanılınca (evidenceLevel) kötü bir günle geri düşmez.
-export function computeLevel(user) {
-  return [user.placement?.level, user.evidenceLevel, passedLevel(user)].filter(Boolean).reduce(higher, 'A1');
-}
-
-export function levelProgress(user) {
-  const level = computeLevel(user);
-  const i = levelIndex(level), next = levels[i + 1] || null;
-  const here = levelEvidence(user, level);
-  if (!next) return { level, next: null, here, pct: 100 };
-  const ev = levelEvidence(user, next);
-  // Çubuk: yeterli sayıda cevap + yeterli doğruluk, ikisinin de yarısı kadar ağırlık.
-  const pctAnswers = Math.min(1, ev.n / EVIDENCE.MIN_ANSWERS), pctRate = Math.min(1, ev.rate / EVIDENCE.PASS_RATE);
-  const pct = Math.round((pctAnswers * .5 + (ev.n ? pctRate : 0) * .5) * 100);
-  // Bu seviyeyi güçlü biliyorsa ve bir üstü henüz denenmediyse: "bir üstünü dene" önerisi.
-  const suggest = here.n >= EVIDENCE.MIN_ANSWERS && here.rate >= EVIDENCE.STRONG_RATE && ev.n < EVIDENCE.MIN_ANSWERS;
-  return { level, next, here, ev, pct, suggest, needAnswers: EVIDENCE.MIN_ANSWERS, needDistinct: EVIDENCE.MIN_DISTINCT, needRate: Math.round(EVIDENCE.PASS_RATE * 100) };
+export function initializeMastery(user, date = new Date()) {
+  if (user.wordMastery) return false;
+  mastery(user, localDay(date));
+  return true;
 }
 
-// ---- Seviye belirleme sınavı: A1'den başlar, her seviyede 5 soru, ≥4 doğruda sonraki seviyeye geçer ----
-export const PER_LEVEL = 5, PASS = 4;
+export function levelProgress(user, date = new Date()) {
+  const level = computeLevel(user), next = levels[levelIndex(level) + 1];
+  const {words} = catalog(level);
+  const group = mastery(user, localDay(date))[level] || {};
+  let learned = 0, verified = 0, pending = 0;
+  for (const id of words.values()) {
+    const word = group[id];
+    if (!word) continue;
+    if (!word.known) { pending++; continue; }
+    learned++;
+    if (word.checked) verified++;
+  }
+  const total = words.size, required = Math.ceil(total * COVERAGE);
+  const needVerified = levelIndex(level) >= levelIndex('B2') ? Math.min(6, required) : 0;
+  return {level, next, total, required, learned, verified, pending, needVerified,
+    coverage:total ? Math.floor(100 * learned / total) : 0};
+}
+export function logAnswer(user, item, ok, source = 'checked', date = new Date()) {
+  if (item?.type !== 'word' || !levels.includes(item.level)) return null;
+  const id = catalog(item.level).words.get(normalize(item.front));
+  if (!id) return null;
+  const today = localDay(date);
+  const group = mastery(user, today)[item.level] ||= {};
+  if (!ok) { delete group[id]; return null; }
+  const old = group[id];
+  const known = Boolean(old && (old.known || today > old.day));
+  group[id] = {day:Math.max(old?.day ?? today, today), known, checked:source === 'checked' || Boolean(old?.checked)};
+  if (item.level !== computeLevel(user) || !known) return null;
+  const p = levelProgress(user, date);
+  if (!p.next || !p.required || p.learned < p.required || p.verified < p.needVerified) return null;
+  user.evidenceLevel = p.next;
+  user.level = p.next;
+  return {from:p.level, to:p.next};
+}
+
+export const PER_LEVEL=6,PASS=5;
 export function buildPlacementQuestions() {
   const words = starterSets.flatMap(s => s.items.filter(x => x.type === 'word'));
   const byLevel = Object.fromEntries(levels.map(l => [l, words.filter(w => w.level === l)]));
   const out = {};
   for (const l of levels) {
-    const pool = byLevel[l];
+    const pool = [...new Map(byLevel[l].map(w=>[w.front.trim().toLowerCase(),w])).values()];
     if (pool.length < PER_LEVEL + 3) continue;
     out[l] = shuffle(pool).slice(0, PER_LEVEL).map(w => {
-      const wrong = shuffle(pool.filter(o => o.id !== w.id && o.back !== w.back)).slice(0, 3).map(o => o.back);
+      const wrong = shuffle([...new Set(pool.filter(o => o.front !== w.front && o.back !== w.back).map(o=>o.back))]).slice(0,3);
       return { w, options: shuffle([w.back, ...wrong]) };
     });
   }

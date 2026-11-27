@@ -1,3 +1,5 @@
+import { mountInvitePicker } from '../features/room-invites.js';
+import { mountRematch } from './rematch.js';
 import { mountStudio } from './studio.js';
 import {detectiveInput} from './detective-input.js';
 import { arcadeModes, mountArcade } from './online-arcade.js';
@@ -102,6 +104,10 @@ export function online(autoQuick=false){
     if(s.status==='waiting'){
      stage.innerHTML=`<div class="hero"><h2>Rakip bekleniyor</h2><p>${titles[s.mode]} · ${escape(poolLabel(s.level))} · ${escape(s.title)}</p><p>Oda kodu</p><strong class="room-code">${escape(s.code)}</strong><button id="copyCode">Kodu kopyala</button><p class="muted">Kodu arkadaşına gönder; Oyunlar → Çevrimiçi PvP → Odaya katıl. Bekleme en fazla 10 dakika sürer. Hızlı eşleşmede aynı seviyede oyuncu gelmesi gerekir.</p></div>`;
 
+     if(!user.guest){
+      stage.insertAdjacentHTML('beforeend','<div class="card"><button class="primary" id="friendInvite" aria-expanded="false">Arkadaş davet et</button><div id="invitePicker" hidden></div></div>');
+      $('friendInvite').onclick=()=>{const panel=$('invitePicker');panel.hidden=!panel.hidden;$('friendInvite').setAttribute('aria-expanded',String(!panel.hidden));if(!panel.hidden&&!panel.childElementCount)mountInvitePicker(panel,s.id)};
+     }
      $('copyCode').onclick=async()=>{const button=$('copyCode');try{await navigator.clipboard.writeText(s.code);if(button.isConnected)button.textContent='Kopyalandı'}catch{if(button.isConnected)button.textContent='Kodu seçip kopyala'}};
     }else if(s.status==='finished'){
      if(user.guest&&s.names.length===2){
@@ -111,15 +117,10 @@ export function online(autoQuick=false){
        save();
       }
      }
-     stage.innerHTML=`<div class="hero"><span class="ico">${s.winner===s.me?'🏆':'⚑'}</span><h2>${s.winner===null?'Berabere / maç sona erdi':s.winner===s.me?'Kazandın!':'Rakibin kazandı'}</h2><p>${escape(s.reason)}</p>${s.mode==='detective'&&s.names.length===2?'<div class="gallows-pair">'+duelGallows(s)+'</div>':''}<p>${user.guest?'İlerlemen bu tarayıcıda saklandı.':s.names.length===2?'Sonuç ve ayrıntılar profiline kaydedildi. Doğru cevapların XP kazandırdı.':'Bekleme sona erdi; maç oynanmadı.'}</p>${wrongWordsMarkup(s.id)}<button id="showMatchHistory">Maç geçmişim</button><button id="newOnline" class="primary">Yeni maç</button></div>`;$('showMatchHistory').onclick=()=>go('profile');$('newOnline').onclick=()=>{clearInterval(timer);online()};$('onlineBack').textContent='Oyunlara dön';
-     if(s.names.length===2){
-      stage.insertAdjacentHTML('beforeend','<section class="card"><h3>Aynı rakiple devam et</h3><div class="actions"><button id="replay">Rövanş teklif et</button><label>Oyun değiştir<select id="nextMode">'+Object.entries(titles).filter(([k])=>k!==s.mode).map(([k,v])=>'<option value="'+k+'">'+escape(v)+'</option>').join('')+'</select></label><button id="offerMode">Oyunu teklif et</button></div><p id="offerNote" role="status"></p><button id="acceptOffer" hidden>Kabul et</button><button id="cancelOffer" hidden>Vazgeç</button></section>');
-      const offer=mode=>send('offer',-1,{mode,words:mode===s.mode?[]:gameWords(mode,matchSet),title:matchSet.name});
-      $('replay').onclick=()=>void offer(s.mode);$('offerMode').onclick=()=>void offer($('nextMode').value);
-      $('acceptOffer').onclick=()=>void send('accept_offer',-1,state.offer?.mode);
-      $('cancelOffer').onclick=()=>void send('cancel_offer');
-      $('newOnline').onclick=async()=>{await send('cancel_offer');if(active()&&!closed)online()};
-     }
+     scene=mountRematch(stage,s,{send,words:mode=>gameWords(mode,matchSet),title:matchSet.name,history:()=>go('profile'),
+      newMatch:async()=>{await send('leave');if(active()&&!closed)online()},wrongWords:wrongWordsMarkup(s.id),
+      gallows:s.mode==='detective'&&s.names.length===2?'<div class="gallows-pair">'+duelGallows(s)+'</div>':''});
+     $('onlineBack').textContent='Oyunlara dön';
     }else if(s.status==='placing'&&s.mode==='buzzer'){
      const me=s.me-1,other=1-me;
      stage.innerHTML=`<div class="card"><div class="top"><h2>Maskotunu seç</h2><span class="timer" id="pvpClock"></span></div>
@@ -164,14 +165,10 @@ export function online(autoQuick=false){
   function bindQuestion(){root.querySelectorAll('[data-online-answer]').forEach(b=>b.onclick=async()=>{const before=state.round,asked=state.question;const result=await send('answer',+b.dataset.onlineAnswer);if(result){if(result.round===before)sound(!!result.answer?.ok);else if(result.mode==='battle'){sound(false);const known=/Doğrusu:\s*(.+)$/.exec(result.event?.text||'');if(asked)creditOnline({room:result.id,round:before,kind:'a',front:asked.front,back:known?known[1]:'',ok:false})}}})}
   function update(){
    if(!state||!active())return;const s=state,t=now(),start=Date.parse(s.startsAt),end=Date.parse(s.deadline),left=Math.max(0,Math.ceil((end-t)/1000));
+   const board=root.querySelector('.pvp-scoreboard');if(board)board.hidden=s.status==='finished';
    if($('myLives'))$('myLives').textContent=['runner','meteor','buzzer','crossing','tower'].includes(s.mode)?'♥ '+s.lives[s.me-1]+' / 3 can':'';if($('theirLives'))$('theirLives').textContent=['runner','meteor','buzzer','crossing','tower'].includes(s.mode)?'♥ '+s.lives[2-s.me]+' / 3 can':'';
    if($('myScore'))$('myScore').textContent=String(s.scores[s.me-1]);if($('theirScore'))$('theirScore').textContent=String(s.scores[2-s.me]);
-   if($('offerNote')){
-    const offer=s.offer, mine=offer?.by===s.me;
-    $('offerNote').textContent=offer?(mine?'Rakibinin onayı bekleniyor · ':'Rakibin teklif etti · ')+titles[offer.mode]:'';
-    $('acceptOffer').hidden=!offer||mine;$('cancelOffer').hidden=!offer;
-    $('replay').disabled=$('offerMode').disabled=!!offer;
-   }
+   if(s.status==='finished')scene?.update(s);
    if(s.status==='active'&&['draw','taboo'].includes(s.mode))scene?.update(s);
    const spectating=s.mode==='crossing'&&s.lives[s.me-1]===0;
    const clock=$('pvpClock');if(clock){clock.hidden=spectating;if(s.mode==='buzzer'){clock.hidden=s.phase==='feedback';clock.textContent=String(s.status!=='placing'&&t<start?Math.ceil((start-t)/1000):left)}else clock.textContent=t<start?'Hazır ol…':left+' sn';clock.classList.toggle('urgent-text',left<=3)}

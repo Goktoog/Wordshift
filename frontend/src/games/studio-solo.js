@@ -1,3 +1,4 @@
+import { guessHint } from './guess-hint.js';
 import { $, escape, shuffle } from '../core/utils.js';
 import { session } from '../core/state.js';
 import { topStudy, exitBind, record } from '../features/session.js';
@@ -33,7 +34,7 @@ export function studioSolo(){
  function start(solo){
   const deck=shuffle(solo&&draw?sketchPool:pool).slice(0,6);
   if(!deck.length){
-   render('<p>Bu sette hazır çizim yok. Tüm kelimelerle aynı cihazda iki kişi çizebilir veya hazır çizim destesini kullanabilirsin.</p><button id="pair">İki kişi oyna</button><button id="preset">Hazır çizimler</button>');
+   render('<p>Bu sette hazır çizim yok. Çizilebilir kelimelerle aynı cihazda iki kişi çizebilir veya hazır çizim destesini kullanabilirsin.</p><button id="pair">İki kişi oyna</button><button id="preset">Hazır çizimler</button>');
    $('pair').onclick=()=>start(false);$('preset').onclick=()=>run(shuffle(Object.keys(sketches)).slice(0,6).map(front=>({front})),true);return;
   }
   if(!solo&&deck.length%2){if(deck.length===1)deck.push(deck[0]);else deck.pop()}
@@ -54,7 +55,7 @@ export function studioSolo(){
    function guess(clue=''){
     render(head+(solo?'':'<h3>Oyuncu '+(2-seat)+' tahmin ediyor</h3>')+(draw?'<div id="soloPad"></div>':'<p>'+escape(clue)+'</p>')+'<form id="wordGuess"><label>İngilizce tahminin<input autocomplete="off" maxlength="160" required></label><button>Tahmin et</button></form><p id="guessNote" role="status"></p><button id="passWord">Pas geç</button>');
     if(draw)mountPad($('soloPad'),false).update(solo?sketchOps(normalizeGuess(item.front)):ops);
-    $('wordGuess').onsubmit=e=>{e.preventDefault();if(normalizeGuess(e.target.querySelector('input').value)!==normalizeGuess(item.front)){$('guessNote').textContent='Henüz bulamadın. Tekrar dene.';return}
+    $('wordGuess').onsubmit=e=>{e.preventDefault();if(normalizeGuess(e.target.querySelector('input').value)!==normalizeGuess(item.front)){const hint=guessHint(e.target.querySelector('input').value,item.front);$('guessNote').textContent=hint;$('guessNote').classList.toggle('near-guess',hint!=='Try again!');return}
      if(solo&&item.id)record(item,true);score[solo?0:1-seat]+=100;if(!solo)score[seat]+=50;result('Doğru tahmin!')};
     $('passWord').onclick=()=>result('Pas geçildi.');
    }
