@@ -269,4 +269,36 @@ for(const seed of [0,44,920721]){
  const streams=trafficFor(seed);
  for(const row of rows){const t=Number(row.time);assert.equal(crossingHit(streams,row.r,t,t,t+hopTime,row.x),row.hit)}
 }
+// An eliminated player spectates. Score, including a possible tie, decides the result.
+for(const [initialScores,catchUp,expected] of [[[300,0],false,1],[[300,200],true,null],[[300,300],true,2]]){
+ const [id,first]=await make('crossing');
+ await admin('update wordshift_private.rooms set scores=$2::int[],lives=array[1,1] where id=$1',[id,initialScores]);
+ await as(a);const back=words.find(w=>w.front===first.question.front).back;
+ let finishedRun=await rpc(id,'answer',0,first.question.options.findIndex(o=>o!==back));
+ assert.equal(finishedRun.status,'active');assert.deepEqual(finishedRun.lives,[0,1]);
+ const inactive=await rpc(id,'hop',0);assert.deepEqual(inactive.scores,initialScores);
+ if(catchUp){
+  await as(b);const playing=await rpc(id);
+  await rpc(id,'answer',0,playing.question.options.indexOf(back));
+  await admin("update wordshift_private.rooms set starts_at=now()-$2::float8*interval '1 second' where id=$1",[id,hopAt(playing.trafficSeed,0,20,false)]);
+  await as(b);const success=await rpc(id,'hop',0);assert.equal(success.scores[1],initialScores[1]+100);
+  await admin("update wordshift_private.rooms set race_ends[2]=now()-interval '1 second' where id=$1",[id]);
+  await as(b);assert.equal((await rpc(id)).round,1);
+ }
+ // The spectator may disconnect without ending the live player's remaining turn.
+ await admin("update wordshift_private.rooms set seen[1]=now()-interval '40 seconds' where id=$1",[id]);
+ await admin('select wordshift_private.expire_rooms()');
+ await as(b);assert.equal((await rpc(id)).status,'active');
+ await admin("update wordshift_private.rooms set race_ends[2]=now()-interval '1 second' where id=$1",[id]);
+ await as(b);const finalScore=await rpc(id);assert.deepEqual(finalScore.lives,[0,0]);
+ assert.equal(finalScore.status,'finished');assert.equal(finalScore.winner,expected);
+ await as(a);assert.equal((await rpc(id)).winner,expected);
+ const saved=(await db.query('select public.wordshift_pvp_history(0) r')).rows[0].r.find(match=>match.id===id);
+ assert.equal(saved.winner,expected);assert.deepEqual(saved.scores,finalScore.scores);
+}
+const [detached]=await make('crossing');
+await admin('update wordshift_private.rooms set lives=array[0,1],scores=array[300,0] where id=$1',[detached]);
+await as(a);assert.equal((await rpc(detached,'leave')).status,'active');
+assert.equal(await lobby('resume','crossing'),null);
+await as(b);assert.equal((await rpc(detached,'leave')).winner,1);
 await db.close();console.log('PASS PvP SQL: auth/room isolation, matchmaking/counts, three-life survival/deadlines/draw, nine game modes, guest seats, hidden letters, timed traffic and local-only guest history, buzzer ownership/steals/lives, sentence validation, hidden fleets/turns/win, duplicate/stale actions, disconnect outcomes, immutable private history/retention.');

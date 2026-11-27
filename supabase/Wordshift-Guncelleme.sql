@@ -1,3 +1,4 @@
+-- Sorgu adı: Wordshift | 2026-11-27 | Kelime Geçidi puan sonucu ve lobi sırası
 -- Wordshift: Misafir profil ve sıralama erişimi ve dokuz çevrimiçi oyun
 -- Mevcut Wordshift Supabase projesinde SQL Editor > New query içinde tam dosyayı çalıştır.
 -- setup.sql, community.sql ve social.sql ile kurulan sosyal tabloları kullanır.
@@ -130,6 +131,7 @@ alter table wordshift_private.rooms
  add column if not exists race_starts timestamptz[],
  add column if not exists race_ends timestamptz[],
  add column if not exists race_feedback boolean[] not null default '{false,false}',
+ add column if not exists spectator_left boolean[] not null default array[false,false],
  add column if not exists traffic_seed integer not null default floor(random()*1000000)::integer,
  add column if not exists race_moves jsonb not null default '[null,null]';
 alter table wordshift_private.rooms add column if not exists guests boolean[] not null default array[false,false];
@@ -204,11 +206,22 @@ end $$;
 revoke all on function wordshift_private.save_result() from public,anon,authenticated;
 drop trigger if exists wordshift_match_finished on wordshift_private.rooms;
 create trigger wordshift_match_finished after update on wordshift_private.rooms for each row execute function wordshift_private.save_result();
+create or replace function wordshift_private.score_winner(points integer[]) returns integer
+language sql immutable set search_path='' as $$
+ select case when points[1]>points[2] then 1 when points[2]>points[1] then 2 end
+$$;
+revoke all on function wordshift_private.score_winner(integer[]) from public,anon,authenticated;
+
 create or replace function wordshift_private.expire_rooms() returns void language plpgsql security definer set search_path='' as $$
 begin
+ -- Losing contact with a spectator must not interrupt the remaining player's run.
+ update wordshift_private.rooms set status='finished',lives=array[0,0],
+  winner=wordshift_private.score_winner(scores),reason='Kalan oyuncunun bağlantısı kesildi. Sonuç puanlara göre belirlendi.'
+ where status='active' and mode='crossing' and 0=any(lives)
+ and ((lives[1]>0 and seen[1]<now()-interval '30 seconds') or (lives[2]>0 and seen[2]<now()-interval '30 seconds'));
  update wordshift_private.rooms set status='finished',reason='Oyuncu bağlantısı 30 saniye boyunca kurulamadı.',
  winner=case when seen[1]<now()-interval '30 seconds' and seen[2]<now()-interval '30 seconds' then null when seen[1]<now()-interval '30 seconds' then 2 else 1 end
- where status in ('active','placing') and (seen[1]<now()-interval '30 seconds' or seen[2]<now()-interval '30 seconds');
+ where status in ('active','placing') and not (mode='crossing' and 0=any(lives)) and (seen[1]<now()-interval '30 seconds' or seen[2]<now()-interval '30 seconds');
  update wordshift_private.rooms set status='finished',reason='Bekleme süresi doldu.' where status='waiting' and (created_at<now()-interval '10 minutes' or seen[1]<now()-interval '30 seconds');
  delete from wordshift_private.rooms where created_at<now()-interval '1 day';
 end $$;
@@ -252,7 +265,7 @@ begin
  perform wordshift_private.expire_rooms();
  update wordshift_private.rooms set status='finished',reason='Odanın süresi doldu.'
  where status='waiting' and (created_at<now()-interval '10 minutes' or seen[1]<now()-interval '30 seconds');
- select * into r from wordshift_private.rooms where who=any(players) and status in ('waiting','placing','active') order by created_at desc limit 1 for update;
+ select * into r from wordshift_private.rooms where who=any(players) and not spectator_left[array_position(players,who)] and status in ('waiting','placing','active') order by created_at desc limit 1 for update;
  if found then
   if r.status='waiting' or (select max(s) from unnest(r.seen) s)>now()-interval '30 seconds' then return r.id; end if;
   update wordshift_private.rooms set status='finished',reason='Bağlantı zaman aşımı.' where id=r.id;
@@ -375,7 +388,7 @@ begin
   end loop;
  end if;
  for j in 1..2 loop
-  if t<r.race_ends[j] then continue;end if;
+  if r.lives[j]=0 or t<r.race_ends[j] then continue;end if;
   if r.race_feedback[j] then
    r.race_rounds[j]:=r.race_rounds[j]+1;
    r.answers:=jsonb_set(r.answers,array[(j-1)::text],'null'::jsonb);
@@ -390,7 +403,7 @@ begin
   end if;
  end loop;
  q:=r.deck->(r.race_rounds[me]%jsonb_array_length(r.deck));
- if not (0=any(r.lives)) and not r.race_feedback[me] and token=r.race_rounds[me] and t>=r.race_starts[me] then
+ if r.lives[me]>0 and (r.mode='crossing' or not (0=any(r.lives))) and not r.race_feedback[me] and token=r.race_rounds[me] and t>=r.race_starts[me] then
   if r.mode in ('tower','crossing') and action='answer' and r.answers->(me-1)='null'::jsonb then
    if value is null or value<0 or value>=jsonb_array_length(q->'options') then raise exception 'Geçersiz seçenek.';end if;
    ok:=q->'options'->>value=q->>'back';
@@ -431,7 +444,10 @@ begin
    if r.mode<>'detective' and (a->>'ok'='false' or a->>'collision'='true') then r.lives[me]:=greatest(0,r.lives[me]-1);end if;
   end if;
  end if;
- if 0=any(r.lives) then
+ if r.mode='crossing' and r.lives=array[0,0] then
+  r.status:='finished';r.winner:=wordshift_private.score_winner(r.scores);
+  r.reason:=case when r.winner is null then 'İki oyuncunun da canları tükendi. Puanlar eşit.' else 'İki oyuncunun da canları tükendi. Yüksek puan kazandı.' end;
+ elsif r.mode<>'crossing' and 0=any(r.lives) then
   r.status:='finished';r.reason:=case when r.mode='detective' then 'Çöp adam tamamlandı.' else 'Üç can tükendi.' end;
   r.winner:=case when r.lives[1]=r.lives[2] then null when r.lives[1]=0 then 2 else 1 end;
  end if;
@@ -451,14 +467,20 @@ begin
  if not found or not who=any(r.players) then raise exception 'Bu odaya erişimin yok veya odanın süresi dolmuş.'; end if;
  me:=array_position(r.players,who); other:=3-me;
  if action not in ('poll','leave','answer','pair','fleet','shot','sentence','buzz','avatar','letter','hop') then raise exception 'Geçersiz işlem.'; end if;
- if r.status in ('active','placing') and (r.seen[other]<t-interval '30 seconds' or r.seen[me]<t-interval '30 seconds') then
+ if r.status='active' and r.mode='crossing' and 0=any(r.lives) then
+  for j in 1..2 loop
+   if r.lives[j]>0 and r.seen[j]<t-interval '30 seconds' then r.lives[j]:=0;end if;
+  end loop;
+ elsif r.status in ('active','placing') and (r.seen[other]<t-interval '30 seconds' or r.seen[me]<t-interval '30 seconds') then
   r.status:='finished';r.reason:='Bağlantı 30 saniye boyunca kurulamadı.';
   r.winner:=case when r.seen[1]<t-interval '30 seconds' and r.seen[2]<t-interval '30 seconds' then null when r.seen[1]<t-interval '30 seconds' then 2 else 1 end;
  end if;
  r.seen[me]:=t;
  if r.status='waiting' and r.created_at<t-interval '10 minutes' then r.status:='finished';r.reason:='Bekleme süresi doldu.';end if;
  if r.status in ('active','placing') and r.mode not in ('tower','crossing','detective') and r.started_at<t-interval '15 minutes' then r.status:='finished';r.reason:='Maçın azami süresi doldu.';ending:=true;end if;
- if action='leave' and r.status<>'finished' then r.status:='finished';r.winner:=case when cardinality(r.players)=2 then other else null end;r.reason:='Oyuncu odadan ayrıldı.';end if;
+ if action='leave' and r.status='active' and r.mode='crossing' and 0=any(r.lives) then
+  r.spectator_left[me]:=true;r.lives[me]:=0;
+ elsif action='leave' and r.status<>'finished' then r.status:='finished';r.winner:=case when cardinality(r.players)=2 then other else null end;r.reason:='Oyuncu odadan ayrıldı.';end if;
  if r.status='placing' and t>=r.deadline then r.status:='finished';r.reason:=case when r.mode='buzzer' then 'Maskot seçim süresi doldu.' else 'Filo yerleştirme süresi doldu.' end;r.winner:=case when r.ready[1] and not r.ready[2] then 1 when r.ready[2] and not r.ready[1] then 2 else null end;end if;
  if r.status='placing' and r.mode='buzzer' and action='avatar' and value between 0 and 6 and not r.ready[me] then
   r.avatars[me]:=value;r.ready[me]:=true;
@@ -573,7 +595,7 @@ begin
  if ending then
   r.winner:=case when r.mode in ('runner','meteor') and r.lives[1]>r.lives[2] then 1 when r.mode in ('runner','meteor') and r.lives[2]>r.lives[1] then 2 when r.scores[1]>r.scores[2] then 1 when r.scores[2]>r.scores[1] then 2 when r.mode='blocks' and coalesce(r.finish_times[1],9999999)<coalesce(r.finish_times[2],9999999) then 1 when r.mode='blocks' and coalesce(r.finish_times[2],9999999)<coalesce(r.finish_times[1],9999999) then 2 else null end;
  end if;
- update wordshift_private.rooms set race_rounds=r.race_rounds,race_starts=r.race_starts,race_ends=r.race_ends,race_feedback=r.race_feedback,race_moves=r.race_moves,guesses=r.guesses,lanes=r.lanes,avatars=r.avatars,lives=r.lives,correct_counts=r.correct_counts,wrong_counts=r.wrong_counts,seen=r.seen,status=r.status,phase=r.phase,starts_at=r.starts_at,deadline=r.deadline,round_no=r.round_no,turn_no=r.turn_no,scores=r.scores,ready=r.ready,answers=r.answers,fleets=r.fleets,shots=r.shots,completed=r.completed,last_attempt=r.last_attempt,finish_times=r.finish_times,event=r.event,winner=r.winner,reason=r.reason where id=r.id;
+ update wordshift_private.rooms set spectator_left=r.spectator_left,race_rounds=r.race_rounds,race_starts=r.race_starts,race_ends=r.race_ends,race_feedback=r.race_feedback,race_moves=r.race_moves,guesses=r.guesses,lanes=r.lanes,avatars=r.avatars,lives=r.lives,correct_counts=r.correct_counts,wrong_counts=r.wrong_counts,seen=r.seen,status=r.status,phase=r.phase,starts_at=r.starts_at,deadline=r.deadline,round_no=r.round_no,turn_no=r.turn_no,scores=r.scores,ready=r.ready,answers=r.answers,fleets=r.fleets,shots=r.shots,completed=r.completed,last_attempt=r.last_attempt,finish_times=r.finish_times,event=r.event,winner=r.winner,reason=r.reason where id=r.id;
  -- Build a seat-specific view only after persisting the shared room.
  prev_start:=r.starts_at;
  if r.race_starts is not null then
@@ -622,7 +644,7 @@ begin
   'compatible',(select count(*) from wordshift_private.rooms where mode=m and level=lvl and status='waiting' and quick and not who=any(players)),
   'samples',(select count(*) from wordshift_private.rooms where mode=m and level=lvl and quick and started_at>now()-interval '24 hours'),
   'estimateSeconds',(select case when count(*)>=3 then ceil(avg(extract(epoch from(started_at-created_at)))) else null end from wordshift_private.rooms where mode=m and level=lvl and quick and started_at>now()-interval '24 hours')
- )) into output from unnest(array['runner','battle','blocks','meteor','sentences','buzzer','tower','crossing','detective']) m;
+ ) order by position) into output from unnest(array['runner','battle','blocks','meteor','sentences','buzzer','tower','detective','crossing']) with ordinality as modes(m,position);
  return jsonb_build_object('level',lvl,'pools',output,'serverNow',clock_timestamp());
 end $$;
 create or replace function public.wordshift_pvp_history(page_offset integer default 0) returns jsonb language plpgsql security definer set search_path='' as $$

@@ -1,5 +1,5 @@
 import {runOver,livesLabel} from './short-run.js';
-import { $, escape } from '../core/utils.js';
+import { $ } from '../core/utils.js';
 import { session, page } from '../core/state.js';
 import { answerMarkup, bindAnswer, exitBind, finish, matchesAnswer, record, topStudy } from '../features/session.js';
 
@@ -41,16 +41,23 @@ export function tower() {
   const s = session;
   if (runOver(s)) { finish(); return; }
   const item = s.pool[s.i%s.pool.length];
-  $('view').innerHTML = topStudy('Kelime Kulesi') + `<section class="card tower-game">
-    <div class="top"><strong id="towerHeight">Kat ${s.score} · ${livesLabel(s)}</strong><span>Soru ${s.i + 1}</span></div>
-    <h2>${escape(item.front)}</h2><p class="muted">Doğru anlamın olduğu platforma zıpla.</p>
+  if(!$('towerShaft'))$('view').innerHTML = topStudy('Kelime Kulesi') + `<section class="card tower-game">
+    <div class="top"><strong id="towerHeight"></strong><span id="towerRound"></span></div>
+    <h2 id="towerClue"></h2><p class="muted">Doğru anlamın olduğu platforma zıpla.</p>
     <div class="tower-shaft" id="towerShaft">
-      <div id="towerAnswers">${answerMarkup(item)}</div>
-      <div class="tower-base"><span class="tower-player" id="towerPlayer" aria-hidden="true">🐧</span></div>
+      <div id="towerAnswers"></div>
+      <div class="tower-base"></div>
     </div>
     <p id="towerFeedback" role="status"></p><button id="towerNext" class="primary" hidden></button></section>`;
   exitBind();
-  const shaft = $('towerShaft'), player = $('towerPlayer'), answers = $('towerAnswers');
+  const shaft=$('towerShaft'),answers=$('towerAnswers');
+  shaft.querySelector('.tower-base').innerHTML='<span class="tower-player" id="towerPlayer" aria-hidden="true">🐧</span>';
+  const player=$('towerPlayer');
+  $('towerRound').textContent='Soru '+(s.i+1);
+  $('towerHeight').textContent='Kat '+(1+s.score)+' · '+livesLabel(s);
+  $('towerClue').textContent=item.front;$('towerFeedback').textContent='';
+  $('towerNext').hidden=true;
+  answers.innerHTML=answerMarkup(item);
   shaft.style.setProperty('--launch', (s.towerPosition ?? 50) + '%');
   // A set with a single translation uses the same typed-answer fallback as study mode.
   if ($('answerForm')) answers.insertAdjacentHTML('afterbegin', '<div class="tower-ledge">Bir üst kat</div>');
@@ -70,7 +77,7 @@ export function tower() {
       if (bounds.width) s.towerPosition = Math.max(12, Math.min(88, 100 * (ledge.left + ledge.width / 2 - bounds.left) / bounds.width));
     }
     if(!correct)s.lives--;
-    $('towerHeight').textContent = 'Kat ' + s.score+' · '+livesLabel(s);
+    $('towerHeight').textContent = 'Kat ' + (1+s.score)+' · '+livesLabel(s);
     $('towerFeedback').textContent = correct ? 'Doğru! Bir kat yükseldin.' : 'Platform çatladı. Doğru cevap: ' + item.back;
     const next = $('towerNext');
     next.hidden = false;

@@ -110,8 +110,8 @@ Mevcut Supabase projesini ve GitHub Pages adresini kullanır. Yeni bir Node.js /
 | Meteor Avı | 3 can. Her hedef için 10 saniye. Yanlış hedef / sürede ateş etmemek bir can götürür. Roket sabittir; hedefe döner ve füze atar. |
 | Amiral Battı | 3, 2 ve 1 hücrelik gemiyi yerleştir/döndür. Filo hazırlığı 120 saniye. Cevap için 10 saniye, doğru cevaptan sonra atış için ayrıca 10 saniye. Sıralı oynanır; rakibin tüm gemilerini batıran kazanır. |
 | Kelime Blokları | Solda İngilizce, sağda Türkçe. En fazla 8 çift, 60 saniye. Doğru +100, yanlış −15 (puan sıfırın altına inmez). Yüksek puan; eşitse daha erken bitiren kazanır. |
-| Kelime Kulesi | İki oyuncu yan yana başlar. Doğru platform bir kat kazandırır. Üç canı tükenen elenir. |
-| Kelime Geçidi | Doğru cevap geçiş hakkı verir. İki oyuncu yan yana başlar. Skor sınırı yoktur. Çarpışmada bir can kaybedip kaldırıma dönersin. |
+| Kelime Kulesi | İki oyuncu birinci katta yan yana başlar. Kamera kendi penguenini takip eder ve dört ardışık kat gösterir. Doğru platform bir kat kazandırır. Üç canı tükenen elenir. |
+| Kelime Geçidi | Doğru cevap geçiş hakkı verir. İki oyuncu yan yana başlar. Canları biten oyuncu rakibini izler. İki oyuncunun da canları tükenince yüksek puan kazanır. Eşit puan beraberliktir. Çarpışmada bir can kaybedip kaldırıma dönersin. |
 | Kelime Dedektifi | Her yanlış harf veya süresi dolan kelime çizime bir parça ekler. İki oyuncunun çizimi de görünür. Yedinci parçada oyuncu elenir. |
 | Kafanı Kırarım | Soru uzunluğu ve türü okuma süresini belirler. Düğmeye basıldığında seçenekleri okumak veya yanıtı yazmak için ayrı bir süre başlar. Yanlışta soru rakibe geçer. Üç isabet kazanır. |
 | Cümle Düellosu | Seviyeye göre 6 hazır cümle, kelime sayısı, yan cümleler, devrik yapılar ve birleşik fiil yapıları süreyi belirler. Karışık kelimelerden Türkçe anlamına uygun İngilizce cümle kur; yanlış gönderim cümleyi bitirmez, süre dolana kadar düzeltebilirsin. Çevrimiçi maçta cümleyi ilk doğru tamamlayan +100 alır ve hemen sonraki cümleye geçilir; süre dolana kadar kimse tamamlayamazsa kimse puan almaz. |

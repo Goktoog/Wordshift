@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 const {gameModes:modes}=await import('../frontend/src/games/catalog.js');
 let activeMode='runner',reply,roomCalls=[],lobbyCalls=[],resume=null;
-const poolReply={level:'B1',pools:modes.map((mode,i)=>({mode,waiting:i,compatible:i?1:0,samples:0,estimateSeconds:null}))};
+const poolReply={level:'B1',pools:modes.map((mode,i)=>({mode,waiting:i,compatible:i?1:0,samples:0,estimateSeconds:null})).reverse()};
 globalThis.pvpMock={async lobby(action,options){lobbyCalls.push({action,options});if(action==='resume')return resume;activeMode=options.mode;return 'room-1'},async room(id,action,token,value,extra){roomCalls.push({id,action,token,value,extra});if(action==='leave')reply={...reply,status:'finished',reason:'Oyuncu ayrıldı.'};if(action==='answer'||action==='sentence')reply={...reply,answer:{ok:true},scores:[100,0],correct:'bahçe'};return {...reply,serverNow:new Date().toISOString()}},async pools(){return poolReply},async matchHistory(){return [{id:'r1',mode:'runner',me:1,players:['me','other'],names:['Ayşe','<b>Selen</b>'],scores:[200,100],lives:[3,0],correct_counts:[2,1],wrong_counts:[0,3],shots:[[],[]],hits:[[],[]],winner:1,reason:'Üç can tükendi.',started_at:'2026-11-21T10:00:00Z',ended_at:'2026-11-21T10:01:30Z',rounds:3,title:'YDS',level:'B1'}]}};
 registerHooks({load(url,context,next){if(url.endsWith('/services/pvp.js'))return {format:'module',shortCircuit:true,source:`export const lobby=(...args)=>globalThis.pvpMock.lobby(...args);export const room=(...args)=>globalThis.pvpMock.room(...args);export const pools=()=>globalThis.pvpMock.pools();export const matchHistory=(...args)=>globalThis.pvpMock.matchHistory(...args);`};if(url.endsWith('/services/cloud.js'))return {format:'module',shortCircuit:true,source:`export const queueCloud=()=>{};export const flushCloud=async()=>{};export const client=async()=>({rpc:async()=>({data:[],error:null})});export const SITE_URL='https://goktoog.github.io/Wordshift/';export const uploadImage=async()=>'';export const resetCloud=()=>{};export const loadCloud=async()=>{};`};return next(url,context)}});
 const win=new Window({url:'http://localhost:3000',settings:{disableJavaScriptEvaluation:true,disableCSSFileLoading:true,disableJavaScriptFileLoading:true}});
@@ -14,6 +14,7 @@ const state=await import('../frontend/src/core/state.js'),{go,initNavigation}=aw
 const account={id:'me',name:'Ayşe',guest:false,level:'B1',city:'Ankara',xp:0,stats:{total:0,correct:0},sets:[],folders:[]};state.setUser(account);state.db.users.push(account);initNavigation();const $=id=>document.getElementById(id),settle=async()=>{for(let i=0;i<5;i++)await new Promise(r=>setTimeout(r,0))};
 const base=(mode,status='active')=>({id:'room-1',code:'1234567890',mode,level:'B1',title:'Test',status,phase:'question',me:1,names:['Ayşe','Selen'],scores:[0,0],lives:[3,3],ready:[false,false],round:0,turn:1,total:8,startsAt:new Date(Date.now()-2000).toISOString(),deadline:new Date(Date.now()+10000).toISOString(),answer:null,opponentAnswered:false,question:{front:'garden',options:['bahçe','ev','yol','çiçek']},left:[{key:0,text:'garden'},{key:1,text:'house'}],right:[{key:0,text:'ev'},{key:1,text:'bahçe'}],completed:[],doneRight:[],fleet:[0,1,2,10,15,24],shots:[],incoming:[],hits:[],winner:null});
 go('games');await settle();assert.equal(document.querySelectorAll('[data-action]').length,9);assert.equal(document.querySelectorAll('[data-pool]').length,9);assert.match($('gamePools').textContent,/4 kişi bekliyor/);assert.match($('gamePools').textContent,/yeterli eşleşme verisi yok/);assert.equal(document.querySelector('[data-action="match"]'),null);
+assert.deepEqual([...document.querySelectorAll('[data-pool]')].map(b=>b.dataset.pool),modes);
 $('onlineGamePick').value='tower';$('onlineLobby').click();await settle();assert.equal($('onlineMode').value,'tower');
 go('starter','starter-a1');$('onlineGamePick').value='crossing';$('setOnline').click();await settle();assert.equal($('onlineMode').value,'crossing');
 // Selection, signup gate, queue entry and a reconnecting active Runner.
@@ -39,6 +40,20 @@ document.querySelector('[data-bng-choice="0"]').click();await settle();assert.eq
 reply=base('tower');openOnline(null,'tower');await settle();
 assert.equal(document.querySelectorAll('#towerAnswers [data-choice]').length,4);
 document.querySelector('[data-choice="0"]').click();await settle();assert.equal(roomCalls.at(-1).action,'answer');
+const shaft=document.querySelector('.race-tower'),floors=()=>[...shaft.querySelectorAll('.race-floor small')].map(el=>el.textContent);
+assert.deepEqual(floors(),['1. kat','2. kat','3. kat','4. kat']);
+const advanceUI=()=>new Promise(resolve=>setTimeout(resolve,600));
+reply={...base('tower'),round:7,scores:[600,0],question:{front:'new prompt',options:['A','B']}};
+await advanceUI();assert.equal(shaft,document.querySelector('.race-tower'));
+assert.equal(document.querySelector('#pvpStage h3').textContent,'new prompt');
+assert.deepEqual(floors(),['4. kat','5. kat','6. kat','7. kat']);
+assert.equal(shaft.querySelector('[data-seat="1"]').hidden,true);
+document.querySelector('[data-choice="1"]').click();await settle();
+assert.equal(roomCalls.filter(c=>c.action==='answer').at(-1).token,7);
+reply={...base('tower'),round:8,scores:[600,400]};await advanceUI();assert.equal(shaft.querySelector('[data-seat="1"]').hidden,false);
+assert.deepEqual(floors(),['4. kat','5. kat','6. kat','7. kat']);
+reply={...base('tower'),round:8,scores:[600,1200]};await advanceUI();assert.equal(shaft.querySelector('[data-seat="1"]').hidden,true);
+assert.deepEqual(floors(),['4. kat','5. kat','6. kat','7. kat']);
 reply={...base('detective'),mask:'______',letters:[],missed:0,extraLetters:[]};openOnline(null,'detective');await settle();
 assert.equal($('detectiveWord').textContent,'______');document.querySelector('#detectiveKeys button').click();await settle();
 assert.equal(roomCalls.at(-1).action,'letter');assert.equal(roomCalls.at(-1).extra,'a');
@@ -48,6 +63,9 @@ const startLetters=roomCalls.length;detectiveField.value='bc';detectiveField.dis
 assert.deepEqual(roomCalls.slice(startLetters).filter(x=>x.action==='letter').map(x=>x.extra),['b','c']);
 reply={...base('crossing'),lanes:[1,0],answer:{ok:true}};openOnline(null,'crossing');await settle();
 assert.equal($('crossingGo').hidden,false);$('crossingGo').click();await settle();assert.equal(roomCalls.at(-1).action,'hop');
+reply={...base('crossing'),lives:[0,1],scores:[300,0],lanes:[0,0]};await advanceUI();
+assert.equal($('crossingPrompt').hidden,true);assert.equal($('crossingGo').hidden,true);
+assert.equal($('pvpClock').hidden,true);assert.match($('arcadeNote').textContent,/izliyorsun/);
 // Private history safely renders details and links opponents through the existing people route.
 go('home');$('view').innerHTML='<section id="historyTest"></section>';mountMatchHistory($('historyTest'));await settle();assert.match($('historyTest').textContent,/Kazandın/);assert.match($('historyTest').textContent,/200 : 100/);assert.equal($('historyTest').querySelector('b'),null);assert.match($('historyTest').textContent,/1 dk 30 sn/);
 state.setUser({...account,guest:true});resume=null;openOnline();await settle();assert.equal($('onlineMode').options.length,9);assert.ok($('quickMatch'));
